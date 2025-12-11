@@ -7,7 +7,7 @@ interface CourseCardProps {
   course: Course;
 }
 
-const Card: React.FC<CourseCardProps> = ({ course }) => {
+const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
   const progress = useContext(ProgressContext)[course.id] ?? 0;
 
   return (
@@ -17,7 +17,7 @@ const Card: React.FC<CourseCardProps> = ({ course }) => {
       padding: '16px',
       boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
     }}>
-      <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '4px' }}>
+      <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '4px', color: '#000000' }}>
         {course.title}
       </h3>
       <p style={{ fontSize: '14px', color: '#4b5563', marginBottom: '8px' }}>
@@ -40,4 +40,4 @@ const Card: React.FC<CourseCardProps> = ({ course }) => {
   );
 };
 
-export default Card;
+export default CourseCard;

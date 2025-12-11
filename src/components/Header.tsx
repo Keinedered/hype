@@ -17,7 +17,8 @@ const Header: React.FC = () => {
         padding: '0 16px',
         display: 'flex',
         justifyContent: 'space-between',
-        alignItems: 'center'
+        alignItems: 'center',
+        color: '#000000'
       }}>
         <h1 style={{ fontSize: '20px', fontWeight: 700 }}>EdTech Платформа</h1>
         <div>
