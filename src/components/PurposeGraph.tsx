@@ -78,7 +78,7 @@ export function PurposeGraph() {
   return (
     <div className="w-full overflow-x-auto">
       <svg
-        viewBox="70 70 800 320"
+        viewBox="70 20 800 420"
         className="w-full min-w-[760px] h-auto text-foreground"
         role="img"
         aria-label="Ориентированный граф причин, зачем нужен GRAPH"
@@ -143,10 +143,10 @@ export function PurposeGraph() {
               <circle r="15" fill={n.color} />
               <circle r="15" fill="none" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2" />
 
-              {/* labels */}
+              {/* labels - positioned well above the node and halo to avoid overlap */}
               <text
                 x="0"
-                y="-26"
+                y="-68"
                 textAnchor="middle"
                 className="fill-current"
                 style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' }}
@@ -157,7 +157,7 @@ export function PurposeGraph() {
               </text>
               <text
                 x="0"
-                y="-6"
+                y="-50"
                 textAnchor="middle"
                 className="fill-current"
                 opacity="0.7"

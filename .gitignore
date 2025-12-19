@@ -20,4 +20,8 @@ pnpm-debug.log*
 .env
 .env.*
 
+# debug and editor files
+.cursor/
+debug.log
+*.log
 

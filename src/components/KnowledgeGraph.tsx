@@ -240,7 +240,7 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
                 stroke={style.stroke}
                 strokeWidth={isHighlighted ? style.strokeWidth * 1.5 : style.strokeWidth}
                 strokeDasharray={style.strokeDasharray}
-                opacity={isHighlighted ? 1 : 0.4}
+                opacity={isHighlighted ? 1 : 0.7}
               />
             );
           })}
