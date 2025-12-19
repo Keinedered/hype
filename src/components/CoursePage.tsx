@@ -12,6 +12,7 @@ interface CoursePageProps {
   onStartCourse?: () => void;
   onOpenMap?: () => void;
   onSelectLesson?: (lessonId: string) => void;
+  onOpenHandbook?: () => void;
 }
 
 export function CoursePage({ 
@@ -19,7 +20,8 @@ export function CoursePage({
   onBack, 
   onStartCourse,
   onOpenMap,
-  onSelectLesson 
+  onSelectLesson,
+  onOpenHandbook
 }: CoursePageProps) {
   const track = tracks.find((t) => t.id === course.trackId);
   const courseModules = modules.filter((m) => m.courseId === course.id);
@@ -293,7 +295,11 @@ export function CoursePage({
               <p className="text-sm text-muted-foreground font-mono leading-relaxed">
                 Дополнительные материалы, шаблоны и чек-листы по темам курса
               </p>
-              <Button variant="outline" className="w-full border-2 border-black hover:bg-black hover:text-white font-mono tracking-wide transition-all">
+              <Button 
+                variant="outline" 
+                onClick={onOpenHandbook}
+                className="w-full border-2 border-black hover:bg-black hover:text-white font-mono tracking-wide transition-all"
+              >
                 ОТКРЫТЬ ХЕНДБУК
               </Button>
             </Card>

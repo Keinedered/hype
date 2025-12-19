@@ -55,7 +55,7 @@ export const courses: Course[] = [
     lessonCount: 16,
     taskCount: 20,
     authors: ['Мария Иванова'],
-    status: 'locked' // Locked because basics not started
+    status: 'not_started' // Not started because basics not started
   },
   {
     id: 'product-intro',
@@ -85,7 +85,7 @@ export const courses: Course[] = [
     lessonCount: 10,
     taskCount: 12,
     authors: ['Екатерина Сидорова'],
-    status: 'available' // Available because intro is in progress? Or should wait? Let's say available.
+    status: 'not_started' // Not started yet, available after intro completion
   },
   {
     id: 'business-comm',
@@ -145,6 +145,164 @@ export const courses: Course[] = [
     authors: ['Юлия Романова', 'Павел Козлов'],
     progress: 60,
     status: 'in_progress'
+  },
+  // Additional Event courses
+  {
+    id: 'event-online',
+    trackId: 'event',
+    title: 'Организация онлайн-мероприятий',
+    version: 'v1.0',
+    description: 'Современные инструменты и платформы для онлайн-событий',
+    shortDescription: 'Веб-конференции, стримы и виртуальные выставки',
+    level: 'intermediate',
+    moduleCount: 3,
+    lessonCount: 14,
+    taskCount: 18,
+    authors: ['Дмитрий Петров'],
+    status: 'not_started'
+  },
+  {
+    id: 'event-budget',
+    trackId: 'event',
+    title: 'Бюджетирование ивентов',
+    version: 'v1.0',
+    description: 'Финансовое планирование и контроль бюджета мероприятий',
+    shortDescription: 'Расчет затрат и оптимизация бюджета',
+    level: 'advanced',
+    moduleCount: 4,
+    lessonCount: 16,
+    taskCount: 20,
+    authors: ['Анна Смирнова'],
+    status: 'not_started'
+  },
+  // Additional Digital courses
+  {
+    id: 'product-metrics',
+    trackId: 'digital',
+    title: 'Метрики продукта',
+    version: 'v1.0',
+    description: 'Ключевые метрики и их анализ для продуктовых решений',
+    shortDescription: 'North Star Metric, воронки и когорты',
+    level: 'intermediate',
+    moduleCount: 3,
+    lessonCount: 12,
+    taskCount: 15,
+    authors: ['Алексей Кузнецов'],
+    status: 'not_started'
+  },
+  {
+    id: 'product-launch',
+    trackId: 'digital',
+    title: 'Запуск продукта',
+    version: 'v1.0',
+    description: 'Go-to-Market стратегия и запуск продукта на рынок',
+    shortDescription: 'От MVP до масштабирования',
+    level: 'advanced',
+    moduleCount: 5,
+    lessonCount: 20,
+    taskCount: 25,
+    authors: ['Ольга Волкова', 'Алексей Кузнецов'],
+    status: 'not_started'
+  },
+  {
+    id: 'user-research',
+    trackId: 'digital',
+    title: 'Пользовательские исследования',
+    version: 'v1.0',
+    description: 'Методы исследования пользователей и их потребностей',
+    shortDescription: 'Интервью, опросы и анализ данных',
+    level: 'beginner',
+    moduleCount: 4,
+    lessonCount: 16,
+    taskCount: 20,
+    authors: ['Екатерина Сидорова'],
+    status: 'not_started'
+  },
+  // Additional Communication courses
+  {
+    id: 'presentation-skills',
+    trackId: 'communication',
+    title: 'Навыки презентации',
+    version: 'v1.0',
+    description: 'Эффективные презентации для бизнеса и аудитории',
+    shortDescription: 'Структура, визуализация и публичные выступления',
+    level: 'beginner',
+    moduleCount: 3,
+    lessonCount: 12,
+    taskCount: 15,
+    authors: ['Наталья Морозова'],
+    status: 'not_started'
+  },
+  {
+    id: 'crisis-comm',
+    trackId: 'communication',
+    title: 'Кризисные коммуникации',
+    version: 'v1.0',
+    description: 'Управление коммуникациями в кризисных ситуациях',
+    shortDescription: 'Стратегии и инструменты кризисного PR',
+    level: 'advanced',
+    moduleCount: 4,
+    lessonCount: 18,
+    taskCount: 22,
+    authors: ['Игорь Белов'],
+    status: 'not_started'
+  },
+  {
+    id: 'media-relations',
+    trackId: 'communication',
+    title: 'Работа со СМИ',
+    version: 'v1.0',
+    description: 'Построение отношений с медиа и работа с журналистами',
+    shortDescription: 'Пресс-релизы, интервью и медиа-киты',
+    level: 'intermediate',
+    moduleCount: 3,
+    lessonCount: 14,
+    taskCount: 18,
+    authors: ['Светлана Новикова'],
+    status: 'not_started'
+  },
+  // Additional Design courses
+  {
+    id: 'ui-fundamentals',
+    trackId: 'design',
+    title: 'Основы UI дизайна',
+    version: 'v1.0',
+    description: 'Фундаментальные принципы проектирования интерфейсов',
+    shortDescription: 'Композиция, типографика и цвет в интерфейсах',
+    level: 'beginner',
+    moduleCount: 3,
+    lessonCount: 14,
+    taskCount: 18,
+    authors: ['Артём Соколов'],
+    status: 'not_started'
+  },
+  {
+    id: 'design-systems',
+    trackId: 'design',
+    title: 'Дизайн-системы',
+    version: 'v1.0',
+    description: 'Создание и поддержка дизайн-систем для продуктов',
+    shortDescription: 'Компоненты, стили и документация',
+    level: 'advanced',
+    moduleCount: 4,
+    lessonCount: 18,
+    taskCount: 22,
+    authors: ['Юлия Романова'],
+    status: 'not_started'
+  },
+  {
+    id: 'prototyping',
+    trackId: 'design',
+    title: 'Прототипирование интерфейсов',
+    version: 'v1.0',
+    description: 'Создание интерактивных прототипов и их тестирование',
+    shortDescription: 'Figma, принципы и пользовательское тестирование',
+    level: 'intermediate',
+    moduleCount: 3,
+    lessonCount: 15,
+    taskCount: 18,
+    authors: ['Павел Козлов'],
+    status: 'not_started'
   }
 ];
 
@@ -282,6 +440,120 @@ export const graphNodes: GraphNode[] = [
     y: 500,
     status: 'current', // In progress
     size: 45
+  },
+  // Additional Event nodes
+  {
+    id: 'event-online',
+    type: 'course',
+    entityId: 'event-online',
+    title: 'Онлайн\nМероприятия',
+    x: 150,
+    y: 200,
+    status: 'available',
+    size: 45
+  },
+  {
+    id: 'event-budget',
+    type: 'course',
+    entityId: 'event-budget',
+    title: 'Бюджетирование\nИвентов',
+    x: 50,
+    y: 250,
+    status: 'locked',
+    size: 40
+  },
+  // Additional Digital nodes
+  {
+    id: 'product-metrics',
+    type: 'course',
+    entityId: 'product-metrics',
+    title: 'Метрики\nПродукта',
+    x: 850,
+    y: 200,
+    status: 'available',
+    size: 45
+  },
+  {
+    id: 'product-launch',
+    type: 'course',
+    entityId: 'product-launch',
+    title: 'Запуск\nПродукта',
+    x: 1000,
+    y: 250,
+    status: 'locked',
+    size: 40
+  },
+  {
+    id: 'user-research',
+    type: 'course',
+    entityId: 'user-research',
+    title: 'Исследования\nПользователей',
+    x: 800,
+    y: 100,
+    status: 'available',
+    size: 45
+  },
+  // Additional Communication nodes
+  {
+    id: 'presentation-skills',
+    type: 'course',
+    entityId: 'presentation-skills',
+    title: 'Навыки\nПрезентации',
+    x: 150,
+    y: 500,
+    status: 'available',
+    size: 45
+  },
+  {
+    id: 'crisis-comm',
+    type: 'course',
+    entityId: 'crisis-comm',
+    title: 'Кризисные\nКоммуникации',
+    x: 50,
+    y: 550,
+    status: 'locked',
+    size: 40
+  },
+  {
+    id: 'media-relations',
+    type: 'course',
+    entityId: 'media-relations',
+    title: 'Работа\nсо СМИ',
+    x: 200,
+    y: 600,
+    status: 'available',
+    size: 45
+  },
+  // Additional Design nodes
+  {
+    id: 'ui-fundamentals',
+    type: 'course',
+    entityId: 'ui-fundamentals',
+    title: 'Основы\nUI Дизайна',
+    x: 850,
+    y: 500,
+    status: 'available',
+    size: 45
+  },
+  {
+    id: 'design-systems',
+    type: 'course',
+    entityId: 'design-systems',
+    title: 'Дизайн\nСистемы',
+    x: 1000,
+    y: 550,
+    status: 'locked',
+    size: 40
+  },
+  {
+    id: 'prototyping',
+    type: 'course',
+    entityId: 'prototyping',
+    title: 'Прототипирование\nИнтерфейсов',
+    x: 800,
+    y: 600,
+    status: 'available',
+    size: 45
   }
 ];
 
@@ -335,6 +607,76 @@ export const graphEdges: GraphEdge[] = [
     id: 'e8',
     sourceId: 'graphic-design',
     targetId: 'product-design',
+    type: 'required'
+  },
+  // Additional Event edges
+  {
+    id: 'e9',
+    sourceId: 'event-basics',
+    targetId: 'event-online',
+    type: 'recommended'
+  },
+  {
+    id: 'e10',
+    sourceId: 'event-offline',
+    targetId: 'event-budget',
+    type: 'required'
+  },
+  // Additional Digital edges
+  {
+    id: 'e11',
+    sourceId: 'product-intro',
+    targetId: 'product-metrics',
+    type: 'recommended'
+  },
+  {
+    id: 'e12',
+    sourceId: 'cjm-course',
+    targetId: 'user-research',
+    type: 'recommended'
+  },
+  {
+    id: 'e13',
+    sourceId: 'product-metrics',
+    targetId: 'product-launch',
+    type: 'required'
+  },
+  // Additional Communication edges
+  {
+    id: 'e14',
+    sourceId: 'business-comm',
+    targetId: 'presentation-skills',
+    type: 'recommended'
+  },
+  {
+    id: 'e15',
+    sourceId: 'external-comm',
+    targetId: 'media-relations',
+    type: 'recommended'
+  },
+  {
+    id: 'e16',
+    sourceId: 'media-relations',
+    targetId: 'crisis-comm',
+    type: 'required'
+  },
+  // Additional Design edges
+  {
+    id: 'e17',
+    sourceId: 'graphic-design',
+    targetId: 'ui-fundamentals',
+    type: 'recommended'
+  },
+  {
+    id: 'e18',
+    sourceId: 'product-design',
+    targetId: 'prototyping',
+    type: 'recommended'
+  },
+  {
+    id: 'e19',
+    sourceId: 'prototyping',
+    targetId: 'design-systems',
     type: 'required'
   }
 ];

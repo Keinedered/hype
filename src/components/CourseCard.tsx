@@ -22,6 +22,9 @@ export function CourseCard({ course, onSelect }: CourseCardProps) {
   };
 
   const getStatusLabel = (status?: Course['status']) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/f934cd13-d56f-4483-86ce-e2102f0bc81b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CourseCard.tsx:24',message:'getStatusLabel called',data:{status, courseId:course.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     switch (status) {
       case 'in_progress': return 'В ПРОЦЕССЕ';
       case 'completed': return 'ЗАВЕРШЁН';
@@ -103,7 +106,12 @@ export function CourseCard({ course, onSelect }: CourseCardProps) {
           <Button 
             variant="outline" 
             className="w-full border-2 border-black font-mono uppercase tracking-widest text-xs h-10 hover:bg-black hover:text-white transition-all"
-            onClick={() => onSelect?.(course.id)}
+            onClick={() => {
+              // #region agent log
+              fetch('http://127.0.0.1:7242/ingest/f934cd13-d56f-4483-86ce-e2102f0bc81b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CourseCard.tsx:108',message:'Button clicked, checking status',data:{courseId:course.id, status:course.status, isValidStatus:['not_started','in_progress','completed'].includes(course.status || '')},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+              // #endregion
+              onSelect?.(course.id);
+            }}
           >
             {course.status === 'in_progress' ? 'Продолжить' : 'Подробнее'}
           </Button>
