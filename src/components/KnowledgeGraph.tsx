@@ -315,29 +315,31 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
                 {/* Label with black background - positioned above and below node to avoid overlap */}
                 <g>
                   {node.title.split('\n').map((line, i) => {
-                    const lineHeight = 16;
-                    const padding = 8;
+                    const lineHeight = 18;
+                    const padding = 10;
                     const totalLines = node.title.split('\n').length;
-                    const spacing = 20; // Space between text and node
+                    const spacing = 35; // Increased space between text and node
+                    const textBoxHeight = 18; // Height of text box
                     
                     // Position first line above node, rest below
                     let textY: number;
                     if (i === 0) {
-                      // First line above the node
-                      textY = node.y - radius - spacing - (totalLines - 1 - i) * lineHeight;
+                      // First line above the node - ensure it's well above the node edge
+                      const textBoxBottom = node.y - radius - spacing;
+                      textY = textBoxBottom - (totalLines - 1 - i) * lineHeight - textBoxHeight / 2;
                     } else {
-                      // Other lines below the node
-                      textY = node.y + radius + spacing + (i - 1) * lineHeight;
+                      // Other lines below the node - ensure they're well below the node edge
+                      textY = node.y + radius + spacing + (i - 1) * lineHeight + textBoxHeight / 2;
                     }
                     
-                    const textWidth = line.length * 6; // Approximate width
+                    const textWidth = line.length * 6.5; // Slightly wider for better spacing
                     return (
                       <g key={i}>
                         <rect
                           x={node.x - textWidth / 2 - padding}
-                          y={textY - 12}
+                          y={textY - textBoxHeight / 2}
                           width={textWidth + padding * 2}
-                          height="16"
+                          height={textBoxHeight}
                           fill="#000000"
                           opacity="0.9"
                         />
