@@ -347,7 +347,7 @@ export const graphNodes: GraphNode[] = [
     id: 'root',
     type: 'concept',
     entityId: 'root',
-    title: 'Старт\nПути',
+    title: 'GRAPH',
     x: 700,
     y: 450,
     status: 'completed',
