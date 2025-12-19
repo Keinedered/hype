@@ -39,7 +39,7 @@ services:
       context: .
       dockerfile: Dockerfile.frontend
     container_name: graph_frontend
-    command: npm run dev
+    command: npm run dev -- --host 0.0.0.0
     ports:
       - "3000:3000"
     environment:
