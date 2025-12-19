@@ -22,11 +22,18 @@ export function CourseCatalog({ onCourseSelect, selectedTrack, onSelectedTrackCh
   };
 
   const filteredCourses = useMemo(() => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/f934cd13-d56f-4483-86ce-e2102f0bc81b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CourseCatalog.tsx:24',message:'Filtering courses',data:{selectedStatus, totalCourses:courses.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
     return courses.filter((course) => {
       const trackMatch = effectiveSelectedTrack === 'all' || course.trackId === effectiveSelectedTrack;
       const levelMatch = selectedLevel === 'all' || course.level === selectedLevel;
-      const statusMatch = selectedStatus === 'all' || course.status === selectedStatus;
-      
+      const statusMatch = selectedStatus === 'all' || (course.status ?? 'not_started') === selectedStatus;
+      // #region agent log
+      if (!['not_started','in_progress','completed'].includes(course.status || '')) {
+        fetch('http://127.0.0.1:7242/ingest/f934cd13-d56f-4483-86ce-e2102f0bc81b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CourseCatalog.tsx:28',message:'Invalid course status detected',data:{courseId:course.id, status:course.status, statusMatch},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'C'})}).catch(()=>{});
+      }
+      // #endregion
       return trackMatch && levelMatch && statusMatch;
     });
   }, [effectiveSelectedTrack, selectedLevel, selectedStatus]);

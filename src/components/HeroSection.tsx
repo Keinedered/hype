@@ -30,9 +30,9 @@ export function HeroSection() {
             <p className="text-foreground max-w-2xl font-mono leading-relaxed text-lg min-h-[6rem]">
               <TypewriterText
                 text={subtitleText}
-                speedMs={22}
-                speedJitterMs={18}
-                punctuationPauseMs={180}
+                speedMs={10}
+                speedJitterMs={8}
+                punctuationPauseMs={80}
               />
             </p>
           </div>

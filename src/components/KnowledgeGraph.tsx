@@ -241,7 +241,6 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
                 strokeWidth={isHighlighted ? style.strokeWidth * 1.5 : style.strokeWidth}
                 strokeDasharray={style.strokeDasharray}
                 opacity={isHighlighted ? 1 : 0.4}
-                markerEnd={`url(#arrowhead-${edge.type === 'recommended' ? 'gray' : 'black'})`}
               />
             );
           })}
@@ -311,30 +310,33 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
                   </>
                 )}
 
-                {/* Status indicator */}
-                {node.status === 'completed' && (
-                  <text
-                    x={node.x}
-                    y={node.y + 6}
-                    textAnchor="middle"
-                    fill="#ffffff"
-                    fontSize="24"
-                    fontWeight="bold"
-                  >
-                    ✓
-                  </text>
-                )}
+                {/* Status indicator - removed checkmarks */}
 
-                {/* Label with black background */}
+                {/* Label with black background - positioned above and below node to avoid overlap */}
                 <g>
                   {node.title.split('\n').map((line, i) => {
-                    const textY = node.y + radius + 25 + (i * 16);
+                    const lineHeight = 16;
+                    const padding = 8;
+                    const totalLines = node.title.split('\n').length;
+                    const spacing = 20; // Space between text and node
+                    
+                    // Position first line above node, rest below
+                    let textY: number;
+                    if (i === 0) {
+                      // First line above the node
+                      textY = node.y - radius - spacing - (totalLines - 1 - i) * lineHeight;
+                    } else {
+                      // Other lines below the node
+                      textY = node.y + radius + spacing + (i - 1) * lineHeight;
+                    }
+                    
+                    const textWidth = line.length * 6; // Approximate width
                     return (
                       <g key={i}>
                         <rect
-                          x={node.x - 60}
+                          x={node.x - textWidth / 2 - padding}
                           y={textY - 12}
-                          width="120"
+                          width={textWidth + padding * 2}
                           height="16"
                           fill="#000000"
                           opacity="0.9"

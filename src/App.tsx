@@ -322,6 +322,7 @@ export default function App() {
           onGoToCatalog={(trackId) => openCatalog(trackId ?? 'all')}
           trackId={selectedCourse?.trackId}
           trackName={selectedTrack?.name}
+          lessonId={selectedLessonId || undefined}
           onNavigate={(direction) => {
             console.log('Navigate:', direction);
           }}
@@ -331,6 +332,12 @@ export default function App() {
           }}
         />
       )}
+      {/* #region agent log */}
+      {currentPage === 'lesson' && (() => {
+        fetch('http://127.0.0.1:7242/ingest/f934cd13-d56f-4483-86ce-e2102f0bc81b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:319',message:'LessonPage rendered',data:{selectedLessonId, selectedCourseId, hasLessonId:!!selectedLessonId, lessonIdPassed:!!selectedLessonId},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
+        return null;
+      })()}
+      {/* #endregion */}
 
       {currentPage === 'handbook' && (
         <HandbookPage

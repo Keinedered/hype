@@ -42,9 +42,9 @@ function prefersReducedMotion(): boolean {
 
 export function TypewriterText({
   text,
-  speedMs = 22,
-  speedJitterMs = 18,
-  punctuationPauseMs = 180,
+  speedMs = 10,
+  speedJitterMs = 8,
+  punctuationPauseMs = 80,
   oncePerSessionKey,
   startDelayMs = 0,
   showCaret = true,
