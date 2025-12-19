@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, WheelEvent, MouseEvent } from 'react';
 import { GraphNode, GraphEdge } from '../types';
 import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { Button } from './ui/button';
@@ -20,20 +20,20 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
-  const handleWheel = (e: React.WheelEvent) => {
+  const handleWheel = (e: WheelEvent<SVGSVGElement>) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
     setZoom((z) => Math.max(0.3, Math.min(3, z * delta)));
   };
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const handleMouseDown = (e: MouseEvent<SVGSVGElement>) => {
     if (e.target === svgRef.current || (e.target as SVGElement).tagName === 'line') {
       setIsDragging(true);
       setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
     }
   };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
+  const handleMouseMove = (e: MouseEvent<SVGSVGElement>) => {
     if (isDragging) {
       setPan({
         x: e.clientX - dragStart.x,
@@ -312,51 +312,76 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
 
                 {/* Status indicator - removed checkmarks */}
 
-                {/* Label with black background - positioned above and below node to avoid overlap */}
+                {/* Label with connecting line - positioned well below node to avoid overlap */}
                 <g>
-                  {node.title.split('\n').map((line, i) => {
-                    const lineHeight = 18;
-                    const padding = 10;
-                    const totalLines = node.title.split('\n').length;
-                    const spacing = 35; // Increased space between text and node
-                    const textBoxHeight = 18; // Height of text box
+                  {/* Calculate total visual radius including all decorative elements */}
+                  {(() => {
+                    // Selection ring adds 8, track ring adds 4, corner decorations add 6
+                    const maxVisualRadius = radius + 8 + 6;
+                    const spacing = 60; // Very large spacing to avoid overlap
+                    const labelStartY = node.y + maxVisualRadius + spacing;
                     
-                    // Position first line above node, rest below
-                    let textY: number;
-                    if (i === 0) {
-                      // First line above the node - ensure it's well above the node edge
-                      const textBoxBottom = node.y - radius - spacing;
-                      textY = textBoxBottom - (totalLines - 1 - i) * lineHeight - textBoxHeight / 2;
-                    } else {
-                      // Other lines below the node - ensure they're well below the node edge
-                      textY = node.y + radius + spacing + (i - 1) * lineHeight + textBoxHeight / 2;
-                    }
+                    // Connecting line from node to label
+                    const lineStartY = node.y + radius + 8;
                     
-                    const textWidth = line.length * 6.5; // Slightly wider for better spacing
                     return (
-                      <g key={i}>
-                        <rect
-                          x={node.x - textWidth / 2 - padding}
-                          y={textY - textBoxHeight / 2}
-                          width={textWidth + padding * 2}
-                          height={textBoxHeight}
-                          fill="#000000"
-                          opacity="0.9"
+                      <>
+                        {/* Thin connecting line */}
+                        <line
+                          x1={node.x}
+                          y1={lineStartY}
+                          x2={node.x}
+                          y2={labelStartY - 5}
+                          stroke="#000000"
+                          strokeWidth="1"
+                          opacity="0.3"
+                          strokeDasharray="2,2"
                         />
-                        <text
-                          x={node.x}
-                          y={textY}
-                          textAnchor="middle"
-                          fill="#ffffff"
-                          fontSize="10"
-                          fontFamily="monospace"
-                          className="pointer-events-none"
-                        >
-                          {line.toUpperCase()}
-                        </text>
-                      </g>
+                        
+                        {/* Combined text block */}
+                        {(() => {
+                          const lines = node.title.split('\n');
+                          const lineHeight = 14;
+                          const padding = 8;
+                          const totalHeight = lines.length * lineHeight + padding * 2;
+                          const maxLineWidth = Math.max(...lines.map(l => l.length * 6.5));
+                          const blockWidth = maxLineWidth + padding * 2;
+                          
+                          return (
+                            <>
+                              {/* Single background rect for all lines */}
+                              <rect
+                                x={node.x - blockWidth / 2}
+                                y={labelStartY}
+                                width={blockWidth}
+                                height={totalHeight}
+                                fill="#000000"
+                                opacity="0.95"
+                                rx="2"
+                              />
+                              
+                              {/* Text lines */}
+                              {lines.map((line, i) => (
+                                <text
+                                  key={i}
+                                  x={node.x}
+                                  y={labelStartY + padding + (i + 0.7) * lineHeight}
+                                  textAnchor="middle"
+                                  fill="#ffffff"
+                                  fontSize="9"
+                                  fontFamily="monospace"
+                                  fontWeight="500"
+                                  className="pointer-events-none"
+                                >
+                                  {line.toUpperCase()}
+                                </text>
+                              ))}
+                            </>
+                          );
+                        })()}
+                      </>
                     );
-                  })}
+                  })()}
                 </g>
               </g>
             );
