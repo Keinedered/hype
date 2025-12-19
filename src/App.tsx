@@ -1,4 +1,4 @@
-import { React, useState } from 'react';
+import { useState } from 'react';
 import { Header } from './components/Header';
 import { HomePage } from './components/HomePage';
 import { HeroSection } from './components/HeroSection';
@@ -8,11 +8,12 @@ import { LessonPage } from './components/LessonPage';
 import { MyCoursesPage } from './components/MyCoursesPage';
 import { ProfilePage } from './components/ProfilePage';
 import { KnowledgeGraphPage } from './components/KnowledgeGraphPage';
+import { HandbookPage } from './components/HandbookPage';
 import { courses, tracks } from './data/mockData';
 import { SmoothLinesBackground } from './components/ui/SmoothLinesBackground';
 import { TrackId } from './types';
 
-type Page = 'home' | 'catalog' | 'path' | 'courses' | 'about' | 'profile' | 'course' | 'lesson';
+type Page = 'home' | 'catalog' | 'path' | 'courses' | 'about' | 'profile' | 'course' | 'lesson' | 'handbook';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
@@ -33,6 +34,12 @@ export default function App() {
        const courseId = page.split('/')[1];
        setSelectedCourseId(courseId);
        setCurrentPage('course');
+       return;
+    }
+    if (page.startsWith('handbook/')) {
+       const courseId = page.split('/')[1];
+       setSelectedCourseId(courseId);
+       setCurrentPage('handbook');
        return;
     }
     
@@ -66,6 +73,9 @@ export default function App() {
       case 'profile':
         setCurrentPage('profile');
         setProfileTab('settings');
+        break;
+      case 'handbook':
+        setCurrentPage('handbook');
         break;
       default:
         setCurrentPage('home');
@@ -150,6 +160,9 @@ export default function App() {
               // setSelectedLessonId(nodeId);
               // setCurrentPage('lesson');
             }
+          }}
+          onOpenHandbook={() => {
+            setCurrentPage('handbook');
           }}
         />
       )}
@@ -297,6 +310,9 @@ export default function App() {
           onStartCourse={handleStartCourse}
           onOpenMap={handleOpenMap}
           onSelectLesson={handleSelectLesson}
+          onOpenHandbook={() => {
+            setCurrentPage('handbook');
+          }}
         />
       )}
 
@@ -310,6 +326,22 @@ export default function App() {
             console.log('Navigate:', direction);
           }}
           onOpenMap={handleOpenMap}
+          onOpenHandbook={() => {
+            setCurrentPage('handbook');
+          }}
+        />
+      )}
+
+      {currentPage === 'handbook' && (
+        <HandbookPage
+          onBack={() => {
+            if (selectedCourseId) {
+              setCurrentPage('course');
+            } else {
+              setCurrentPage('path');
+            }
+          }}
+          courseId={selectedCourseId || undefined}
         />
       )}
       </main>

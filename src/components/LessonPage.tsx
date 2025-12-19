@@ -12,11 +12,12 @@ interface LessonPageProps {
   onNavigate?: (direction: 'prev' | 'next') => void;
   onOpenMap?: () => void;
   onGoToCatalog?: (trackId?: TrackId | 'all') => void;
+  onOpenHandbook?: () => void;
   trackId?: TrackId;
   trackName?: string;
 }
 
-export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, trackId, trackName }: LessonPageProps) {
+export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpenHandbook, trackId, trackName }: LessonPageProps) {
   const [textAnswer, setTextAnswer] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   const [submissionStatus, setSubmissionStatus] = useState<'not_submitted' | 'pending' | 'accepted' | 'needs_revision'>('not_submitted');
@@ -182,7 +183,11 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, track
                      <p className="text-sm text-gray-700 mb-4 max-w-md">
                         Для углубленного изучения темы обратитесь к главе "Продуктовая стратегия" в нашем учебнике.
                      </p>
-                     <Button variant="link" className="p-0 h-auto font-mono text-xs uppercase border-b border-black rounded-none hover:no-underline hover:text-black/60">
+                     <Button 
+                       variant="link" 
+                       onClick={onOpenHandbook}
+                       className="p-0 h-auto font-mono text-xs uppercase border-b border-black rounded-none hover:no-underline hover:text-black/60"
+                     >
                         Читать главу →
                      </Button>
                   </div>

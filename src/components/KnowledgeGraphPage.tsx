@@ -9,9 +9,10 @@ import { BookOpen, Bell } from 'lucide-react';
 
 interface KnowledgeGraphPageProps {
   onNodeClick?: (nodeId: string) => void;
+  onOpenHandbook?: () => void;
 }
 
-export function KnowledgeGraphPage({ onNodeClick }: KnowledgeGraphPageProps) {
+export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGraphPageProps) {
   const [viewFilter, setViewFilter] = useState<'all' | 'completed' | 'uncompleted'>('all');
 
   return (
@@ -74,6 +75,7 @@ export function KnowledgeGraphPage({ onNodeClick }: KnowledgeGraphPageProps) {
                 <Button 
                   variant="outline" 
                   size="sm" 
+                  onClick={onOpenHandbook}
                   className="flex-1 border-2 border-black hover:bg-black hover:text-white font-mono tracking-wide"
                 >
                   <BookOpen className="w-4 h-4 mr-2" />
