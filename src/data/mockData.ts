@@ -348,21 +348,21 @@ export const graphNodes: GraphNode[] = [
     type: 'concept',
     entityId: 'root',
     title: 'GRAPH',
-    x: 700,
-    y: 450,
+    x: 800,
+    y: 500,
     status: 'completed',
     size: 80
   },
 
-  // ПЕРВЫЙ КРУГ - основные курсы каждого трека (радиус ~280px от центра)
+  // ПЕРВЫЙ КРУГ - основные курсы каждого трека (радиус ~350px от центра, с учетом текста)
   // EVENT - верх-лево (315°)
   {
     id: 'event-basics',
     type: 'course',
     entityId: 'event-basics',
     title: 'Основы\nИвентов',
-    x: 500,
-    y: 250,
+    x: 550,
+    y: 300,
     status: 'completed',
     size: 45
   },
@@ -372,8 +372,8 @@ export const graphNodes: GraphNode[] = [
     type: 'course',
     entityId: 'product-intro',
     title: 'Введение\nв Продукт',
-    x: 900,
-    y: 250,
+    x: 1050,
+    y: 300,
     status: 'current',
     size: 45
   },
@@ -383,9 +383,9 @@ export const graphNodes: GraphNode[] = [
     type: 'course',
     entityId: 'business-comm',
     title: 'Деловая\nПереписка',
-    x: 500,
-    y: 650,
-    status: 'available',
+    x: 550,
+    y: 700,
+    status: 'open',
     size: 45
   },
   // DESIGN - низ-право (135°)
@@ -394,21 +394,21 @@ export const graphNodes: GraphNode[] = [
     type: 'course',
     entityId: 'graphic-design',
     title: 'Графический\nДизайн',
-    x: 900,
-    y: 650,
-    status: 'available',
+    x: 1050,
+    y: 700,
+    status: 'open',
     size: 45
   },
 
-  // ВТОРОЙ КРУГ EVENT - радиус ~450px
+  // ВТОРОЙ КРУГ EVENT - радиус ~550px (больше для размещения текста)
   {
     id: 'event-offline',
     type: 'course',
     entityId: 'event-offline',
     title: 'Офлайн\nМероприятия',
-    x: 330,
-    y: 130,
-    status: 'available',
+    x: 350,
+    y: 150,
+    status: 'open',
     size: 40
   },
   {
@@ -416,21 +416,21 @@ export const graphNodes: GraphNode[] = [
     type: 'course',
     entityId: 'event-online',
     title: 'Онлайн\nМероприятия',
-    x: 550,
-    y: 80,
-    status: 'available',
+    x: 600,
+    y: 120,
+    status: 'open',
     size: 40
   },
 
-  // ВТОРОЙ КРУГ DIGITAL - радиус ~450px
+  // ВТОРОЙ КРУГ DIGITAL - радиус ~550px
   {
     id: 'user-research',
     type: 'course',
     entityId: 'user-research',
     title: 'Исследования\nПользователей',
-    x: 1070,
-    y: 80,
-    status: 'available',
+    x: 1250,
+    y: 120,
+    status: 'open',
     size: 40
   },
   {
@@ -438,9 +438,9 @@ export const graphNodes: GraphNode[] = [
     type: 'course',
     entityId: 'cjm-course',
     title: 'CJM',
-    x: 850,
-    y: 130,
-    status: 'locked',
+    x: 1000,
+    y: 150,
+    status: 'closed',
     size: 38
   },
   {
@@ -448,21 +448,21 @@ export const graphNodes: GraphNode[] = [
     type: 'course',
     entityId: 'product-metrics',
     title: 'Метрики\nПродукта',
-    x: 1070,
-    y: 250,
-    status: 'available',
+    x: 1250,
+    y: 300,
+    status: 'open',
     size: 40
   },
 
-  // ВТОРОЙ КРУГ COMMUNICATION - радиус ~450px
+  // ВТОРОЙ КРУГ COMMUNICATION - радиус ~550px
   {
     id: 'presentation-skills',
     type: 'course',
     entityId: 'presentation-skills',
     title: 'Навыки\nПрезентации',
-    x: 330,
-    y: 770,
-    status: 'available',
+    x: 350,
+    y: 850,
+    status: 'open',
     size: 40
   },
   {
@@ -470,21 +470,21 @@ export const graphNodes: GraphNode[] = [
     type: 'course',
     entityId: 'external-comm',
     title: 'Внешние\nКоммуникации',
-    x: 550,
-    y: 820,
+    x: 600,
+    y: 880,
     status: 'completed',
     size: 40
   },
 
-  // ВТОРОЙ КРУГ DESIGN - радиус ~450px
+  // ВТОРОЙ КРУГ DESIGN - радиус ~550px
   {
     id: 'ui-fundamentals',
     type: 'course',
     entityId: 'ui-fundamentals',
     title: 'Основы\nUI Дизайна',
-    x: 850,
-    y: 770,
-    status: 'available',
+    x: 1000,
+    y: 850,
+    status: 'open',
     size: 40
   },
   {
@@ -492,21 +492,21 @@ export const graphNodes: GraphNode[] = [
     type: 'course',
     entityId: 'product-design',
     title: 'Продуктовый\nДизайн',
-    x: 1070,
-    y: 650,
+    x: 1250,
+    y: 700,
     status: 'current',
     size: 45
   },
 
-  // ТРЕТИЙ КРУГ - финальные курсы (радиус ~600px)
+  // ТРЕТИЙ КРУГ - финальные курсы (радиус ~750px, увеличен для текста)
   {
     id: 'event-budget',
     type: 'course',
     entityId: 'event-budget',
     title: 'Бюджет\nИвентов',
-    x: 275,
-    y: 50,
-    status: 'locked',
+    x: 250,
+    y: 80,
+    status: 'closed',
     size: 38
   },
   {
@@ -514,9 +514,9 @@ export const graphNodes: GraphNode[] = [
     type: 'course',
     entityId: 'product-launch',
     title: 'Запуск\nПродукта',
-    x: 1200,
-    y: 120,
-    status: 'locked',
+    x: 1350,
+    y: 150,
+    status: 'closed',
     size: 38
   },
   {
@@ -524,9 +524,9 @@ export const graphNodes: GraphNode[] = [
     type: 'course',
     entityId: 'crisis-comm',
     title: 'Кризисные\nКоммуникации',
-    x: 275,
-    y: 850,
-    status: 'locked',
+    x: 250,
+    y: 920,
+    status: 'closed',
     size: 38
   },
   {
@@ -534,9 +534,9 @@ export const graphNodes: GraphNode[] = [
     type: 'course',
     entityId: 'media-relations',
     title: 'Работа\nсо СМИ',
-    x: 450,
-    y: 880,
-    status: 'available',
+    x: 500,
+    y: 950,
+    status: 'open',
     size: 38
   },
   {
@@ -544,9 +544,9 @@ export const graphNodes: GraphNode[] = [
     type: 'course',
     entityId: 'prototyping',
     title: 'Прототипы',
-    x: 1070,
-    y: 820,
-    status: 'available',
+    x: 1250,
+    y: 880,
+    status: 'open',
     size: 38
   },
   {
@@ -554,9 +554,9 @@ export const graphNodes: GraphNode[] = [
     type: 'course',
     entityId: 'design-systems',
     title: 'Дизайн\nСистемы',
-    x: 1200,
-    y: 780,
-    status: 'locked',
+    x: 1350,
+    y: 850,
+    status: 'closed',
     size: 38
   }
 ];

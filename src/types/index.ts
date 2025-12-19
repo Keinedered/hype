@@ -84,7 +84,7 @@ export interface GraphNode {
   title: string;
   x: number;
   y: number;
-  status?: 'locked' | 'available' | 'current' | 'completed';
+  status?: 'completed' | 'current' | 'open' | 'closed';
   size?: number;
 }
 
