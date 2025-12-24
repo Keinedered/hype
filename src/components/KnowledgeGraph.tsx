@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, WheelEvent, MouseEvent } from 'react';
 import { GraphNode, GraphEdge } from '../types';
 import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { Button } from './ui/button';
@@ -13,28 +13,52 @@ interface KnowledgeGraphProps {
 }
 
 export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: KnowledgeGraphProps) {
-  const [zoom, setZoom] = useState(1);
+  const [zoom, setZoom] = useState(0.8);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    setZoom((z) => Math.max(0.3, Math.min(3, z * delta)));
+  // Calculate viewBox based on nodes with text blocks
+  const calculateViewBox = () => {
+    if (nodes.length === 0) return '0 0 1600 1000';
+    const xs = nodes.map(n => n.x);
+    const ys = nodes.map(n => n.y);
+    // Add extra padding for text blocks (text can extend ~150px from node)
+    const textPadding = 200;
+    const minX = Math.min(...xs) - textPadding;
+    const maxX = Math.max(...xs) + textPadding;
+    const minY = Math.min(...ys) - textPadding;
+    const maxY = Math.max(...ys) + textPadding;
+    const width = maxX - minX;
+    const height = maxY - minY;
+    return `${minX} ${minY} ${width} ${height}`;
   };
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.target === svgRef.current || (e.target as SVGElement).tagName === 'line') {
+  const handleWheel = (e: WheelEvent<SVGSVGElement>) => {
+    // This is handled by the useEffect hook for better trackpad support
+    // Keep this as fallback for direct SVG wheel events
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleMouseDown = (e: MouseEvent<SVGSVGElement>) => {
+    const target = e.target as SVGElement;
+    // Only allow dragging on background or edges, not on nodes or text
+    if (target === svgRef.current || target.tagName === 'line' || target.tagName === 'circle' && target.getAttribute('r') === '1') {
+      e.preventDefault();
+      e.stopPropagation();
       setIsDragging(true);
       setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
     }
   };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
+  const handleMouseMove = (e: MouseEvent<SVGSVGElement>) => {
     if (isDragging) {
+      e.preventDefault();
+      e.stopPropagation();
       setPan({
         x: e.clientX - dragStart.x,
         y: e.clientY - dragStart.y
@@ -42,14 +66,44 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
     }
   };
 
-  const handleMouseUp = () => {
+  const handleMouseUp = (e?: MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     setIsDragging(false);
   };
 
-  const handleZoomIn = () => setZoom((z) => Math.min(3, z * 1.2));
-  const handleZoomOut = () => setZoom((z) => Math.max(0.3, z / 1.2));
+  const handleZoomIn = () => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const newZoom = Math.min(3, zoom * 1.2);
+    const zoomChange = newZoom / zoom;
+    setPan({
+      x: centerX - (centerX - pan.x) * zoomChange,
+      y: centerY - (centerY - pan.y) * zoomChange
+    });
+    setZoom(newZoom);
+  };
+
+  const handleZoomOut = () => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const newZoom = Math.max(0.3, zoom / 1.2);
+    const zoomChange = newZoom / zoom;
+    setPan({
+      x: centerX - (centerX - pan.x) * zoomChange,
+      y: centerY - (centerY - pan.y) * zoomChange
+    });
+    setZoom(newZoom);
+  };
+
   const handleReset = () => {
-    setZoom(1);
+    setZoom(0.8);
     setPan({ x: 0, y: 0 });
   };
 
@@ -87,9 +141,9 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
         return { fill: '#000000', stroke: '#000000', accent: trackColor, ring: trackColor };
       case 'current':
         return { fill: trackColor, stroke: '#000000', accent: trackColor, ring: trackColor };
-      case 'available':
+      case 'open':
         return { fill: '#ffffff', stroke: '#000000', accent: trackColor, ring: trackColor };
-      case 'locked':
+      case 'closed':
         return { fill: '#f5f5f5', stroke: '#666666', accent: '#cccccc', ring: '#cccccc' };
       default:
         return { fill: '#ffffff', stroke: '#000000', accent: trackColor, ring: trackColor };
@@ -109,8 +163,150 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
     }
   };
 
+  // Touchpad and touch support
+  useEffect(() => {
+    const container = containerRef.current;
+    const svg = svgRef.current;
+    if (!container || !svg) return;
+
+    let lastTouchDistance = 0;
+    let lastPanPoint = { x: 0, y: 0 };
+    let isPinching = false;
+
+    // Handle wheel events (mouse wheel and trackpad)
+    const handleWheelEvent = (e: WheelEvent) => {
+      // Check if this is a trackpad gesture (has ctrlKey or is a pinch gesture)
+      const isTrackpadZoom = e.ctrlKey || e.metaKey || Math.abs(e.deltaX) > 0 || Math.abs(e.deltaY) < 50;
+      
+      if (container.contains(e.target as Node)) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation?.();
+        
+        if (isTrackpadZoom) {
+          // Trackpad zoom gesture
+          const rect = svg.getBoundingClientRect();
+          const mouseX = e.clientX - rect.left;
+          const mouseY = e.clientY - rect.top;
+          
+          const zoomSpeed = 0.05;
+          const delta = e.deltaY > 0 ? 1 - zoomSpeed : 1 + zoomSpeed;
+          const newZoom = Math.max(0.3, Math.min(3, zoom * delta));
+          
+          const zoomChange = newZoom / zoom;
+          const centerX = rect.width / 2;
+          const centerY = rect.height / 2;
+          
+          setPan({
+            x: centerX - (centerX - pan.x) * zoomChange + (mouseX - centerX) * (1 - zoomChange),
+            y: centerY - (centerY - pan.y) * zoomChange + (mouseY - centerY) * (1 - zoomChange)
+          });
+          
+          setZoom(newZoom);
+        } else {
+          // Regular scroll - pan the graph
+          setPan({
+            x: pan.x - e.deltaX * 0.5,
+            y: pan.y - e.deltaY * 0.5
+          });
+        }
+      }
+    };
+
+    // Handle touch events for mobile/trackpad
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        isPinching = true;
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        lastTouchDistance = Math.hypot(
+          touch2.clientX - touch1.clientX,
+          touch2.clientY - touch1.clientY
+        );
+        lastPanPoint = { x: pan.x, y: pan.y };
+        e.preventDefault();
+      } else if (e.touches.length === 1) {
+        const touch = e.touches[0];
+        lastPanPoint = { x: touch.clientX, y: touch.clientY };
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && isPinching) {
+        // Pinch to zoom
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        const distance = Math.hypot(
+          touch2.clientX - touch1.clientX,
+          touch2.clientY - touch1.clientY
+        );
+        
+        if (lastTouchDistance > 0) {
+          const zoomChange = distance / lastTouchDistance;
+          const newZoom = Math.max(0.3, Math.min(3, zoom * zoomChange));
+          
+          const rect = svg.getBoundingClientRect();
+          const centerX = (touch1.clientX + touch2.clientX) / 2 - rect.left;
+          const centerY = (touch1.clientY + touch2.clientY) / 2 - rect.top;
+          
+          const zoomDelta = newZoom / zoom;
+          setPan({
+            x: centerX - (centerX - pan.x) * zoomDelta,
+            y: centerY - (centerY - pan.y) * zoomDelta
+          });
+          
+          setZoom(newZoom);
+          lastTouchDistance = distance;
+        }
+        e.preventDefault();
+      } else if (e.touches.length === 1 && !isPinching) {
+        // Single touch pan
+        const touch = e.touches[0];
+        setPan({
+          x: pan.x + (touch.clientX - lastPanPoint.x),
+          y: pan.y + (touch.clientY - lastPanPoint.y)
+        });
+        lastPanPoint = { x: touch.clientX, y: touch.clientY };
+        e.preventDefault();
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) {
+        isPinching = false;
+        lastTouchDistance = 0;
+      }
+    };
+
+    // Add event listeners
+    container.addEventListener('wheel', handleWheelEvent, { passive: false, capture: true });
+    container.addEventListener('touchstart', handleTouchStart, { passive: false });
+    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    container.addEventListener('touchend', handleTouchEnd, { passive: false });
+    
+    return () => {
+      container.removeEventListener('wheel', handleWheelEvent, { capture: true } as any);
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [zoom, pan]);
+
   return (
-    <div className="relative w-full h-full bg-white border-2 border-black overflow-hidden">
+    <div 
+      ref={containerRef}
+      className="relative w-full h-full bg-white border-2 border-black overflow-hidden"
+      onWheel={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.nativeEvent?.stopImmediatePropagation?.();
+      }}
+      style={{ 
+        touchAction: 'none',
+        overscrollBehavior: 'none',
+        WebkitOverflowScrolling: 'auto'
+      }}
+    >
       {/* Decorative grid background */}
       <div className="absolute inset-0 pointer-events-none" style={{
         backgroundImage: `
@@ -125,24 +321,39 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
         <Button
           variant="secondary"
           size="icon"
-          onClick={handleZoomIn}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleZoomIn();
+          }}
           className="bg-white border-2 border-black hover:bg-black hover:text-white transition-all font-mono"
+          title="Увеличить"
         >
           <ZoomIn className="w-4 h-4" />
         </Button>
         <Button
           variant="secondary"
           size="icon"
-          onClick={handleZoomOut}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleZoomOut();
+          }}
           className="bg-white border-2 border-black hover:bg-black hover:text-white transition-all font-mono"
+          title="Уменьшить"
         >
           <ZoomOut className="w-4 h-4" />
         </Button>
         <Button
           variant="secondary"
           size="icon"
-          onClick={handleReset}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleReset();
+          }}
           className="bg-white border-2 border-black hover:bg-black hover:text-white transition-all font-mono"
+          title="Сбросить"
         >
           <Maximize2 className="w-4 h-4" />
         </Button>
@@ -151,12 +362,15 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
       {/* Graph SVG */}
       <svg
         ref={svgRef}
+        viewBox={calculateViewBox()}
+        preserveAspectRatio="xMidYMid meet"
         className="w-full h-full cursor-grab active:cursor-grabbing"
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        style={{ touchAction: 'none' }}
       >
         <defs>
           {/* Arrow marker for edges */}
@@ -187,7 +401,7 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
           </pattern>
         </defs>
 
-        <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
+        <g transform={`translate(${pan.x + (containerRef.current?.clientWidth || 0) / 2}, ${pan.y + (containerRef.current?.clientHeight || 0) / 2}) scale(${zoom}) translate(${-800}, ${-500})`}>
           {/* Background decorative circles */}
           {Array.from({ length: 15 }).map((_, i) => (
             <circle
@@ -213,15 +427,7 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
             if (filter === 'completed') {
                if (source.status !== 'completed' || target.status !== 'completed') return null;
             } else if (filter === 'uncompleted') {
-               // Show edge only if at least one node is uncompleted (available, current, locked)
-               // Or should we hide completed paths?
-               // Let's hide edges if both nodes are completed? No, that hides the path.
-               // Let's keep all edges unless nodes are filtered out.
-               // Actually, let's filter nodes first in rendering loop? No, SVG order matters.
-               
-               // Logic: If showing 'uncompleted', we want to see what is LEFT to do.
-               // So completed nodes might be hidden or dimmed?
-               // The prompt says "Only uncompleted".
+               // Show edge only if at least one node is uncompleted (open, current, closed)
                const isSourceCompleted = source.status === 'completed';
                const isTargetCompleted = target.status === 'completed';
                if (isSourceCompleted && isTargetCompleted) return null; 
@@ -240,7 +446,7 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
                 stroke={style.stroke}
                 strokeWidth={isHighlighted ? style.strokeWidth * 1.5 : style.strokeWidth}
                 strokeDasharray={style.strokeDasharray}
-                opacity={isHighlighted ? 1 : 0.4}
+                opacity={isHighlighted ? 1 : 0.7}
               />
             );
           })}
@@ -283,7 +489,7 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
                     fill="none"
                     stroke={colors.ring}
                     strokeWidth={3}
-                    opacity={node.status === 'locked' ? 0.35 : 0.8}
+                    opacity={node.status === 'closed' ? 0.35 : 0.8}
                   />
                 )}
 
@@ -295,7 +501,7 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
                   fill={colors.fill}
                   stroke={colors.stroke}
                   strokeWidth={isSelected ? 4 : 3}
-                  opacity={node.status === 'locked' ? 0.5 : 1}
+                  opacity={node.status === 'closed' ? 0.5 : 1}
                   className="transition-all"
                 />
 
@@ -312,49 +518,101 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
 
                 {/* Status indicator - removed checkmarks */}
 
-                {/* Label with black background - positioned above and below node to avoid overlap */}
+                {/* Label with connecting line - positioned far from node to avoid overlap */}
                 <g>
-                  {node.title.split('\n').map((line, i) => {
-                    const lineHeight = 16;
-                    const padding = 8;
-                    const totalLines = node.title.split('\n').length;
-                    const spacing = 20; // Space between text and node
+                  {(() => {
+                    // Calculate all visual elements that extend from node
+                    const selectionRing = isSelected ? 8 : 0;
+                    const trackRing = node.id !== 'root' ? 4 : 0;
+                    const cornerDecorations = (node.status === 'current' || isSelected) ? 6 : 0;
+                    const maxVisualRadius = radius + Math.max(selectionRing, trackRing) + cornerDecorations;
                     
-                    // Position first line above node, rest below
-                    let textY: number;
-                    if (i === 0) {
-                      // First line above the node
-                      textY = node.y - radius - spacing - (totalLines - 1 - i) * lineHeight;
+                    // Spacing to keep text close but not overlapping
+                    const minSpacing = 50;
+                    const lines = node.title.split('\n');
+                    const lineHeight = 16;
+                    const padding = 10;
+                    const totalHeight = lines.length * lineHeight + padding * 2;
+                    const maxLineWidth = Math.max(...lines.map(l => l.length * 7));
+                    const blockWidth = maxLineWidth + padding * 2;
+                    
+                    // Calculate angle from center to determine best label position
+                    const centerX = 800;
+                    const centerY = 500;
+                    const dx = node.x - centerX;
+                    const dy = node.y - centerY;
+                    const angle = Math.atan2(dy, dx);
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    // Position label radially outward from center, far from node
+                    // Use larger distance to ensure no overlap
+                    const labelDistance = distance + maxVisualRadius + minSpacing;
+                    const labelAngle = angle;
+                    
+                    let labelX = centerX + Math.cos(labelAngle) * labelDistance;
+                    let labelY = centerY + Math.sin(labelAngle) * labelDistance;
+                    
+                    // Ensure label is always below the node (easier to read)
+                    // Adjust if node is too high
+                    if (node.y < centerY - 100) {
+                      labelY = node.y + maxVisualRadius + minSpacing;
+                      labelX = node.x;
                     } else {
-                      // Other lines below the node
-                      textY = node.y + radius + spacing + (i - 1) * lineHeight;
+                      labelY = node.y + maxVisualRadius + minSpacing;
+                      labelX = node.x;
                     }
                     
-                    const textWidth = line.length * 6; // Approximate width
+                    // Connecting line from node bottom to label top
+                    const lineStartY = node.y + maxVisualRadius;
+                    const lineEndY = labelY - totalHeight / 2;
+                    
                     return (
-                      <g key={i}>
-                        <rect
-                          x={node.x - textWidth / 2 - padding}
-                          y={textY - 12}
-                          width={textWidth + padding * 2}
-                          height="16"
-                          fill="#000000"
-                          opacity="0.9"
+                      <>
+                        {/* Connecting line from node to label */}
+                        <line
+                          x1={node.x}
+                          y1={lineStartY}
+                          x2={labelX}
+                          y2={lineEndY}
+                          stroke="#000000"
+                          strokeWidth="1.5"
+                          opacity="0.35"
+                          strokeDasharray="4,4"
                         />
-                        <text
-                          x={node.x}
-                          y={textY}
-                          textAnchor="middle"
-                          fill="#ffffff"
-                          fontSize="10"
-                          fontFamily="monospace"
-                          className="pointer-events-none"
-                        >
-                          {line.toUpperCase()}
-                        </text>
-                      </g>
+                        
+                        {/* Text block with background */}
+                        <rect
+                          x={labelX - blockWidth / 2}
+                          y={labelY - totalHeight / 2}
+                          width={blockWidth}
+                          height={totalHeight}
+                          fill="#000000"
+                          opacity="0.95"
+                          rx="4"
+                          stroke="#ffffff"
+                          strokeWidth="2"
+                          strokeOpacity="0.5"
+                        />
+                        
+                        {/* Text lines */}
+                        {lines.map((line, i) => (
+                          <text
+                            key={i}
+                            x={labelX}
+                            y={labelY - totalHeight / 2 + padding + (i + 0.75) * lineHeight}
+                            textAnchor="middle"
+                            fill="#ffffff"
+                            fontSize="10"
+                            fontFamily="monospace"
+                            fontWeight="600"
+                            className="pointer-events-none"
+                          >
+                            {line.toUpperCase()}
+                          </text>
+                        ))}
+                      </>
                     );
-                  })}
+                  })()}
                 </g>
               </g>
             );
@@ -380,21 +638,21 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
                 >
                   {selectedNode.status === 'completed' && 'ПРОЙДЕНО'}
                   {selectedNode.status === 'current' && 'ТЕКУЩАЯ'}
-                  {selectedNode.status === 'available' && 'ДОСТУПНО'}
-                  {selectedNode.status === 'locked' && 'ЗАБЛОКИРОВАНО'}
+                  {selectedNode.status === 'open' && 'ОТКРЫТО'}
+                  {selectedNode.status === 'closed' && 'ЗАКРЫТО'}
                 </span>
               )}
             </div>
             <Button 
               className="w-full border-2 border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] font-mono tracking-wide transition-all" 
-              disabled={selectedNode.status === 'locked'}
+              disabled={selectedNode.status === 'closed'}
               onClick={() => onNodeClick?.(selectedNode.id)}
               style={{
-                backgroundColor: selectedNode.status === 'locked' ? '#f5f5f5' : '#000000',
-                color: selectedNode.status === 'locked' ? '#666666' : '#ffffff'
+                backgroundColor: selectedNode.status === 'closed' ? '#f5f5f5' : '#000000',
+                color: selectedNode.status === 'closed' ? '#666666' : '#ffffff'
               }}
             >
-              {selectedNode.status === 'locked' ? 'НЕДОСТУПНО' : 'ПЕРЕЙТИ К КУРСУ'}
+              {selectedNode.status === 'closed' ? 'НЕДОСТУПНО' : 'ПЕРЕЙТИ К КУРСУ'}
             </Button>
           </div>
         </Card>

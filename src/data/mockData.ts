@@ -342,341 +342,395 @@ export const modules: Module[] = [
 ];
 
 export const graphNodes: GraphNode[] = [
-  // Root Node
+  // ЦЕНТРАЛЬНЫЙ УЗЕЛ
   {
     id: 'root',
     type: 'concept',
     entityId: 'root',
-    title: 'АКАДЕМИЯ\nGRAPH',
-    x: 500,
-    y: 300,
+    title: 'GRAPH',
+    x: 800,
+    y: 500,
     status: 'completed',
-    size: 70
+    size: 80
   },
-  
-  // Event Track
+
+  // ПЕРВЫЙ КРУГ - основные курсы каждого трека (радиус ~350px от центра, с учетом текста)
+  // EVENT - верх-лево (315°)
   {
     id: 'event-basics',
-    type: 'lesson',
+    type: 'course',
     entityId: 'event-basics',
-    title: 'Основы\nИвент-менеджмента',
-    x: 250,
-    y: 150,
-    status: 'available',
-    size: 50
-  },
-  {
-    id: 'event-offline',
-    type: 'lesson',
-    entityId: 'event-offline',
-    title: 'Организация\nофлайн-мероприятий',
-    x: 100,
-    y: 100,
-    status: 'locked',
+    title: 'Основы\nИвентов',
+    x: 550,
+    y: 300,
+    status: 'completed',
     size: 45
   },
-
-  // Digital Track
+  // DIGITAL - верх-право (45°)
   {
     id: 'product-intro',
-    type: 'lesson',
+    type: 'course',
     entityId: 'product-intro',
-    title: 'Введение в\nПродукт',
-    x: 750,
-    y: 150,
-    status: 'current', // In progress
-    size: 50
-  },
-  {
-    id: 'cjm-course',
-    type: 'lesson',
-    entityId: 'cjm-course',
-    title: 'CJM и\nПуть пользователя',
-    x: 900,
-    y: 100,
-    status: 'available',
+    title: 'Введение\nв Продукт',
+    x: 1050,
+    y: 300,
+    status: 'current',
     size: 45
   },
-
-  // Communication Track
+  // COMMUNICATION - низ-лево (225°)
   {
     id: 'business-comm',
-    type: 'lesson',
+    type: 'course',
     entityId: 'business-comm',
     title: 'Деловая\nПереписка',
-    x: 250,
-    y: 450,
-    status: 'available',
-    size: 50
+    x: 550,
+    y: 700,
+    status: 'open',
+    size: 45
   },
+  // DESIGN - низ-право (135°)
   {
-    id: 'external-comm',
-    type: 'lesson',
-    entityId: 'external-comm',
-    title: 'Внешние\nКоммуникации',
-    x: 100,
-    y: 500,
-    status: 'completed', // Completed
+    id: 'graphic-design',
+    type: 'course',
+    entityId: 'graphic-design',
+    title: 'Графический\nДизайн',
+    x: 1050,
+    y: 700,
+    status: 'open',
     size: 45
   },
 
-  // Design Track
+  // ВТОРОЙ КРУГ EVENT - радиус ~550px (больше для размещения текста)
   {
-    id: 'graphic-design',
-    type: 'lesson',
-    entityId: 'graphic-design',
-    title: 'Графический\nДизайн',
-    x: 750,
-    y: 450,
-    status: 'available',
-    size: 50
+    id: 'event-offline',
+    type: 'course',
+    entityId: 'event-offline',
+    title: 'Офлайн\nМероприятия',
+    x: 350,
+    y: 150,
+    status: 'open',
+    size: 40
   },
-  {
-    id: 'product-design',
-    type: 'lesson',
-    entityId: 'product-design',
-    title: 'Продуктовый\nДизайн',
-    x: 900,
-    y: 500,
-    status: 'current', // In progress
-    size: 45
-  },
-  // Additional Event nodes
   {
     id: 'event-online',
     type: 'course',
     entityId: 'event-online',
     title: 'Онлайн\nМероприятия',
-    x: 150,
-    y: 200,
-    status: 'available',
-    size: 45
-  },
-  {
-    id: 'event-budget',
-    type: 'course',
-    entityId: 'event-budget',
-    title: 'Бюджетирование\nИвентов',
-    x: 50,
-    y: 250,
-    status: 'locked',
+    x: 600,
+    y: 120,
+    status: 'open',
     size: 40
   },
-  // Additional Digital nodes
+
+  // ВТОРОЙ КРУГ DIGITAL - радиус ~550px
+  {
+    id: 'user-research',
+    type: 'course',
+    entityId: 'user-research',
+    title: 'Исследования\nПользователей',
+    x: 1250,
+    y: 120,
+    status: 'open',
+    size: 40
+  },
+  {
+    id: 'cjm-course',
+    type: 'course',
+    entityId: 'cjm-course',
+    title: 'CJM',
+    x: 1000,
+    y: 150,
+    status: 'closed',
+    size: 38
+  },
   {
     id: 'product-metrics',
     type: 'course',
     entityId: 'product-metrics',
     title: 'Метрики\nПродукта',
-    x: 850,
-    y: 200,
-    status: 'available',
+    x: 1250,
+    y: 300,
+    status: 'open',
+    size: 40
+  },
+
+  // ВТОРОЙ КРУГ COMMUNICATION - радиус ~550px
+  {
+    id: 'presentation-skills',
+    type: 'course',
+    entityId: 'presentation-skills',
+    title: 'Навыки\nПрезентации',
+    x: 350,
+    y: 850,
+    status: 'open',
+    size: 40
+  },
+  {
+    id: 'external-comm',
+    type: 'course',
+    entityId: 'external-comm',
+    title: 'Внешние\nКоммуникации',
+    x: 600,
+    y: 880,
+    status: 'completed',
+    size: 40
+  },
+
+  // ВТОРОЙ КРУГ DESIGN - радиус ~550px
+  {
+    id: 'ui-fundamentals',
+    type: 'course',
+    entityId: 'ui-fundamentals',
+    title: 'Основы\nUI Дизайна',
+    x: 1000,
+    y: 850,
+    status: 'open',
+    size: 40
+  },
+  {
+    id: 'product-design',
+    type: 'course',
+    entityId: 'product-design',
+    title: 'Продуктовый\nДизайн',
+    x: 1250,
+    y: 700,
+    status: 'current',
     size: 45
+  },
+
+  // ТРЕТИЙ КРУГ - финальные курсы (радиус ~750px, увеличен для текста)
+  {
+    id: 'event-budget',
+    type: 'course',
+    entityId: 'event-budget',
+    title: 'Бюджет\nИвентов',
+    x: 250,
+    y: 80,
+    status: 'closed',
+    size: 38
   },
   {
     id: 'product-launch',
     type: 'course',
     entityId: 'product-launch',
     title: 'Запуск\nПродукта',
-    x: 1000,
-    y: 250,
-    status: 'locked',
-    size: 40
-  },
-  {
-    id: 'user-research',
-    type: 'course',
-    entityId: 'user-research',
-    title: 'Исследования\nПользователей',
-    x: 800,
-    y: 100,
-    status: 'available',
-    size: 45
-  },
-  // Additional Communication nodes
-  {
-    id: 'presentation-skills',
-    type: 'course',
-    entityId: 'presentation-skills',
-    title: 'Навыки\nПрезентации',
-    x: 150,
-    y: 500,
-    status: 'available',
-    size: 45
+    x: 1350,
+    y: 150,
+    status: 'closed',
+    size: 38
   },
   {
     id: 'crisis-comm',
     type: 'course',
     entityId: 'crisis-comm',
     title: 'Кризисные\nКоммуникации',
-    x: 50,
-    y: 550,
-    status: 'locked',
-    size: 40
+    x: 250,
+    y: 920,
+    status: 'closed',
+    size: 38
   },
   {
     id: 'media-relations',
     type: 'course',
     entityId: 'media-relations',
     title: 'Работа\nсо СМИ',
-    x: 200,
-    y: 600,
-    status: 'available',
-    size: 45
+    x: 500,
+    y: 950,
+    status: 'open',
+    size: 38
   },
-  // Additional Design nodes
   {
-    id: 'ui-fundamentals',
+    id: 'prototyping',
     type: 'course',
-    entityId: 'ui-fundamentals',
-    title: 'Основы\nUI Дизайна',
-    x: 850,
-    y: 500,
-    status: 'available',
-    size: 45
+    entityId: 'prototyping',
+    title: 'Прототипы',
+    x: 1250,
+    y: 880,
+    status: 'open',
+    size: 38
   },
   {
     id: 'design-systems',
     type: 'course',
     entityId: 'design-systems',
     title: 'Дизайн\nСистемы',
-    x: 1000,
-    y: 550,
-    status: 'locked',
-    size: 40
-  },
-  {
-    id: 'prototyping',
-    type: 'course',
-    entityId: 'prototyping',
-    title: 'Прототипирование\nИнтерфейсов',
-    x: 800,
-    y: 600,
-    status: 'available',
-    size: 45
+    x: 1350,
+    y: 850,
+    status: 'closed',
+    size: 38
   }
 ];
 
 export const graphEdges: GraphEdge[] = [
-  // Links from Root to Basics
+  // От центра к началу каждого созвездия
   {
-    id: 'e1',
+    id: 'center-1',
     sourceId: 'root',
     targetId: 'event-basics',
     type: 'required'
   },
   {
-    id: 'e2',
+    id: 'center-2',
     sourceId: 'root',
     targetId: 'product-intro',
     type: 'required'
   },
   {
-    id: 'e3',
+    id: 'center-3',
     sourceId: 'root',
     targetId: 'business-comm',
     type: 'required'
   },
   {
-    id: 'e4',
+    id: 'center-4',
     sourceId: 'root',
     targetId: 'graphic-design',
     type: 'required'
   },
 
-  // Links within tracks
+  // EVENT CONSTELLATION - созвездие ивентов
   {
-    id: 'e5',
+    id: 'e1',
     sourceId: 'event-basics',
     targetId: 'event-offline',
     type: 'required'
   },
   {
-    id: 'e6',
+    id: 'e2',
+    sourceId: 'event-basics',
+    targetId: 'event-online',
+    type: 'required'
+  },
+  {
+    id: 'e3',
+    sourceId: 'event-offline',
+    targetId: 'event-budget',
+    type: 'required'
+  },
+  {
+    id: 'e4',
+    sourceId: 'event-online',
+    targetId: 'event-budget',
+    type: 'required'
+  },
+  {
+    id: 'e5',
+    sourceId: 'event-offline',
+    targetId: 'event-online',
+    type: 'recommended'
+  },
+
+  // DIGITAL CONSTELLATION - созвездие цифровых продуктов
+  {
+    id: 'd1',
+    sourceId: 'product-intro',
+    targetId: 'user-research',
+    type: 'required'
+  },
+  {
+    id: 'd2',
     sourceId: 'product-intro',
     targetId: 'cjm-course',
+    type: 'required'
+  },
+  {
+    id: 'd3',
+    sourceId: 'product-intro',
+    targetId: 'product-metrics',
+    type: 'required'
+  },
+  {
+    id: 'd4',
+    sourceId: 'user-research',
+    targetId: 'product-launch',
+    type: 'required'
+  },
+  {
+    id: 'd5',
+    sourceId: 'cjm-course',
+    targetId: 'product-metrics',
     type: 'recommended'
   },
   {
-    id: 'e7',
+    id: 'd6',
+    sourceId: 'product-metrics',
+    targetId: 'product-launch',
+    type: 'required'
+  },
+
+  // COMMUNICATION CONSTELLATION - созвездие коммуникаций
+  {
+    id: 'c1',
+    sourceId: 'business-comm',
+    targetId: 'presentation-skills',
+    type: 'required'
+  },
+  {
+    id: 'c2',
     sourceId: 'business-comm',
     targetId: 'external-comm',
     type: 'required'
   },
   {
-    id: 'e8',
-    sourceId: 'graphic-design',
-    targetId: 'product-design',
-    type: 'required'
-  },
-  // Additional Event edges
-  {
-    id: 'e9',
-    sourceId: 'event-basics',
-    targetId: 'event-online',
-    type: 'recommended'
-  },
-  {
-    id: 'e10',
-    sourceId: 'event-offline',
-    targetId: 'event-budget',
-    type: 'required'
-  },
-  // Additional Digital edges
-  {
-    id: 'e11',
-    sourceId: 'product-intro',
-    targetId: 'product-metrics',
-    type: 'recommended'
-  },
-  {
-    id: 'e12',
-    sourceId: 'cjm-course',
-    targetId: 'user-research',
-    type: 'recommended'
-  },
-  {
-    id: 'e13',
-    sourceId: 'product-metrics',
-    targetId: 'product-launch',
-    type: 'required'
-  },
-  // Additional Communication edges
-  {
-    id: 'e14',
-    sourceId: 'business-comm',
-    targetId: 'presentation-skills',
-    type: 'recommended'
-  },
-  {
-    id: 'e15',
+    id: 'c3',
     sourceId: 'external-comm',
+    targetId: 'media-relations',
+    type: 'required'
+  },
+  {
+    id: 'c4',
+    sourceId: 'presentation-skills',
     targetId: 'media-relations',
     type: 'recommended'
   },
   {
-    id: 'e16',
+    id: 'c5',
     sourceId: 'media-relations',
     targetId: 'crisis-comm',
     type: 'required'
   },
-  // Additional Design edges
   {
-    id: 'e17',
+    id: 'c6',
+    sourceId: 'external-comm',
+    targetId: 'crisis-comm',
+    type: 'recommended'
+  },
+
+  // DESIGN CONSTELLATION - созвездие дизайна
+  {
+    id: 'des1',
     sourceId: 'graphic-design',
     targetId: 'ui-fundamentals',
-    type: 'recommended'
+    type: 'required'
   },
   {
-    id: 'e18',
+    id: 'des2',
+    sourceId: 'graphic-design',
+    targetId: 'product-design',
+    type: 'required'
+  },
+  {
+    id: 'des3',
     sourceId: 'product-design',
     targetId: 'prototyping',
+    type: 'required'
+  },
+  {
+    id: 'des4',
+    sourceId: 'ui-fundamentals',
+    targetId: 'product-design',
     type: 'recommended'
   },
   {
-    id: 'e19',
+    id: 'des5',
     sourceId: 'prototyping',
     targetId: 'design-systems',
     type: 'required'
+  },
+  {
+    id: 'des6',
+    sourceId: 'product-design',
+    targetId: 'design-systems',
+    type: 'recommended'
   }
 ];
