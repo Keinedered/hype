@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
 from typing import List, Optional
 from database import get_db
 import schemas
@@ -16,9 +17,9 @@ def get_courses(
     db: Session = Depends(get_db),
     current_user: Optional[models.User] = Depends(get_current_active_user)
 ):
-    """Получить все курсы с прогрессом пользователя"""
+    """Получить все курсы с прогрессом пользователя (только опубликованные)"""
     user_id = current_user.id if current_user else None
-    return crud.get_courses(db, track_id=track_id, user_id=user_id)
+    return crud.get_courses(db, track_id=track_id, user_id=user_id, published_only=True)
 
 
 @router.get("/{course_id}", response_model=schemas.CourseWithProgress)
@@ -27,12 +28,76 @@ def get_course(
     db: Session = Depends(get_db),
     current_user: Optional[models.User] = Depends(get_current_active_user)
 ):
-    """Получить курс по ID с прогрессом"""
+    """Получить курс по ID с прогрессом (только опубликованные для неавторизованных)"""
     user_id = current_user.id if current_user else None
-    course = crud.get_course(db, course_id, user_id=user_id)
+    published_only = current_user is None  # Для неавторизованных только опубликованные
+    course = crud.get_course(db, course_id, user_id=user_id, published_only=published_only)
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
     return course
+
+
+@router.post("/{course_id}/enroll")
+def enroll_in_course(
+    course_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user)
+):
+    """Записаться на курс"""
+    # Проверяем существование курса
+    course = db.query(models.Course).filter(models.Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    # Проверяем, что курс опубликован
+    if course.status != 'published':
+        raise HTTPException(status_code=400, detail="Course is not available for enrollment")
+    
+    # Проверяем, не записан ли уже пользователь на курс
+    existing_enrollment = db.query(models.UserCourse).filter(
+        models.UserCourse.user_id == current_user.id,
+        models.UserCourse.course_id == course_id
+    ).first()
+    
+    if existing_enrollment:
+        # Если уже записан, возвращаем существующую запись и первый урок
+        first_lesson_id = crud.get_first_lesson_id(db, course_id)
+        return {
+            "message": "Already enrolled",
+            "user_course": {
+                "user_id": existing_enrollment.user_id,
+                "course_id": existing_enrollment.course_id,
+                "status": existing_enrollment.status.value if hasattr(existing_enrollment.status, 'value') else existing_enrollment.status,
+                "progress": existing_enrollment.progress
+            },
+            "first_lesson_id": first_lesson_id
+        }
+    
+    # Создаем новую запись о записи на курс
+    user_course = models.UserCourse(
+        user_id=current_user.id,
+        course_id=course_id,
+        status=models.CourseStatus.not_started,
+        progress=0.0,
+        started_at=func.now()
+    )
+    db.add(user_course)
+    db.commit()
+    db.refresh(user_course)
+    
+    # Получаем первый урок курса
+    first_lesson_id = crud.get_first_lesson_id(db, course_id)
+    
+    return {
+        "message": "Successfully enrolled",
+        "user_course": {
+            "user_id": user_course.user_id,
+            "course_id": user_course.course_id,
+            "status": user_course.status.value if hasattr(user_course.status, 'value') else user_course.status,
+            "progress": user_course.progress
+        },
+        "first_lesson_id": first_lesson_id
+    }
 
 
 @router.post("/{course_id}/progress")

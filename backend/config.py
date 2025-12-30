@@ -16,7 +16,14 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "GRAPH Educational Platform"
     
     # CORS
-    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5173"]
+    BACKEND_CORS_ORIGINS: List[str] = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+        "http://0.0.0.0:3000",
+        "http://0.0.0.0:5173",
+    ]
     
     class Config:
         env_file = ".env"

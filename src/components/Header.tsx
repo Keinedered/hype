@@ -1,7 +1,9 @@
-import { Bell, Menu, User } from 'lucide-react';
+import { Bell, Menu, User, LogIn, LogOut } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +21,8 @@ interface HeaderProps {
 export function Header({ currentPage = 'home', onNavigate }: HeaderProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const { isAuthenticated, logout, user } = useAuth();
   
   const navigation = [
     { id: 'catalog', label: 'КАТАЛОГ' },
@@ -251,14 +255,49 @@ export function Header({ currentPage = 'home', onNavigate }: HeaderProps) {
               </div>
             )}
           </div>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="border-2 border-black hover:bg-black hover:text-white transition-all"
-            onClick={() => handleNav('profile')}
-          >
-            <User className="h-5 w-5" />
-          </Button>
+          {isAuthenticated ? (
+            <>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="border-2 border-black hover:bg-black hover:text-white transition-all"
+                onClick={() => handleNav('profile')}
+                title="Профиль"
+              >
+                <User className="h-5 w-5" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="border-2 border-black hover:bg-black hover:text-white transition-all"
+                onClick={() => {
+                  logout();
+                  navigate('/');
+                }}
+                title="Выйти"
+              >
+                <LogOut className="h-5 w-5" />
+              </Button>
+              {user?.role === 'admin' && (
+                <Button 
+                  variant="ghost" 
+                  className="border-2 border-black hover:bg-black hover:text-white transition-all font-mono text-xs px-3"
+                  onClick={() => navigate('/admin')}
+                >
+                  АДМИН
+                </Button>
+              )}
+            </>
+          ) : (
+            <Button 
+              variant="ghost" 
+              className="border-2 border-black hover:bg-black hover:text-white transition-all font-mono text-xs px-4 flex items-center gap-2"
+              onClick={() => navigate('/auth')}
+            >
+              <LogIn className="h-4 w-4" />
+              ВХОД
+            </Button>
+          )}
         </div>
       </div>
     </header>

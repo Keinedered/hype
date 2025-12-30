@@ -2,6 +2,7 @@
 Скрипт инициализации БД с данными из mockData.ts
 """
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from database import SessionLocal, engine, Base
 import models
 from auth import get_password_hash
@@ -202,56 +203,110 @@ def init_graph(db: Session):
 
 
 def init_demo_user(db: Session):
-    """Создание демо-пользователя"""
-    demo_user = models.User(
-        id=str(uuid.uuid4()),
-        email="demo@graph.com",
-        username="demo",
-        full_name="Demo User",
-        hashed_password=get_password_hash("demo123")
-    )
-    db.add(demo_user)
+    """Создание демо-пользователя и админа"""
+    # Проверяем существование пользователей
+    existing_demo = db.query(models.User).filter(models.User.username == "demo").first()
+    existing_admin = db.query(models.User).filter(models.User.username == "admin").first()
     
-    # Добавляем прогресс по курсам
-    user_course_1 = models.UserCourse(
-        user_id=demo_user.id,
-        course_id="product-intro",
-        status=models.CourseStatus.in_progress,
-        progress=35.0
-    )
-    db.add(user_course_1)
+    if not existing_demo:
+        demo_user = models.User(
+            id=str(uuid.uuid4()),
+            email="demo@graph.com",
+            username="demo",
+            full_name="Demo User",
+            hashed_password=get_password_hash("demo123"),
+            role=models.UserRole.student
+        )
+        db.add(demo_user)
+        
+        # Добавляем прогресс по курсам
+        user_course_1 = models.UserCourse(
+            user_id=demo_user.id,
+            course_id="product-intro",
+            status=models.CourseStatus.in_progress,
+            progress=35.0
+        )
+        db.add(user_course_1)
+        print(f"✓ Демо-пользователь создан (username: demo, password: demo123)")
+    else:
+        print(f"✓ Демо-пользователь уже существует")
+    
+    if not existing_admin:
+        admin_user = models.User(
+            id=str(uuid.uuid4()),
+            email="admin@graph.com",
+            username="admin",
+            full_name="Admin User",
+            hashed_password=get_password_hash("admin123"),
+            role=models.UserRole.admin
+        )
+        db.add(admin_user)
+        print(f"✓ Админ пользователь создан (username: admin, password: admin123)")
+    else:
+        print(f"✓ Админ пользователь уже существует")
     
     db.commit()
-    print(f"✓ Демо-пользователь создан (username: demo, password: demo123)")
 
 
 def main():
     """Основная функция инициализации"""
-    print("Начинаем инициализацию БД...")
+    import time
+    import sys
+    
+    print("=" * 60)
+    print("🚀 Инициализация базы данных GRAPH Educational Platform")
+    print("=" * 60)
+    
+    # Небольшая задержка для гарантии готовности БД
+    time.sleep(2)
+    
     db = SessionLocal()
     
     try:
+        # Проверяем подключение к БД
+        db.execute(text("SELECT 1"))
+        print("✅ Подключение к базе данных установлено")
+        
         # Проверяем, есть ли уже данные
         existing_tracks = db.query(models.Track).count()
         if existing_tracks > 0:
             print("⚠ БД уже содержит данные. Пропускаем инициализацию.")
-            print("Для переинициализации удалите БД и запустите скрипт снова.")
+            print("Для переинициализации удалите volume и запустите снова:")
+            print("  docker-compose down -v")
+            print("  docker-compose up -d")
             return
         
+        print("\n📦 Создание таблиц...")
+        # Таблицы уже созданы в main.py, но убедимся
+        Base.metadata.create_all(bind=engine)
+        print("✅ Таблицы готовы")
+        
+        print("\n📚 Инициализация данных...")
         init_tracks(db)
         init_courses(db)
         init_graph(db)
         init_demo_user(db)
         
-        print("\n✅ Инициализация БД завершена успешно!")
-        print("\nДля входа используйте:")
-        print("  Username: demo")
-        print("  Password: demo123")
+        print("\n" + "=" * 60)
+        print("✅ Инициализация БД завершена успешно!")
+        print("=" * 60)
+        print("\n👤 Учетные записи для входа:")
+        print("\n  📘 Демо пользователь (студент):")
+        print("     Username: demo")
+        print("     Password: demo123")
+        print("     Email: demo@graph.com")
+        print("\n  🔐 Админ пользователь:")
+        print("     Username: admin")
+        print("     Password: admin123")
+        print("     Email: admin@graph.com")
+        print("\n" + "=" * 60)
         
     except Exception as e:
         print(f"\n❌ Ошибка при инициализации: {e}")
+        import traceback
+        traceback.print_exc()
         db.rollback()
-        raise
+        sys.exit(1)
     finally:
         db.close()
 

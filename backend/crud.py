@@ -35,9 +35,13 @@ def get_track(db: Session, track_id: str) -> Optional[models.Track]:
 
 
 # Courses
-def get_courses(db: Session, track_id: Optional[str] = None, user_id: Optional[str] = None) -> List[dict]:
+def get_courses(db: Session, track_id: Optional[str] = None, user_id: Optional[str] = None, published_only: bool = True) -> List[dict]:
     """Получить все курсы с прогрессом пользователя"""
     query = db.query(models.Course).options(joinedload(models.Course.authors))
+    
+    # По умолчанию показываем только опубликованные курсы
+    if published_only:
+        query = query.filter(models.Course.status == 'published')
     
     if track_id:
         query = query.filter(models.Course.track_id == track_id)
@@ -80,11 +84,17 @@ def get_courses(db: Session, track_id: Optional[str] = None, user_id: Optional[s
     return result
 
 
-def get_course(db: Session, course_id: str, user_id: Optional[str] = None) -> Optional[dict]:
+def get_course(db: Session, course_id: str, user_id: Optional[str] = None, published_only: bool = False) -> Optional[dict]:
     """Получить курс по ID с прогрессом"""
-    course = db.query(models.Course).options(joinedload(models.Course.authors)).filter(
+    query = db.query(models.Course).options(joinedload(models.Course.authors)).filter(
         models.Course.id == course_id
-    ).first()
+    )
+    
+    # Для публичного доступа показываем только опубликованные курсы
+    if published_only:
+        query = query.filter(models.Course.status == 'published')
+    
+    course = query.first()
     
     if not course:
         return None
@@ -155,6 +165,308 @@ def get_graph_nodes(db: Session, user_id: Optional[str] = None) -> List[models.G
 def get_graph_edges(db: Session) -> List[models.GraphEdge]:
     """Получить все ребра графа"""
     return db.query(models.GraphEdge).all()
+
+
+def get_graph_node_by_entity(db: Session, entity_id: str, node_type: models.NodeType) -> Optional[models.GraphNode]:
+    """Получить узел графа по entity_id и типу"""
+    return db.query(models.GraphNode).filter(
+        models.GraphNode.entity_id == entity_id,
+        models.GraphNode.type == node_type
+    ).first()
+
+
+def create_graph_node_for_lesson(
+    db: Session,
+    lesson: models.Lesson,
+    x: float = 0.0,
+    y: float = 0.0,
+    auto_position: bool = True,
+    auto_create_edge: bool = True
+) -> models.GraphNode:
+    """Создать узел графа для урока"""
+    # Проверяем, существует ли уже узел
+    existing = get_graph_node_by_entity(db, lesson.id, models.NodeType.lesson)
+    if existing:
+        return existing
+    
+    # Автопозиционирование: находим позицию последнего узла урока в том же модуле
+    if auto_position and x == 0.0 and y == 0.0:
+        # Получаем все уроки модуля
+        module_lessons = db.query(models.Lesson).filter(
+            models.Lesson.module_id == lesson.module_id
+        ).order_by(models.Lesson.order_index).all()
+        
+        # Находим позицию текущего урока
+        lesson_index = next((i for i, l in enumerate(module_lessons) if l.id == lesson.id), 0)
+        
+        # Получаем координаты модуля или используем дефолтные
+        module_node = get_graph_node_by_entity(db, lesson.module_id, models.NodeType.module)
+        if module_node:
+            base_x = module_node.x
+            base_y = module_node.y
+        else:
+            base_x = 500.0
+            base_y = 500.0
+        
+        # Располагаем уроки по кругу вокруг узла модуля
+        import math
+        angle = (2 * math.pi * lesson_index) / max(len(module_lessons), 1)
+        radius = 150.0
+        x = base_x + radius * math.cos(angle)
+        y = base_y + radius * math.sin(angle)
+    
+    graph_node = models.GraphNode(
+        id=f"node-{lesson.id}",
+        type=models.NodeType.lesson,
+        entity_id=lesson.id,
+        title=lesson.title,
+        x=x,
+        y=y,
+        status=models.NodeStatus.open,
+        size=40
+    )
+    db.add(graph_node)
+    db.flush()  # Получить ID узла перед созданием связи
+    
+    # Автоматически создать связь с узлом модуля, если он существует
+    if auto_create_edge:
+        module_node = get_graph_node_by_entity(db, lesson.module_id, models.NodeType.module)
+        if module_node:
+            # Проверяем, что связь еще не существует
+            existing_edge = db.query(models.GraphEdge).filter(
+                models.GraphEdge.source_id == module_node.id,
+                models.GraphEdge.target_id == graph_node.id
+            ).first()
+            if not existing_edge:
+                edge = models.GraphEdge(
+                    id=f"edge-{module_node.id}-{graph_node.id}",
+                    source_id=module_node.id,
+                    target_id=graph_node.id,
+                    type=models.EdgeType.required
+                )
+                db.add(edge)
+    
+    # Не делаем commit здесь - он будет сделан в роутере
+    # Объект будет доступен после flush в текущей транзакции
+    return graph_node
+
+
+def update_graph_node_for_lesson(
+    db: Session,
+    lesson: models.Lesson,
+    title: Optional[str] = None
+) -> Optional[models.GraphNode]:
+    """Обновить узел графа для урока"""
+    graph_node = get_graph_node_by_entity(db, lesson.id, models.NodeType.lesson)
+    if graph_node and title:
+        graph_node.title = title
+        # Не делаем commit здесь - он будет сделан в роутере
+        db.add(graph_node)  # Помечаем объект как измененный
+    return graph_node
+
+
+def delete_graph_node_for_lesson(db: Session, lesson_id: str) -> bool:
+    """Удалить узел графа для урока"""
+    graph_node = get_graph_node_by_entity(db, lesson_id, models.NodeType.lesson)
+    if graph_node:
+        db.delete(graph_node)
+        # Не делаем commit здесь - он будет сделан в роутере вместе с удалением урока
+        return True
+    return False
+
+
+def get_lesson_with_graph_node(db: Session, lesson_id: str) -> Optional[dict]:
+    """Получить урок с информацией о графе"""
+    lesson = get_lesson(db, lesson_id)
+    if not lesson:
+        return None
+    
+    graph_node = get_graph_node_by_entity(db, lesson_id, models.NodeType.lesson)
+    
+    result = {
+        "id": lesson.id,
+        "module_id": lesson.module_id,
+        "title": lesson.title,
+        "description": lesson.description,
+        "content": lesson.content,
+        "video_url": lesson.video_url,
+        "video_duration": lesson.video_duration,
+        "order_index": lesson.order_index,
+        "content_type": lesson.content_type,
+        "tags": lesson.tags,
+        "estimated_time": lesson.estimated_time,
+    }
+    
+    if graph_node:
+        result["graph"] = {
+            "node_id": graph_node.id,
+            "x": graph_node.x,
+            "y": graph_node.y,
+            "status": graph_node.status.value if graph_node.status else None,
+            "size": graph_node.size
+        }
+        
+        # Получаем связи
+        outgoing = db.query(models.GraphEdge).filter(
+            models.GraphEdge.source_id == graph_node.id
+        ).all()
+        
+        incoming = db.query(models.GraphEdge).filter(
+            models.GraphEdge.target_id == graph_node.id
+        ).all()
+        
+        result["graph"]["connections"] = {
+            "outgoing": [{
+                "id": e.id,
+                "target_id": e.target_id,
+                "type": e.type.value if e.type else None
+            } for e in outgoing],
+            "incoming": [{
+                "id": e.id,
+                "source_id": e.source_id,
+                "type": e.type.value if e.type else None
+            } for e in incoming]
+        }
+    
+    return result
+
+
+def create_graph_node_for_module(
+    db: Session,
+    module: models.Module,
+    x: float = 0.0,
+    y: float = 0.0,
+    auto_create_edge: bool = True
+) -> models.GraphNode:
+    """Создать узел графа для модуля"""
+    existing = get_graph_node_by_entity(db, module.id, models.NodeType.module)
+    if existing:
+        return existing
+    
+    # Если координаты не указаны, размещаем модули вокруг курса в радиальном порядке
+    if x == 0.0 and y == 0.0:
+        course_node = get_graph_node_by_entity(db, module.course_id, models.NodeType.course)
+        if course_node:
+            # Определяем направление курса от центра
+            course_x, course_y = course_node.x, course_node.y
+            
+            # Получаем все модули этого курса для правильного позиционирования
+            all_modules = db.query(models.Module).filter(
+                models.Module.course_id == module.course_id
+            ).order_by(models.Module.order_index).all()
+            
+            # Находим индекс текущего модуля
+            module_index = next((i for i, m in enumerate(all_modules) if m.id == module.id), module.order_index)
+            
+            # Определяем направление от курса к центру
+            center_x, center_y = 0, 0
+            direction_x = center_x - course_x
+            direction_y = center_y - course_y
+            
+            # Нормализуем направление
+            length = (direction_x ** 2 + direction_y ** 2) ** 0.5
+            if length > 0:
+                direction_x /= length
+                direction_y /= length
+            
+            # Перпендикулярное направление для размещения модулей в ряд
+            perp_x = -direction_y
+            perp_y = direction_x
+            
+            # Расстояние от курса до модулей
+            distance_from_course = 200
+            
+            # Смещение вдоль перпендикуляра (модули в ряд)
+            offset_along_perp = (module_index - len(all_modules) / 2 + 0.5) * 150
+            
+            # Позиция модуля
+            x = course_x + direction_x * distance_from_course + perp_x * offset_along_perp
+            y = course_y + direction_y * distance_from_course + perp_y * offset_along_perp
+        else:
+            # Если курс не найден, размещаем по умолчанию
+            x = 500.0 + (module.order_index * 200)
+            y = 500.0
+    
+    graph_node = models.GraphNode(
+        id=f"node-{module.id}",
+        type=models.NodeType.module,
+        entity_id=module.id,
+        title=module.title,
+        x=x,
+        y=y,
+        status=models.NodeStatus.open,
+        size=120  # Увеличиваем размер для модулей
+    )
+    db.add(graph_node)
+    db.flush()  # Получить ID узла перед созданием связи
+    
+    # Автоматически создать связь с узлом курса, если он существует
+    if auto_create_edge:
+        course_node = get_graph_node_by_entity(db, module.course_id, models.NodeType.course)
+        if course_node:
+            # Проверяем, что связь еще не существует
+            existing_edge = db.query(models.GraphEdge).filter(
+                models.GraphEdge.source_id == course_node.id,
+                models.GraphEdge.target_id == graph_node.id
+            ).first()
+            if not existing_edge:
+                edge = models.GraphEdge(
+                    id=f"edge-{course_node.id}-{graph_node.id}",
+                    source_id=course_node.id,
+                    target_id=graph_node.id,
+                    type=models.EdgeType.required
+                )
+                db.add(edge)
+    
+    # Не делаем commit здесь - он будет сделан в роутере
+    # Объект будет доступен после flush в текущей транзакции
+    return graph_node
+
+
+def create_graph_node_for_course(
+    db: Session,
+    course: models.Course,
+    x: float = 0.0,
+    y: float = 0.0
+) -> models.GraphNode:
+    """Создать узел графа для курса"""
+    existing = get_graph_node_by_entity(db, course.id, models.NodeType.course)
+    if existing:
+        return existing
+    
+    if x == 0.0 and y == 0.0:
+        # Автопозиционирование: 4 курса в разных направлениях от центра
+        # Центр графа: (0, 0)
+        # Расстояние от центра: 500
+        course_positions = {
+            'event-basics': (0, -500),      # Север
+            'product-intro': (500, 0),      # Восток
+            'business-comm': (0, 500),       # Юг
+            'graphic-design': (-500, 0),    # Запад
+        }
+        
+        if course.id in course_positions:
+            x, y = course_positions[course.id]
+        else:
+            # Если курс не в списке фиксированных, размещаем по умолчанию
+            x = 0.0
+            y = 0.0
+    
+    graph_node = models.GraphNode(
+        id=f"node-{course.id}",
+        type=models.NodeType.course,
+        entity_id=course.id,
+        title=course.title,
+        x=x,
+        y=y,
+        status=models.NodeStatus.open,
+        size=80  # Увеличиваем размер для курсов
+    )
+    db.add(graph_node)
+    db.flush()  # Получить ID узла, но не коммитить - commit будет в роутере
+    # Не делаем commit здесь - он будет сделан в роутере
+    # Объект будет доступен после flush в текущей транзакции
+    return graph_node
 
 
 # Submissions
@@ -272,4 +584,29 @@ def update_lesson_progress(db: Session, user_id: str, lesson_id: str, status: st
     
     db.commit()
     return user_lesson
+
+
+def get_first_lesson_id(db: Session, course_id: str) -> Optional[str]:
+    """Получить ID первого урока курса (первый урок первого модуля)"""
+    # Получаем модули курса, отсортированные по order_index
+    modules = db.query(models.Module).filter(
+        models.Module.course_id == course_id
+    ).order_by(models.Module.order_index).all()
+    
+    if not modules:
+        return None
+    
+    # Берем первый модуль
+    first_module = modules[0]
+    
+    # Получаем уроки модуля, отсортированные по order_index
+    lessons = db.query(models.Lesson).filter(
+        models.Lesson.module_id == first_module.id
+    ).order_by(models.Lesson.order_index).all()
+    
+    if not lessons:
+        return None
+    
+    # Возвращаем ID первого урока
+    return lessons[0].id
 

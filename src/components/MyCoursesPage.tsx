@@ -1,15 +1,63 @@
-import { courses } from '../data/mockData';
+import { useState, useEffect, useMemo } from 'react';
+import { Course } from '../types';
 import { CourseCard } from './CourseCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { coursesAPI } from '../api/client';
 
 interface MyCoursesPageProps {
   onCourseSelect?: (courseId: string) => void;
 }
 
+// Преобразование данных из API в формат фронтенда
+function transformCourseFromAPI(apiCourse: any): Course {
+  return {
+    id: apiCourse.id,
+    trackId: apiCourse.track_id,
+    title: apiCourse.title,
+    version: apiCourse.version || '1.0',
+    description: apiCourse.description || '',
+    shortDescription: apiCourse.short_description || '',
+    level: apiCourse.level as 'beginner' | 'intermediate' | 'advanced',
+    moduleCount: apiCourse.module_count || 0,
+    lessonCount: apiCourse.lesson_count || 0,
+    taskCount: apiCourse.task_count || 0,
+    authors: apiCourse.authors || [],
+    enrollmentDeadline: apiCourse.enrollment_deadline,
+    progress: apiCourse.progress,
+    status: apiCourse.status as 'not_started' | 'in_progress' | 'completed' | undefined,
+  };
+}
+
 export function MyCoursesPage({ onCourseSelect }: MyCoursesPageProps) {
-  const inProgressCourses = courses.filter(c => c.status === 'in_progress');
-  const completedCourses = courses.filter(c => c.status === 'completed');
-  const allEnrolledCourses = courses.filter(c => c.status !== 'not_started');
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const apiCourses = await coursesAPI.getAll();
+        const transformedCourses = Array.isArray(apiCourses) 
+          ? apiCourses.map(transformCourseFromAPI)
+          : [];
+        setCourses(transformedCourses);
+      } catch (err: any) {
+        console.error('Failed to fetch courses:', err);
+        setError(err.message || 'Ошибка загрузки курсов');
+        setCourses([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCourses();
+  }, []);
+
+  const inProgressCourses = useMemo(() => courses.filter(c => c.status === 'in_progress'), [courses]);
+  const completedCourses = useMemo(() => courses.filter(c => c.status === 'completed'), [courses]);
+  const allEnrolledCourses = useMemo(() => courses.filter(c => c.status !== 'not_started'), [courses]);
 
   return (
     <div className="min-h-screen bg-transparent">
@@ -28,7 +76,19 @@ export function MyCoursesPage({ onCourseSelect }: MyCoursesPageProps) {
           </p>
         </div>
 
-        <Tabs defaultValue="all" className="space-y-8">
+        {loading ? (
+          <div className="text-center py-20">
+            <p className="text-muted-foreground font-mono">Загрузка курсов...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-20 border-2 border-black">
+            <div className="bg-black text-white px-6 py-3 inline-block font-mono tracking-wide mb-4">
+              ОШИБКА
+            </div>
+            <p className="text-muted-foreground font-mono">{error}</p>
+          </div>
+        ) : (
+          <Tabs defaultValue="all" className="space-y-8">
           <TabsList className="border-2 border-black bg-white p-1">
             <TabsTrigger 
               value="all" 
@@ -118,7 +178,8 @@ export function MyCoursesPage({ onCourseSelect }: MyCoursesPageProps) {
               </div>
             )}
           </TabsContent>
-        </Tabs>
+          </Tabs>
+        )}
       </div>
     </div>
   );

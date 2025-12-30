@@ -58,6 +58,12 @@ class NotificationType(str, Enum):
     reminder = "reminder"
 
 
+class UserRole(str, Enum):
+    student = "student"
+    teacher = "teacher"
+    admin = "admin"
+
+
 # Base schemas
 class TrackBase(BaseModel):
     id: TrackId
@@ -88,6 +94,7 @@ class CourseBase(BaseModel):
 
 class Course(CourseBase):
     created_at: datetime
+    status: Optional[str] = 'draft'  # draft, published, archived
     
     class Config:
         from_attributes = True
@@ -101,8 +108,8 @@ class CourseWithProgress(Course):
 class HandbookExcerptBase(BaseModel):
     id: str
     section_title: str
-    excerpt: str
-    full_section_id: str
+    excerpt: Optional[str] = None
+    full_section_id: Optional[str] = None
 
 
 class HandbookExcerpt(HandbookExcerptBase):
@@ -114,11 +121,11 @@ class HandbookExcerpt(HandbookExcerptBase):
 
 class AssignmentBase(BaseModel):
     id: str
-    description: str
-    criteria: str
-    requires_text: bool
-    requires_file: bool
-    requires_link: bool
+    description: Optional[str] = None
+    criteria: Optional[str] = None
+    requires_text: bool = False
+    requires_file: bool = False
+    requires_link: bool = False
 
 
 class Assignment(AssignmentBase):
@@ -130,19 +137,23 @@ class Assignment(AssignmentBase):
 
 class LessonBase(BaseModel):
     id: str
-    module_id: str
+    module_id: Optional[str] = None  # Опционально - урок может быть без модуля
     title: str
-    description: str
+    description: Optional[str] = None
     video_url: Optional[str] = None
     video_duration: Optional[str] = None
-    content: str
-    order_index: int
+    content: Optional[str] = None
+    order_index: int = 0
+    content_type: Optional[str] = "text"
+    tags: Optional[str] = None
+    estimated_time: Optional[int] = 0
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
 
 class Lesson(LessonBase):
     handbook_excerpts: List[HandbookExcerpt] = []
     assignment: Optional[Assignment] = None
-    status: Optional[CourseStatus] = None
     
     class Config:
         from_attributes = True
@@ -152,7 +163,7 @@ class ModuleBase(BaseModel):
     id: str
     course_id: str
     title: str
-    description: str
+    description: Optional[str] = ""
     order_index: int
 
 
@@ -259,10 +270,18 @@ class UserLogin(BaseModel):
 class User(UserBase):
     id: str
     is_active: bool
+    role: UserRole
     created_at: datetime
     
     class Config:
         from_attributes = True
+
+
+class UserUpdate(BaseModel):
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
+    role: Optional[UserRole] = None
+    is_active: Optional[bool] = None
 
 
 class Token(BaseModel):
@@ -273,3 +292,169 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     username: Optional[str] = None
 
+
+
+
+
+# Admin schemas for creating/updating entities
+
+class TrackCreate(BaseModel):
+    id: TrackId
+    name: str
+    description: str
+    color: str
+
+
+class CourseCreate(BaseModel):
+    id: str
+    track_id: TrackId
+    title: str
+    version: str = "1.0"
+    description: str
+    short_description: str
+    level: CourseLevel
+    enrollment_deadline: Optional[str] = None
+    authors: List[str] = []
+
+
+class CourseUpdate(BaseModel):
+    track_id: Optional[TrackId] = None
+    title: Optional[str] = None
+    version: Optional[str] = None
+    description: Optional[str] = None
+    short_description: Optional[str] = None
+    level: Optional[CourseLevel] = None
+    enrollment_deadline: Optional[str] = None
+    status: Optional[str] = None
+    authors: Optional[List[str]] = None
+
+
+class ModuleCreate(BaseModel):
+    id: str
+    course_id: str
+    title: str
+    description: str
+    order_index: int = 0
+    prerequisites: Optional[str] = None
+
+
+class ModuleUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    order_index: Optional[int] = None
+    prerequisites: Optional[str] = None
+
+
+class LessonCreate(BaseModel):
+    id: str
+    module_id: Optional[str] = None  # Опционально - можно создать урок без модуля
+    title: str
+    description: str
+    content: str
+    video_url: Optional[str] = None
+    video_duration: Optional[str] = None
+    order_index: int = 0
+    content_type: str = "text"
+    tags: Optional[str] = None
+    estimated_time: int = 0
+
+
+class LessonUpdate(BaseModel):
+    module_id: Optional[str] = None  # Можно изменить или установить module_id
+    title: Optional[str] = None
+    description: Optional[str] = None
+    content: Optional[str] = None
+    video_url: Optional[str] = None
+    video_duration: Optional[str] = None
+    order_index: Optional[int] = None
+    content_type: Optional[str] = None
+    tags: Optional[str] = None
+    estimated_time: Optional[int] = None
+
+
+class GraphNodeCreate(BaseModel):
+    id: str
+    type: NodeType
+    entity_id: str
+    title: str
+    x: float
+    y: float
+    status: Optional[NodeStatus] = None
+    size: int = 40
+
+
+class GraphNodeUpdate(BaseModel):
+    x: Optional[float] = None
+    y: Optional[float] = None
+    title: Optional[str] = None
+    status: Optional[NodeStatus] = None
+    size: Optional[int] = None
+
+
+class GraphEdgeCreate(BaseModel):
+    id: str
+    source_id: str
+    target_id: str
+    type: EdgeType
+
+
+class HandbookCreate(BaseModel):
+    id: str
+    module_id: str
+    title: str
+    description: str
+    order_index: int = 0
+
+
+class HandbookUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    order_index: Optional[int] = None
+
+
+class HandbookSectionCreate(BaseModel):
+    id: str
+    handbook_id: str
+    parent_section_id: Optional[str] = None
+    title: str
+    order_index: int = 0
+
+
+class HandbookSectionUpdate(BaseModel):
+    title: Optional[str] = None
+    order_index: Optional[int] = None
+    parent_section_id: Optional[str] = None
+
+
+class HandbookArticleCreate(BaseModel):
+    id: str
+    section_id: str
+    title: str
+    content: str
+    tags: Optional[str] = None
+    related_lessons: Optional[str] = None
+
+
+class HandbookArticleUpdate(BaseModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+    tags: Optional[str] = None
+    related_lessons: Optional[str] = None
+
+
+class AssignmentCreate(BaseModel):
+    id: str
+    lesson_id: str
+    description: Optional[str] = ""
+    criteria: Optional[str] = ""
+    requires_text: bool = False
+    requires_file: bool = False
+    requires_link: bool = False
+
+
+class AssignmentUpdate(BaseModel):
+    description: Optional[str] = None
+    criteria: Optional[str] = None
+    requires_text: Optional[bool] = None
+    requires_file: Optional[bool] = None
+    requires_link: Optional[bool] = None

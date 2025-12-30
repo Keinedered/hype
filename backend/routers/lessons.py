@@ -25,6 +25,19 @@ def get_lesson(lesson_id: str, db: Session = Depends(get_db)):
     return lesson
 
 
+@router.get("/{lesson_id}/with-graph")
+def get_lesson_with_graph(
+    lesson_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user)
+):
+    """Получить урок с информацией о графе (координаты, связи)"""
+    lesson_data = crud.get_lesson_with_graph_node(db, lesson_id)
+    if not lesson_data:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    return lesson_data
+
+
 @router.post("/{lesson_id}/progress")
 def update_lesson_progress(
     lesson_id: str,

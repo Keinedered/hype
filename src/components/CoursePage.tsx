@@ -1,10 +1,12 @@
-import { Course, Module } from '../types';
-import { tracks, modules } from '../data/mockData';
+import { useState, useEffect } from 'react';
+import { Course, Module, Lesson, TrackId } from '../types';
 import { Button } from './ui/button';
 import { Progress } from './ui/progress';
 import { Card } from './ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { ArrowLeft, BookOpen, MapPin, CheckCircle2, Circle, Play } from 'lucide-react';
+import { modulesAPI as apiModulesAPI, lessonsAPI as apiLessonsAPI, tracksAPI as apiTracksAPI, coursesAPI } from '../api/client';
+import { tracks } from '../data/mockData';
 
 interface CoursePageProps {
   course: Course;
@@ -13,6 +15,35 @@ interface CoursePageProps {
   onOpenMap?: () => void;
   onSelectLesson?: (lessonId: string) => void;
   onOpenHandbook?: () => void;
+  onCourseUpdate?: (course: Course) => void;
+}
+
+// Преобразование модуля из API
+function transformModuleFromAPI(apiModule: any): Module {
+  return {
+    id: apiModule.id,
+    courseId: apiModule.course_id,
+    title: apiModule.title,
+    description: apiModule.description || '',
+    lessons: apiModule.lessons ? apiModule.lessons.map(transformLessonFromAPI) : [],
+    progress: undefined, // TODO: добавить прогресс пользователя
+  };
+}
+
+// Преобразование урока из API
+function transformLessonFromAPI(apiLesson: any): Lesson {
+  return {
+    id: apiLesson.id,
+    moduleId: apiLesson.module_id,
+    title: apiLesson.title,
+    description: apiLesson.description || '',
+    videoUrl: apiLesson.video_url,
+    videoDuration: apiLesson.video_duration,
+    content: apiLesson.content || '',
+    handbookExcerpts: apiLesson.handbook_excerpts || [],
+    assignment: apiLesson.assignment || null,
+    status: undefined, // TODO: добавить статус из user_lessons
+  };
 }
 
 export function CoursePage({ 
@@ -21,19 +52,68 @@ export function CoursePage({
   onStartCourse,
   onOpenMap,
   onSelectLesson,
-  onOpenHandbook
+  onOpenHandbook,
+  onCourseUpdate
 }: CoursePageProps) {
-  const track = tracks.find((t) => t.id === course.trackId);
-  const courseModules = modules.filter((m) => m.courseId === course.id);
+  const [courseModules, setCourseModules] = useState<Module[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [track, setTrack] = useState<any>(null);
+  const [lessonsByModule, setLessonsByModule] = useState<Record<string, Lesson[]>>({});
 
-  // Mock lessons for display
-  const mockLessons = (moduleId: string, count: number) => {
-    return Array.from({ length: count }, (_, i) => ({
-      id: `${moduleId}-lesson-${i + 1}`,
-      title: `Урок ${i + 1}`,
-      status: i === 0 ? 'completed' : i === 1 ? 'in_progress' : 'not_started'
-    }));
-  };
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Загружаем трек
+        try {
+          const tracksData = await apiTracksAPI.getAll();
+          const foundTrack = Array.isArray(tracksData) 
+            ? tracksData.find((t: any) => t.id === course.trackId) 
+            : tracks.find((t) => t.id === course.trackId);
+          setTrack(foundTrack || tracks.find((t) => t.id === course.trackId));
+        } catch {
+          // Fallback на mock данные
+          setTrack(tracks.find((t) => t.id === course.trackId));
+        }
+
+        // Загружаем модули
+        const modulesData = await apiModulesAPI.getByCourseId(course.id);
+        const transformedModules = Array.isArray(modulesData)
+          ? modulesData.map(transformModuleFromAPI)
+          : [];
+        
+        // Загружаем уроки для каждого модуля
+        const lessonsMap: Record<string, Lesson[]> = {};
+        for (const module of transformedModules) {
+          try {
+            const lessonsData = await apiLessonsAPI.getByModuleId(module.id);
+            lessonsMap[module.id] = Array.isArray(lessonsData)
+              ? lessonsData.map(transformLessonFromAPI)
+              : [];
+          } catch (err) {
+            console.error(`Failed to fetch lessons for module ${module.id}:`, err);
+            lessonsMap[module.id] = [];
+          }
+        }
+
+        // Обновляем модули с уроками
+        const modulesWithLessons = transformedModules.map(module => ({
+          ...module,
+          lessons: lessonsMap[module.id] || [],
+        }));
+
+        setCourseModules(modulesWithLessons);
+        setLessonsByModule(lessonsMap);
+      } catch (err: any) {
+        console.error('Failed to fetch course data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [course.id, course.trackId]);
 
   return (
     <div className="min-h-screen bg-transparent">
@@ -191,8 +271,13 @@ export function CoursePage({
               <h2 className="mb-0">СТРУКТУРА КУРСА</h2>
             </div>
             
-            <Accordion type="single" collapsible className="space-y-4">
-              {courseModules.map((module, index) => (
+            {loading ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground font-mono">Загрузка модулей...</p>
+              </div>
+            ) : (
+              <Accordion type="single" collapsible className="space-y-4">
+                {courseModules.map((module, index) => (
                 <AccordionItem 
                   key={module.id} 
                   value={module.id}
@@ -232,27 +317,34 @@ export function CoursePage({
                   </AccordionTrigger>
                   <AccordionContent>
                     <div className="px-6 pb-4 space-y-2 border-t-2 border-black pt-4">
-                      {mockLessons(module.id, 3).map((lesson, lessonIndex) => (
-                        <button
-                          key={lesson.id}
-                          onClick={() => onSelectLesson?.(lesson.id)}
-                          className="w-full flex items-center gap-4 p-4 border-2 border-black hover:bg-black hover:text-white transition-all text-left font-mono"
-                        >
-                          {lesson.status === 'completed' ? (
-                            <CheckCircle2 className="w-5 h-5" style={{ color: track?.color }} />
-                          ) : lesson.status === 'in_progress' ? (
-                            <Circle className="w-5 h-5" style={{ color: track?.color, fill: track?.color }} />
-                          ) : (
-                            <Circle className="w-5 h-5" />
-                          )}
-                          <span className="text-sm tracking-wide">{lesson.title.toUpperCase()}</span>
-                        </button>
-                      ))}
+                      {module.lessons && module.lessons.length > 0 ? (
+                        module.lessons.map((lesson) => (
+                          <button
+                            key={lesson.id}
+                            onClick={() => onSelectLesson?.(lesson.id)}
+                            className="w-full flex items-center gap-4 p-4 border-2 border-black hover:bg-black hover:text-white transition-all text-left font-mono"
+                          >
+                            {lesson.status === 'completed' ? (
+                              <CheckCircle2 className="w-5 h-5" style={{ color: track?.color }} />
+                            ) : lesson.status === 'in_progress' ? (
+                              <Circle className="w-5 h-5" style={{ color: track?.color, fill: track?.color }} />
+                            ) : (
+                              <Circle className="w-5 h-5" />
+                            )}
+                            <span className="text-sm tracking-wide">{lesson.title.toUpperCase()}</span>
+                          </button>
+                        ))
+                      ) : (
+                        <p className="text-muted-foreground font-mono text-sm py-2">
+                          В этом модуле пока нет уроков
+                        </p>
+                      )}
                     </div>
                   </AccordionContent>
                 </AccordionItem>
               ))}
-            </Accordion>
+              </Accordion>
+            )}
           </div>
 
           {/* Right column - About */}

@@ -28,23 +28,31 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
     headers['Authorization'] = `Bearer ${authToken}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers,
+    });
 
-  if (response.status === 401) {
-    clearAuthToken();
-    window.location.href = '/';
-    throw new Error('Unauthorized');
+    if (response.status === 401) {
+      clearAuthToken();
+      window.location.href = '/';
+      throw new Error('Unauthorized');
+    }
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || `Request failed with status ${response.status}`);
+    }
+
+    return response.json();
+  } catch (error) {
+    // Обработка сетевых ошибок
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      throw new Error(`Не удалось подключиться к серверу. Проверьте, что backend запущен на ${API_BASE_URL}`);
+    }
+    throw error;
   }
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
-    throw new Error(error.detail || 'Request failed');
-  }
-
-  return response.json();
 }
 
 // Auth API
@@ -61,21 +69,30 @@ export const authAPI = {
     formData.append('username', username);
     formData.append('password', password);
 
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: formData,
-    });
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData,
+      });
 
-    if (!response.ok) {
-      throw new Error('Login failed');
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: 'Неверное имя пользователя или пароль' }));
+        throw new Error(error.detail || 'Ошибка входа');
+      }
+
+      const data = await response.json();
+      setAuthToken(data.access_token);
+      return data;
+    } catch (error) {
+      // Обработка сетевых ошибок
+      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        throw new Error(`Не удалось подключиться к серверу. Проверьте, что backend запущен на ${API_BASE_URL}`);
+      }
+      throw error;
     }
-
-    const data = await response.json();
-    setAuthToken(data.access_token);
-    return data;
   },
 
   logout() {
@@ -105,11 +122,17 @@ export const tracksAPI = {
 export const coursesAPI = {
   async getAll(trackId?: string) {
     const params = trackId ? `?track_id=${trackId}` : '';
-    return apiFetch(`/courses/${params}`);
+    return apiFetch(`/courses${params}`);
   },
 
   async getById(courseId: string) {
     return apiFetch(`/courses/${courseId}`);
+  },
+
+  async enroll(courseId: string) {
+    return apiFetch(`/courses/${courseId}/enroll`, {
+      method: 'POST',
+    });
   },
 
   async updateProgress(courseId: string, progress: number, status: string) {

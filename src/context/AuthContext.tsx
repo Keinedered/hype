@@ -6,6 +6,7 @@ interface User {
   username: string;
   email: string;
   full_name?: string;
+  role?: string;
 }
 
 interface AuthContextType {
@@ -40,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await authAPI.login(username, password);
     const currentUser = await usersAPI.getCurrentUser();
     setUser(currentUser);
+    return currentUser;
   };
 
   const register = async (username: string, email: string, password: string, fullName?: string) => {

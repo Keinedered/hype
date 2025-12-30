@@ -92,3 +92,75 @@ async def get_current_active_user(
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
+
+
+async def get_current_admin(
+    current_user: models.User = Depends(get_current_active_user)
+) -> models.User:
+    """Проверка прав администратора - пользователь должен иметь роль "admin" """
+    import json
+    import os
+    log_path = r"c:\graph\hype\.cursor\debug.log"
+    try:
+        log_entry = {
+            "location": "auth.py:97",
+            "message": "get_current_admin called",
+            "data": {
+                "user_id": current_user.id,
+                "username": current_user.username,
+                "user_role": str(current_user.role),
+                "expected_role": "admin",
+                "role_match": current_user.role == models.UserRole.admin
+            },
+            "timestamp": int(__import__('time').time() * 1000),
+            "sessionId": "debug-session",
+            "runId": "initial",
+            "hypothesisId": "A"
+        }
+        with open(log_path, 'a', encoding='utf-8') as f:
+            f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
+    except Exception:
+        pass
+    if current_user.role != models.UserRole.admin:
+        try:
+            log_entry = {
+                "location": "auth.py:101",
+                "message": "Admin role check failed",
+                "data": {
+                    "user_id": current_user.id,
+                    "username": current_user.username,
+                    "user_role": str(current_user.role),
+                    "expected_role": "admin"
+                },
+                "timestamp": int(__import__('time').time() * 1000),
+                "sessionId": "debug-session",
+                "runId": "initial",
+                "hypothesisId": "A"
+            }
+            with open(log_path, 'a', encoding='utf-8') as f:
+                f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
+        except Exception:
+            pass
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions"
+        )
+    try:
+        log_entry = {
+            "location": "auth.py:106",
+            "message": "Admin role check passed",
+            "data": {
+                "user_id": current_user.id,
+                "username": current_user.username
+            },
+            "timestamp": int(__import__('time').time() * 1000),
+            "sessionId": "debug-session",
+            "runId": "initial",
+            "hypothesisId": "A"
+        }
+        with open(log_path, 'a', encoding='utf-8') as f:
+            f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
+    except Exception:
+        pass
+    return current_user
+

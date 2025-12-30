@@ -1,0 +1,9 @@
+﻿export { Dashboard } from './Dashboard';
+export { CoursesManagement } from './CoursesManagement';
+export { ModulesManagement } from './ModulesManagement';
+export { LessonsManagement } from './LessonsManagement';
+export { GraphEditor } from './GraphEditor';
+export { HandbookManagement } from './HandbookManagement';
+export { AssignmentsManagement } from './AssignmentsManagement';
+export { UsersManagement } from './UsersManagement';
+export { Analytics } from './Analytics';

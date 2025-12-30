@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { HomePage } from './components/HomePage';
 import { HeroSection } from './components/HeroSection';
@@ -9,19 +9,81 @@ import { MyCoursesPage } from './components/MyCoursesPage';
 import { ProfilePage } from './components/ProfilePage';
 import { KnowledgeGraphPage } from './components/KnowledgeGraphPage';
 import { HandbookPage } from './components/HandbookPage';
-import { courses, tracks } from './data/mockData';
+import { tracks } from './data/mockData';
+import { coursesAPI, tracksAPI as apiTracksAPI } from './api/client';
+import { Course, TrackId } from './types';
 import { SmoothLinesBackground } from './components/ui/SmoothLinesBackground';
-import { TrackId } from './types';
+import { Button } from './components/ui/button';
 
 type Page = 'home' | 'catalog' | 'path' | 'courses' | 'about' | 'profile' | 'course' | 'lesson' | 'handbook';
+
+// Преобразование данных из API в формат фронтенда
+function transformCourseFromAPI(apiCourse: any): Course {
+  return {
+    id: apiCourse.id,
+    trackId: apiCourse.track_id as TrackId,
+    title: apiCourse.title,
+    version: apiCourse.version || '1.0',
+    description: apiCourse.description || '',
+    shortDescription: apiCourse.short_description || '',
+    level: apiCourse.level as 'beginner' | 'intermediate' | 'advanced',
+    moduleCount: apiCourse.module_count || 0,
+    lessonCount: apiCourse.lesson_count || 0,
+    taskCount: apiCourse.task_count || 0,
+    authors: apiCourse.authors || [],
+    enrollmentDeadline: apiCourse.enrollment_deadline,
+    progress: apiCourse.progress,
+    status: apiCourse.status as 'not_started' | 'in_progress' | 'completed' | undefined,
+  };
+}
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [catalogSelectedTrack, setCatalogSelectedTrack] = useState<TrackId | 'all'>('all');
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [selectedTrack, setSelectedTrack] = useState<any>(null);
+  const [loadingCourse, setLoadingCourse] = useState(false);
 
   const [profileTab, setProfileTab] = useState<'settings' | 'submissions' | 'faq' | 'notifications'>('settings');
+
+  // Загружаем курс когда selectedCourseId меняется
+  useEffect(() => {
+    const fetchCourse = async () => {
+      if (!selectedCourseId) {
+        setSelectedCourse(null);
+        setSelectedTrack(null);
+        return;
+      }
+
+      try {
+        setLoadingCourse(true);
+        const apiCourse = await coursesAPI.getById(selectedCourseId);
+        const course = transformCourseFromAPI(apiCourse);
+        setSelectedCourse(course);
+
+        // Загружаем трек
+        try {
+          const tracksData = await apiTracksAPI.getAll();
+          const foundTrack = Array.isArray(tracksData) 
+            ? tracksData.find((t: any) => t.id === course.trackId)
+            : tracks.find((t) => t.id === course.trackId);
+          setSelectedTrack(foundTrack || tracks.find((t) => t.id === course.trackId) || null);
+        } catch {
+          setSelectedTrack(tracks.find((t) => t.id === course.trackId) || null);
+        }
+      } catch (err) {
+        console.error('Failed to fetch course:', err);
+        setSelectedCourse(null);
+        setSelectedTrack(null);
+      } finally {
+        setLoadingCourse(false);
+      }
+    };
+
+    fetchCourse();
+  }, [selectedCourseId]);
 
   const handleNavigate = (page: string) => {
     if (page.startsWith('lesson/')) {
@@ -102,8 +164,32 @@ export default function App() {
     setCurrentPage('course');
   };
 
-  const handleStartCourse = () => {
-    setCurrentPage('lesson');
+  const handleStartCourse = async () => {
+    if (!selectedCourse) return;
+    
+    try {
+      // Записываемся на курс
+      const enrollmentResult = await coursesAPI.enroll(selectedCourse.id);
+      
+      // Обновляем информацию о курсе
+      const updatedCourse = await coursesAPI.getById(selectedCourse.id);
+      setSelectedCourse(transformCourseFromAPI(updatedCourse));
+      
+      // Если есть первый урок, открываем его
+      if (enrollmentResult?.first_lesson_id) {
+        setSelectedLessonId(enrollmentResult.first_lesson_id);
+        setCurrentPage('lesson');
+      } else {
+        // Если уроков нет, просто переключаемся на страницу курса
+        // Пользователь сможет выбрать урок вручную
+        setCurrentPage('course');
+      }
+    } catch (error: any) {
+      console.error('Failed to enroll in course:', error);
+      // Используем alert как fallback, так как toast может быть недоступен
+      const errorMessage = error.message || 'Ошибка при записи на курс';
+      alert(errorMessage);
+    }
   };
 
   const handleSelectLesson = (lessonId: string) => {
@@ -115,11 +201,6 @@ export default function App() {
   const handleOpenMap = () => {
     setCurrentPage('path');
   };
-
-  const selectedCourse = selectedCourseId 
-    ? courses.find(c => c.id === selectedCourseId)
-    : null;
-  const selectedTrack = selectedCourse ? tracks.find(t => t.id === selectedCourse.trackId) : null;
 
   return (
     <div className="min-h-screen bg-background relative selection:bg-black selection:text-white">
@@ -149,17 +230,9 @@ export default function App() {
           onNodeClick={(nodeId) => {
             if (nodeId === 'root') return;
             
-            // Try to find if it's a course
-            const course = courses.find(c => c.id === nodeId);
-            if (course) {
-              setSelectedCourseId(nodeId);
-              setCurrentPage('course');
-            } else {
-              // Assume it's a lesson or just log for now
-              console.log('Node clicked:', nodeId);
-              // setSelectedLessonId(nodeId);
-              // setCurrentPage('lesson');
-            }
+            // Assume it's a course ID and try to load it
+            setSelectedCourseId(nodeId);
+            setCurrentPage('course');
           }}
           onOpenHandbook={() => {
             setCurrentPage('handbook');
@@ -303,17 +376,35 @@ export default function App() {
         />
       )}
 
-      {currentPage === 'course' && selectedCourse && (
-        <CoursePage
-          course={selectedCourse}
-          onBack={handleBackToCatalog}
-          onStartCourse={handleStartCourse}
-          onOpenMap={handleOpenMap}
-          onSelectLesson={handleSelectLesson}
-          onOpenHandbook={() => {
-            setCurrentPage('handbook');
-          }}
-        />
+      {currentPage === 'course' && (
+        loadingCourse ? (
+          <div className="container mx-auto px-6 py-12 text-center">
+            <p className="font-mono">Загрузка курса...</p>
+          </div>
+        ) : selectedCourse ? (
+          <CoursePage
+            course={selectedCourse}
+            onBack={handleBackToCatalog}
+            onStartCourse={handleStartCourse}
+            onOpenMap={handleOpenMap}
+            onSelectLesson={handleSelectLesson}
+            onOpenHandbook={() => {
+              setCurrentPage('handbook');
+            }}
+            onCourseUpdate={(updatedCourse) => {
+              setSelectedCourse(updatedCourse);
+            }}
+          />
+        ) : (
+          <div className="container mx-auto px-6 py-12 text-center">
+            <div className="bg-black text-white px-6 py-3 inline-block font-mono tracking-wide mb-4">
+              КУРС НЕ НАЙДЕН
+            </div>
+            <Button onClick={handleBackToCatalog} className="font-mono">
+              Вернуться к каталогу
+            </Button>
+          </div>
+        )
       )}
 
       {currentPage === 'lesson' && (
@@ -332,12 +423,6 @@ export default function App() {
           }}
         />
       )}
-      {/* #region agent log */}
-      {currentPage === 'lesson' && (() => {
-        fetch('http://127.0.0.1:7242/ingest/f934cd13-d56f-4483-86ce-e2102f0bc81b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:319',message:'LessonPage rendered',data:{selectedLessonId, selectedCourseId, hasLessonId:!!selectedLessonId, lessonIdPassed:!!selectedLessonId},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
-        return null;
-      })()}
-      {/* #endregion */}
 
       {currentPage === 'handbook' && (
         <HandbookPage
