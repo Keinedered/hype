@@ -12,6 +12,15 @@ import os
 # Создание таблиц
 try:
     Base.metadata.create_all(bind=engine)
+    # Добавляем колонки status и published_at в таблицу lessons, если их нет
+    try:
+        from add_lesson_status_columns import add_lesson_status_columns
+        add_lesson_status_columns()
+    except Exception as e:
+        # Логируем ошибку, но не прерываем запуск
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Migration warning: {e}")
 except Exception as e:
     raise
 

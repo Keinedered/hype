@@ -5,7 +5,7 @@ from typing import List, Optional
 from database import get_db
 import schemas
 import crud
-from auth import get_current_active_user
+from auth import get_current_active_user, get_optional_user
 import models
 
 router = APIRouter(prefix="/courses")
@@ -15,7 +15,7 @@ router = APIRouter(prefix="/courses")
 def get_courses(
     track_id: Optional[str] = Query(None),
     db: Session = Depends(get_db),
-    current_user: Optional[models.User] = Depends(get_current_active_user)
+    current_user: Optional[models.User] = Depends(get_optional_user)
 ):
     """Получить все курсы с прогрессом пользователя (только опубликованные)"""
     user_id = current_user.id if current_user else None
@@ -26,7 +26,7 @@ def get_courses(
 def get_course(
     course_id: str,
     db: Session = Depends(get_db),
-    current_user: Optional[models.User] = Depends(get_current_active_user)
+    current_user: Optional[models.User] = Depends(get_optional_user)
 ):
     """Получить курс по ID с прогрессом (только опубликованные для неавторизованных)"""
     user_id = current_user.id if current_user else None
@@ -74,16 +74,20 @@ def enroll_in_course(
         }
     
     # Создаем новую запись о записи на курс
-    user_course = models.UserCourse(
-        user_id=current_user.id,
-        course_id=course_id,
-        status=models.CourseStatus.not_started,
-        progress=0.0,
-        started_at=func.now()
-    )
-    db.add(user_course)
-    db.commit()
-    db.refresh(user_course)
+    try:
+        user_course = models.UserCourse(
+            user_id=current_user.id,
+            course_id=course_id,
+            status=models.CourseStatus.not_started,
+            progress=0.0,
+            started_at=func.now()
+        )
+        db.add(user_course)
+        db.commit()
+        db.refresh(user_course)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to enroll in course: {str(e)}")
     
     # Получаем первый урок курса
     first_lesson_id = crud.get_first_lesson_id(db, course_id)
@@ -103,11 +107,25 @@ def enroll_in_course(
 @router.post("/{course_id}/progress")
 def update_course_progress(
     course_id: str,
-    progress: float,
-    status: str,
+    progress_data: schemas.CourseProgressUpdate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_active_user)
 ):
     """Обновить прогресс по курсу"""
-    return crud.update_course_progress(db, current_user.id, course_id, progress, status)
+    # Валидация прогресса
+    if progress_data.progress < 0 or progress_data.progress > 100:
+        raise HTTPException(status_code=400, detail="Progress must be between 0 and 100")
+    
+    try:
+        return crud.update_course_progress(
+            db, 
+            current_user.id, 
+            course_id, 
+            progress_data.progress, 
+            progress_data.status.value
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update progress: {str(e)}")
 

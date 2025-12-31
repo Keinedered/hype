@@ -360,7 +360,7 @@ export function LessonsManagement() {
               {/* Курс и модуль */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-gray-300">Курс *</Label>
+                  <Label className="text-gray-200">Курс *</Label>
                   <Select
                     value={selectedCourseId}
                     onValueChange={(value) => {
@@ -382,7 +382,7 @@ export function LessonsManagement() {
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-gray-300">Модуль *</Label>
+                  <Label className="text-gray-200">Модуль *</Label>
                   <Select
                     value={formData.module_id}
                     onValueChange={(value) => {
@@ -431,7 +431,7 @@ export function LessonsManagement() {
               </div>
 
               <div>
-                <Label className="text-gray-300">ID урока *</Label>
+                <Label className="text-gray-200">ID урока *</Label>
                 <Input
                   value={formData.id}
                   onChange={(e) => setFormData({ ...formData, id: e.target.value })}
@@ -442,7 +442,7 @@ export function LessonsManagement() {
               </div>
 
               <div>
-                <Label className="text-gray-300">Название *</Label>
+                <Label className="text-gray-200">Название *</Label>
                 <Input
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -452,7 +452,7 @@ export function LessonsManagement() {
               </div>
 
               <div>
-                <Label className="text-gray-300">Описание *</Label>
+                <Label className="text-gray-200">Описание *</Label>
                 <Textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -463,7 +463,7 @@ export function LessonsManagement() {
               </div>
 
               <div>
-                <Label className="text-gray-300">Контент (Markdown) *</Label>
+                <Label className="text-gray-200">Контент (Markdown) *</Label>
                 <Textarea
                   value={formData.content}
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
@@ -475,7 +475,7 @@ export function LessonsManagement() {
               </div>
 
               <div>
-                <Label className="text-gray-300">Тип контента</Label>
+                <Label className="text-gray-200">Тип контента</Label>
                 <Select
                   value={formData.content_type}
                   onValueChange={(value) => setFormData({ ...formData, content_type: value })}
@@ -493,9 +493,9 @@ export function LessonsManagement() {
               </div>
 
               {formData.content_type === 'video' && (
-                <div className="bg-gray-800/50 p-4 rounded-lg space-y-4 border border-gray-700">
+                <div className="bg-gray-800 p-4 rounded-lg space-y-4 border border-gray-700">
                   <div>
-                    <Label className="text-gray-300">URL видео</Label>
+                    <Label className="text-gray-200">URL видео</Label>
                     <Input
                       value={formData.video_url}
                       onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
@@ -504,7 +504,7 @@ export function LessonsManagement() {
                     />
                   </div>
                   <div>
-                    <Label className="text-gray-300">Длительность видео (MM:SS)</Label>
+                    <Label className="text-gray-200">Длительность видео (MM:SS)</Label>
                     <Input
                       value={formData.video_duration}
                       onChange={(e) =>
@@ -519,7 +519,7 @@ export function LessonsManagement() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-gray-300">Порядковый номер</Label>
+                  <Label className="text-gray-200">Порядковый номер</Label>
                   <Input
                     type="number"
                     min="0"
@@ -532,7 +532,7 @@ export function LessonsManagement() {
                   <p className="text-gray-500 text-xs mt-1">Определяет порядок урока в модуле</p>
                 </div>
                 <div>
-                  <Label className="text-gray-300">Оценка времени (минуты)</Label>
+                  <Label className="text-gray-200">Оценка времени (минуты)</Label>
                   <Input
                     type="number"
                     min="0"
@@ -546,7 +546,7 @@ export function LessonsManagement() {
               </div>
 
               <div>
-                <Label className="text-gray-300">Теги (опционально)</Label>
+                <Label className="text-gray-200">Теги (опционально)</Label>
                 <Input
                   value={formData.tags}
                   onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
@@ -568,14 +568,14 @@ export function LessonsManagement() {
                     }
                     className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500"
                   />
-                  <Label htmlFor="createGraphNodeLesson" className="cursor-pointer text-gray-300">
+                  <Label htmlFor="createGraphNodeLesson" className="cursor-pointer text-gray-200">
                     Создать узел графа знаний
                   </Label>
                 </div>
                 {graphOptions.createGraphNode && (
                   <div className="bg-gray-800/50 p-4 rounded-lg grid grid-cols-2 gap-4 border border-gray-700">
                     <div>
-                      <Label className="text-gray-300">Координата X</Label>
+                      <Label className="text-gray-200">Координата X</Label>
                       <Input
                         type="number"
                         value={graphOptions.x}
@@ -587,7 +587,7 @@ export function LessonsManagement() {
                       <p className="text-gray-500 text-xs mt-1">0 = автопозиционирование</p>
                     </div>
                     <div>
-                      <Label className="text-gray-300">Координата Y</Label>
+                      <Label className="text-gray-200">Координата Y</Label>
                       <Input
                         type="number"
                         value={graphOptions.y}
@@ -614,7 +614,7 @@ export function LessonsManagement() {
       <Card className="p-4 bg-gray-900 border-gray-800">
         <div className="flex gap-4 items-end">
           <div className="flex-1">
-            <Label className="text-gray-300 mb-2 block">Фильтр по курсу</Label>
+            <Label className="text-gray-200 mb-2 block">Фильтр по курсу</Label>
             <Select value={selectedCourseId || 'all'} onValueChange={(value) => {
               setSelectedCourseId(value === 'all' ? '' : value);
               setSelectedModuleId('');
@@ -622,10 +622,10 @@ export function LessonsManagement() {
               <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                 <SelectValue placeholder="Все курсы" />
               </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-700">
-                <SelectItem value="all">Все курсы</SelectItem>
+              <SelectContent className="bg-gray-800 border-gray-700 text-white shadow-lg">
+                <SelectItem value="all" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Все курсы</SelectItem>
                 {courses.map((course) => (
-                  <SelectItem key={course.id} value={course.id}>
+                  <SelectItem key={course.id} value={course.id} className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">
                     {course.title}
                   </SelectItem>
                 ))}
@@ -634,19 +634,19 @@ export function LessonsManagement() {
           </div>
           {selectedCourseId && (
             <div className="flex-1">
-              <Label className="text-gray-300 mb-2 block">Фильтр по модулю</Label>
+              <Label className="text-gray-200 mb-2 block">Фильтр по модулю</Label>
               <Select value={selectedModuleId || 'all'} onValueChange={(value) => {
                 setSelectedModuleId(value === 'all' ? '' : value);
               }}>
                 <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                   <SelectValue placeholder="Все модули" />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-700">
-                  <SelectItem value="all">Все модули курса</SelectItem>
+                <SelectContent className="bg-gray-800 border-gray-700 text-white shadow-lg">
+                  <SelectItem value="all" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Все модули курса</SelectItem>
                   {getModulesForCourse(selectedCourseId)
                     .sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
                     .map((module) => (
-                    <SelectItem key={module.id} value={module.id}>
+                    <SelectItem key={module.id} value={module.id} className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">
                       {module.title}
                     </SelectItem>
                   ))}
@@ -778,11 +778,11 @@ export function LessonsManagement() {
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div>
-              <Label className="text-gray-300">ID урока</Label>
-              <Input value={formData.id} disabled className="bg-gray-800/50 border-gray-700 text-gray-400 cursor-not-allowed" />
+              <Label className="text-gray-200">ID урока</Label>
+              <Input value={formData.id} disabled className="bg-gray-800 border-gray-700 text-gray-300 cursor-not-allowed" />
             </div>
             <div>
-              <Label className="text-gray-300">Название *</Label>
+              <Label className="text-gray-200">Название *</Label>
               <Input
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -790,7 +790,7 @@ export function LessonsManagement() {
               />
             </div>
             <div>
-              <Label className="text-gray-300">Описание *</Label>
+              <Label className="text-gray-200">Описание *</Label>
               <Textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -799,7 +799,7 @@ export function LessonsManagement() {
               />
             </div>
             <div>
-              <Label className="text-gray-300">Контент (Markdown) *</Label>
+              <Label className="text-gray-200">Контент (Markdown) *</Label>
               <Textarea
                 value={formData.content}
                 onChange={(e) => setFormData({ ...formData, content: e.target.value })}
@@ -808,7 +808,7 @@ export function LessonsManagement() {
               />
             </div>
             <div>
-              <Label className="text-gray-300">Тип контента</Label>
+              <Label className="text-gray-200">Тип контента</Label>
               <Select
                 value={formData.content_type}
                 onValueChange={(value) => setFormData({ ...formData, content_type: value })}
@@ -816,18 +816,18 @@ export function LessonsManagement() {
                 <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-700">
-                  <SelectItem value="text">Текст</SelectItem>
-                  <SelectItem value="video">Видео</SelectItem>
-                  <SelectItem value="interactive">Интерактивный</SelectItem>
-                  <SelectItem value="assignment">Задание</SelectItem>
+                <SelectContent className="bg-gray-800 border-gray-700 text-white shadow-lg">
+                  <SelectItem value="text" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Текст</SelectItem>
+                  <SelectItem value="video" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Видео</SelectItem>
+                  <SelectItem value="interactive" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Интерактивный</SelectItem>
+                  <SelectItem value="assignment" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Задание</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             {formData.content_type === 'video' && (
               <div className="bg-gray-800/50 p-4 rounded-lg space-y-4 border border-gray-700">
                 <div>
-                  <Label className="text-gray-300">URL видео</Label>
+                  <Label className="text-gray-200">URL видео</Label>
                   <Input
                     value={formData.video_url}
                     onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
@@ -835,7 +835,7 @@ export function LessonsManagement() {
                   />
                 </div>
                 <div>
-                  <Label className="text-gray-300">Длительность видео (MM:SS)</Label>
+                  <Label className="text-gray-200">Длительность видео (MM:SS)</Label>
                   <Input
                     value={formData.video_duration}
                     onChange={(e) =>
@@ -848,7 +848,7 @@ export function LessonsManagement() {
             )}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-gray-300">Порядковый номер</Label>
+                <Label className="text-gray-200">Порядковый номер</Label>
                 <Input
                   type="number"
                   min="0"
@@ -860,7 +860,7 @@ export function LessonsManagement() {
                 />
               </div>
               <div>
-                <Label className="text-gray-300">Оценка времени (минуты)</Label>
+                <Label className="text-gray-200">Оценка времени (минуты)</Label>
                 <Input
                   type="number"
                   min="0"
@@ -873,7 +873,7 @@ export function LessonsManagement() {
               </div>
             </div>
             <div>
-              <Label className="text-gray-300">Теги</Label>
+              <Label className="text-gray-200">Теги</Label>
               <Input
                 value={formData.tags}
                 onChange={(e) => setFormData({ ...formData, tags: e.target.value })}

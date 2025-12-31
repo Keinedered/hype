@@ -256,15 +256,15 @@ export function UsersManagement() {
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div>
-              <Label className="text-gray-300">ID пользователя</Label>
+              <Label className="text-gray-200">ID пользователя</Label>
               <Input
                 value={editingUser?.id || ''}
                 disabled
-                className="bg-gray-800/50 border-gray-700 text-gray-400 cursor-not-allowed"
+                className="bg-gray-800 border-gray-700 text-gray-300 cursor-not-allowed"
               />
             </div>
             <div>
-              <Label className="text-gray-300">Имя пользователя *</Label>
+              <Label className="text-gray-200">Имя пользователя *</Label>
               <Input
                 value={formData.username}
                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
@@ -272,7 +272,7 @@ export function UsersManagement() {
               />
             </div>
             <div>
-              <Label className="text-gray-300">Email *</Label>
+              <Label className="text-gray-200">Email *</Label>
               <Input
                 type="email"
                 value={formData.email}
@@ -282,20 +282,20 @@ export function UsersManagement() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-gray-300">Роль</Label>
+                <Label className="text-gray-200">Роль</Label>
                 <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
                   <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-700">
-                    <SelectItem value="student">Student</SelectItem>
-                    <SelectItem value="teacher">Teacher</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
+                  <SelectContent className="bg-gray-800 border-gray-700 text-white shadow-lg">
+                    <SelectItem value="student" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Student</SelectItem>
+                    <SelectItem value="teacher" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Teacher</SelectItem>
+                    <SelectItem value="admin" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Admin</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label className="text-gray-300">Статус</Label>
+                <Label className="text-gray-200">Статус</Label>
                 <Select
                   value={formData.is_active ? 'active' : 'inactive'}
                   onValueChange={(value) => setFormData({ ...formData, is_active: value === 'active' })}
@@ -303,9 +303,9 @@ export function UsersManagement() {
                   <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-700">
-                    <SelectItem value="active">Активен</SelectItem>
-                    <SelectItem value="inactive">Неактивен</SelectItem>
+                  <SelectContent className="bg-gray-800 border-gray-700 text-white shadow-lg">
+                    <SelectItem value="active" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Активен</SelectItem>
+                    <SelectItem value="inactive" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Неактивен</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

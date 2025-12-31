@@ -229,7 +229,7 @@ export function HandbookManagement() {
                         return Array.isArray(tags) && tags.length > 0 ? (
                           <div className="flex flex-wrap gap-2">
                             {tags.map((tag: string, i: number) => (
-                              <span key={i} className="px-3 py-1 bg-gray-800 text-gray-300 text-xs rounded-full border border-gray-700">
+                              <span key={i} className="px-3 py-1 bg-gray-800 text-gray-200 text-xs rounded-full border border-gray-700">
                                 {tag}
                               </span>
                             ))}
@@ -258,7 +258,7 @@ export function HandbookManagement() {
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div>
-              <Label className="text-gray-300">ID статьи *</Label>
+              <Label className="text-gray-200">ID статьи *</Label>
               <Input
                 value={formData.id}
                 onChange={(e) => setFormData({ ...formData, id: e.target.value })}
@@ -268,7 +268,7 @@ export function HandbookManagement() {
               <p className="text-gray-500 text-xs mt-1">Уникальный идентификатор статьи</p>
             </div>
             <div>
-              <Label className="text-gray-300">ID секции *</Label>
+              <Label className="text-gray-200">ID секции *</Label>
               <Input
                 value={formData.section_id}
                 onChange={(e) => setFormData({ ...formData, section_id: e.target.value })}
@@ -277,7 +277,7 @@ export function HandbookManagement() {
               />
             </div>
             <div>
-              <Label className="text-gray-300">Название *</Label>
+              <Label className="text-gray-200">Название *</Label>
               <Input
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -286,7 +286,7 @@ export function HandbookManagement() {
               />
             </div>
             <div>
-              <Label className="text-gray-300">Содержание (Markdown) *</Label>
+              <Label className="text-gray-200">Содержание (Markdown) *</Label>
               <Textarea
                 value={formData.content}
                 onChange={(e) => setFormData({ ...formData, content: e.target.value })}
@@ -297,7 +297,7 @@ export function HandbookManagement() {
               <p className="text-gray-500 text-xs mt-1">Поддерживается Markdown форматирование</p>
             </div>
             <div>
-              <Label className="text-gray-300">Теги (опционально)</Label>
+              <Label className="text-gray-200">Теги (опционально)</Label>
               <Input
                 value={formData.tags}
                 onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
@@ -324,15 +324,15 @@ export function HandbookManagement() {
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div>
-              <Label className="text-gray-300">ID статьи</Label>
+              <Label className="text-gray-200">ID статьи</Label>
               <Input
                 value={formData.id}
                 disabled
-                className="bg-gray-800/50 border-gray-700 text-gray-400 cursor-not-allowed"
+                className="bg-gray-800 border-gray-700 text-gray-300 cursor-not-allowed"
               />
             </div>
             <div>
-              <Label className="text-gray-300">ID секции *</Label>
+              <Label className="text-gray-200">ID секции *</Label>
               <Input
                 value={formData.section_id}
                 onChange={(e) => setFormData({ ...formData, section_id: e.target.value })}
@@ -341,7 +341,7 @@ export function HandbookManagement() {
               />
             </div>
             <div>
-              <Label className="text-gray-300">Название *</Label>
+              <Label className="text-gray-200">Название *</Label>
               <Input
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -350,7 +350,7 @@ export function HandbookManagement() {
               />
             </div>
             <div>
-              <Label className="text-gray-300">Содержание (Markdown) *</Label>
+              <Label className="text-gray-200">Содержание (Markdown) *</Label>
               <Textarea
                 value={formData.content}
                 onChange={(e) => setFormData({ ...formData, content: e.target.value })}
@@ -360,7 +360,7 @@ export function HandbookManagement() {
               />
             </div>
             <div>
-              <Label className="text-gray-300">Теги</Label>
+              <Label className="text-gray-200">Теги</Label>
               <Input
                 value={formData.tags}
                 onChange={(e) => setFormData({ ...formData, tags: e.target.value })}

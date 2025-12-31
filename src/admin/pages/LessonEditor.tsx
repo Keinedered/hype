@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Card } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -11,7 +12,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, Save, Upload, Video, FileText, Clock } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  Globe, 
+  Video, 
+  Upload, 
+  Bold, 
+  Italic, 
+  Heading2, 
+  List, 
+  Quote,
+  Highlighter,
+  Link as LinkIcon,
+  X,
+  Check
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { adminAPI } from '@/api/adminClient';
 
@@ -28,6 +43,12 @@ interface LessonFormData {
   module_id: string | null;
 }
 
+interface Module {
+  id: string;
+  title: string;
+  course_id: string;
+}
+
 export function LessonEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -35,6 +56,11 @@ export function LessonEditor() {
   
   const [loading, setLoading] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [modules, setModules] = useState<Module[]>([]);
+  const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const [showVideoInput, setShowVideoInput] = useState(false);
+  const [videoInputValue, setVideoInputValue] = useState('');
+  
   const [formData, setFormData] = useState<LessonFormData>({
     id: '',
     title: '',
@@ -49,16 +75,27 @@ export function LessonEditor() {
   });
 
   useEffect(() => {
+    fetchModules();
     if (isEditMode && id) {
       loadLesson(id);
     } else {
-      // Генерируем ID для нового урока
       setFormData(prev => ({
         ...prev,
         id: `lesson-${Date.now()}`,
       }));
     }
   }, [id, isEditMode]);
+
+  const fetchModules = async () => {
+    try {
+      const data = await adminAPI.modules.getAll();
+      const modulesList = Array.isArray(data) ? data : [];
+      setModules(modulesList);
+    } catch (error: any) {
+      console.error('Failed to fetch modules:', error);
+      setModules([]);
+    }
+  };
 
   const loadLesson = async (lessonId: string) => {
     try {
@@ -76,6 +113,10 @@ export function LessonEditor() {
         estimated_time: lesson.estimated_time || 0,
         module_id: lesson.module_id || null,
       });
+      if (lesson.video_url) {
+        setVideoInputValue(lesson.video_url);
+        setShowVideoInput(true);
+      }
     } catch (error: any) {
       toast.error(`Ошибка загрузки урока: ${error.message || 'Неизвестная ошибка'}`);
     } finally {
@@ -83,23 +124,104 @@ export function LessonEditor() {
     }
   };
 
+  // Функции форматирования текста
+  const insertText = (before: string, after: string = '') => {
+    const textarea = contentTextareaRef.current;
+    if (!textarea) return;
+
+    textarea.focus();
+    const start = textarea.selectionStart || 0;
+    const end = textarea.selectionEnd || start;
+    const selectedText = formData.content.substring(start, end);
+    const newText = before + selectedText + after;
+    
+    const newContent = 
+      formData.content.substring(0, start) + 
+      newText + 
+      formData.content.substring(end);
+
+    setFormData(prev => ({ ...prev, content: newContent }));
+
+    // Устанавливаем курсор после вставленного текста
+    setTimeout(() => {
+      const newPos = start + before.length + selectedText.length + after.length;
+      textarea.setSelectionRange(newPos, newPos);
+      textarea.focus();
+    }, 0);
+  };
+
+  const formatBold = () => insertText('**', '**');
+  const formatItalic = () => insertText('*', '*');
+  const formatHeading = () => insertText('### ', '');
+  const formatList = () => insertText('- ', '');
+  const formatQuote = () => insertText('> ', '');
+  const formatLink = () => {
+    const textarea = contentTextareaRef.current;
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart || 0;
+    const end = textarea.selectionEnd || start;
+    const selectedText = formData.content.substring(start, end);
+    const linkText = selectedText || 'текст ссылки';
+    const linkUrl = prompt('Введите URL:', 'https://');
+    
+    if (linkUrl) {
+      insertText(`[${linkText}](`, ')');
+      setTimeout(() => {
+        const newStart = start + `[${linkText}](`.length;
+        textarea.setSelectionRange(newStart, newStart + linkUrl.length);
+        const currentContent = formData.content;
+        const beforeLink = currentContent.substring(0, newStart);
+        const afterLink = currentContent.substring(newStart);
+        setFormData(prev => ({
+          ...prev,
+          content: beforeLink + linkUrl + afterLink
+        }));
+      }, 10);
+    }
+  };
+
+  const formatHighlight = () => {
+    const textarea = contentTextareaRef.current;
+    if (!textarea) return;
+
+    textarea.focus();
+    const start = textarea.selectionStart || 0;
+    const end = textarea.selectionEnd || start;
+    const selectedText = formData.content.substring(start, end);
+    
+    const highlightTemplate = selectedText.trim()
+      ? `**<span style="background-color: #B6E2C8; padding: 2px 4px;">${selectedText}</span>**`
+      : `**<span style="background-color: #B6E2C8; padding: 2px 4px;">[Ключевой термин]</span>**`;
+
+    const newContent = 
+      formData.content.substring(0, start) + 
+      highlightTemplate + 
+      formData.content.substring(end);
+
+    setFormData(prev => ({ ...prev, content: newContent }));
+
+    setTimeout(() => {
+      const newPos = start + highlightTemplate.length;
+      textarea.setSelectionRange(newPos, newPos);
+      textarea.focus();
+    }, 0);
+  };
+
   const handleVideoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Проверяем, что ID урока установлен
     if (!formData.id || formData.id.trim() === '') {
       toast.error('Сначала укажите ID урока');
       return;
     }
 
-    // Проверяем тип файла
     if (!file.type.startsWith('video/')) {
       toast.error('Пожалуйста, выберите видео файл');
       return;
     }
 
-    // Проверяем размер файла (макс 500MB)
     if (file.size > 500 * 1024 * 1024) {
       toast.error('Размер файла не должен превышать 500MB');
       return;
@@ -108,12 +230,9 @@ export function LessonEditor() {
     try {
       setUploadingVideo(true);
       
-      // Создаем FormData для загрузки
       const uploadFormData = new FormData();
       uploadFormData.append('file', file);
-      // lesson_id передается как query параметр, не нужно добавлять в FormData
 
-      // Загружаем видео на сервер
       const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
       const response = await fetch(`${API_BASE_URL}/admin/lessons/upload-video?lesson_id=${formData.id}`, {
         method: 'POST',
@@ -133,6 +252,8 @@ export function LessonEditor() {
         video_url: data.video_url,
         video_duration: data.video_duration || '',
       }));
+      setVideoInputValue(data.video_url);
+      setShowVideoInput(true);
       
       toast.success('Видео успешно загружено');
     } catch (error: any) {
@@ -142,28 +263,41 @@ export function LessonEditor() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleVideoUrlSubmit = () => {
+    if (videoInputValue.trim()) {
+      setFormData(prev => ({
+        ...prev,
+        video_url: videoInputValue.trim(),
+      }));
+      toast.success('URL видео сохранен');
+    }
+  };
+
+  const handleSaveAndPublish = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.id || !formData.title) {
-      toast.error('Заполните обязательные поля: ID и название');
+    if (!formData.id || !formData.title || !formData.content.trim()) {
+      toast.error('Заполните обязательные поля: ID, название и контент урока');
       return;
     }
 
     try {
       setLoading(true);
       
+      // Сначала сохраняем урок
       if (isEditMode) {
         await adminAPI.lessons.update(formData.id, formData);
-        toast.success('Урок успешно обновлен');
       } else {
         await adminAPI.lessons.create(formData);
-        toast.success('Урок успешно создан');
       }
       
+      // Затем публикуем
+      await adminAPI.lessons.publish(formData.id);
+      
+      toast.success('Урок успешно сохранен и опубликован на платформе!');
       navigate('/admin/lessons');
     } catch (error: any) {
-      toast.error(`Ошибка сохранения: ${error.message || 'Неизвестная ошибка'}`);
+      toast.error(`Ошибка сохранения и публикации: ${error.message || 'Неизвестная ошибка'}`);
     } finally {
       setLoading(false);
     }
@@ -171,239 +305,313 @@ export function LessonEditor() {
 
   if (loading && isEditMode) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-400">Загрузка...</div>
+      <div className="flex items-center justify-center h-screen bg-white">
+        <div className="text-gray-600">Загрузка...</div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate('/admin/lessons')}
-          className="text-gray-400 hover:text-white"
-        >
-          <ArrowLeft size={20} />
-        </Button>
-        <h1 className="text-3xl font-bold text-white">
-          {isEditMode ? 'Редактировать урок' : 'Создать урок'}
-        </h1>
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/admin/lessons')}
+                className="text-gray-600 hover:text-black"
+              >
+                <ArrowLeft size={20} />
+              </Button>
+              <div>
+                <h1 className="text-2xl font-bold text-black">
+                  {isEditMode ? 'Редактировать урок' : 'Создать урок'}
+                </h1>
+                <p className="text-sm text-gray-500 mt-1">
+                  Заполните форму и опубликуйте урок на платформе
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Left Column */}
-          <div className="space-y-6">
-            {/* Basic Info */}
-            <Card className="bg-gray-900 border-gray-800 p-6">
-              <h2 className="text-xl font-semibold text-white mb-4">Основная информация</h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-gray-300">ID урока *</Label>
-                  <Input
-                    value={formData.id}
-                    onChange={(e) => setFormData(prev => ({ ...prev, id: e.target.value }))}
-                    className="bg-gray-800 border-gray-700 text-white mt-1"
-                    placeholder="lesson-1"
-                    required
-                    disabled={isEditMode}
-                  />
-                </div>
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <form onSubmit={handleSaveAndPublish} className="space-y-6">
+          {/* Основная информация */}
+          <Card className="bg-white border-gray-200 p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <Label className="text-black font-semibold">ID урока *</Label>
+                <Input
+                  value={formData.id}
+                  onChange={(e) => setFormData(prev => ({ ...prev, id: e.target.value }))}
+                  className="bg-white border-gray-300 text-black mt-2"
+                  placeholder="lesson-1"
+                  required
+                  disabled={isEditMode}
+                />
+              </div>
 
-                <div>
-                  <Label className="text-gray-300">Название *</Label>
-                  <Input
-                    value={formData.title}
-                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                    className="bg-gray-800 border-gray-700 text-white mt-1"
-                    placeholder="Название урока"
-                    required
-                  />
-                </div>
+              <div>
+                <Label className="text-black font-semibold">Название урока *</Label>
+                <Input
+                  value={formData.title}
+                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                  className="bg-white border-gray-300 text-black mt-2"
+                  placeholder="Введите название урока"
+                  required
+                />
+              </div>
 
-                <div>
-                  <Label className="text-gray-300">Описание</Label>
-                  <Textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    className="bg-gray-800 border-gray-700 text-white mt-1"
-                    placeholder="Краткое описание урока"
-                    rows={3}
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-gray-300">Тип контента</Label>
-                  <Select
-                    value={formData.content_type}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, content_type: value }))}
-                  >
-                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white mt-1">
-                      <SelectValue />
+              <div>
+                <Label className="text-black font-semibold">Модуль</Label>
+                <Select
+                  value={formData.module_id || '__none__'}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, module_id: value === '__none__' ? null : value }))}
+                >
+                    <SelectTrigger className="bg-white border-gray-300 text-black placeholder:text-gray-500 mt-2">
+                      <SelectValue placeholder="Выберите модуль" />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-700">
-                      <SelectItem value="text">Текст</SelectItem>
-                      <SelectItem value="video">Видео</SelectItem>
-                      <SelectItem value="interactive">Интерактивный</SelectItem>
-                      <SelectItem value="assignment">Задание</SelectItem>
+                    <SelectContent className="bg-white border-gray-300 text-black shadow-lg">
+                      <SelectItem value="__none__" className="bg-white text-black hover:bg-gray-100 focus:bg-gray-100 cursor-pointer">Без модуля</SelectItem>
+                      {modules.map((module) => (
+                        <SelectItem key={module.id} value={module.id} className="bg-white text-black hover:bg-gray-100 focus:bg-gray-100 cursor-pointer">
+                          {module.title}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label className="text-gray-300">Теги (через запятую)</Label>
-                  <Input
-                    value={formData.tags}
-                    onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value }))}
-                    className="bg-gray-800 border-gray-700 text-white mt-1"
-                    placeholder="тег1, тег2, тег3"
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-gray-300">Оценка времени (минуты)</Label>
-                  <Input
-                    type="number"
-                    value={formData.estimated_time}
-                    onChange={(e) => setFormData(prev => ({ ...prev, estimated_time: parseInt(e.target.value) || 0 }))}
-                    className="bg-gray-800 border-gray-700 text-white mt-1"
-                    placeholder="30"
-                    min="0"
-                  />
-                </div>
+                </Select>
               </div>
-            </Card>
 
-            {/* Video Upload */}
-            <Card className="bg-gray-900 border-gray-800 p-6">
-              <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                <Video size={20} />
-                Видео
-              </h2>
-              
+              <div>
+                <Label className="text-black font-semibold">Описание</Label>
+                <Input
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  className="bg-white border-gray-300 text-black mt-2"
+                  placeholder="Краткое описание урока"
+                />
+              </div>
+            </div>
+          </Card>
+
+          {/* Видео */}
+          <Card className="bg-white border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <Label className="text-black font-semibold flex items-center gap-2">
+                <Video size={18} />
+                Видео к уроку
+              </Label>
+              {!showVideoInput && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowVideoInput(true)}
+                  className="text-xs"
+                >
+                  Добавить видео
+                </Button>
+              )}
+            </div>
+
+            {showVideoInput && (
               <div className="space-y-4">
-                <div>
-                  <Label className="text-gray-300">Загрузить видео</Label>
-                  <div className="mt-2">
-                    <input
-                      type="file"
-                      accept="video/*"
-                      onChange={handleVideoUpload}
-                      className="hidden"
-                      id="video-upload"
+                <div className="flex gap-2">
+                  <Input
+                    value={videoInputValue}
+                    onChange={(e) => setVideoInputValue(e.target.value)}
+                    className="bg-white border-gray-300 text-black flex-1"
+                    placeholder="Вставьте URL видео или загрузите файл"
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleVideoUrlSubmit}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    <Check size={16} />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowVideoInput(false);
+                      setVideoInputValue('');
+                    }}
+                  >
+                    <X size={16} />
+                  </Button>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <input
+                    type="file"
+                    accept="video/*"
+                    onChange={handleVideoUpload}
+                    className="hidden"
+                    id="video-upload"
+                    disabled={uploadingVideo}
+                  />
+                  <label htmlFor="video-upload">
+                    <Button
+                      type="button"
+                      variant="outline"
                       disabled={uploadingVideo}
-                    />
-                    <label htmlFor="video-upload">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full bg-gray-800 border-gray-700 text-white hover:bg-gray-700"
-                        disabled={uploadingVideo}
-                        asChild
-                      >
-                        <span>
-                          <Upload size={16} className="mr-2" />
-                          {uploadingVideo ? 'Загрузка...' : 'Выбрать видео файл'}
-                        </span>
-                      </Button>
-                    </label>
-                  </div>
-                </div>
-
-                {formData.video_url && (
-                  <div className="p-4 bg-gray-800 rounded-lg">
-                    <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
-                      <Video size={16} />
-                      Видео загружено
-                    </div>
-                    <div className="text-white text-sm break-all">{formData.video_url}</div>
-                    {formData.video_duration && (
-                      <div className="flex items-center gap-2 text-sm text-gray-400 mt-2">
-                        <Clock size={14} />
-                        Длительность: {formData.video_duration}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div>
-                  <Label className="text-gray-300">URL видео (если загружено вручную)</Label>
-                  <Input
-                    value={formData.video_url}
-                    onChange={(e) => setFormData(prev => ({ ...prev, video_url: e.target.value }))}
-                    className="bg-gray-800 border-gray-700 text-white mt-1"
-                    placeholder="https://..."
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-gray-300">Длительность видео</Label>
-                  <Input
-                    value={formData.video_duration}
-                    onChange={(e) => setFormData(prev => ({ ...prev, video_duration: e.target.value }))}
-                    className="bg-gray-800 border-gray-700 text-white mt-1"
-                    placeholder="00:15:30"
-                  />
+                      className="text-sm"
+                      asChild
+                    >
+                      <span>
+                        <Upload size={16} className="mr-2" />
+                        {uploadingVideo ? 'Загрузка...' : 'Загрузить видео файл'}
+                      </span>
+                    </Button>
+                  </label>
+                  {formData.video_url && (
+                    <span className="text-sm text-gray-600">
+                      ✓ Видео: {formData.video_url}
+                    </span>
+                  )}
                 </div>
               </div>
-            </Card>
-          </div>
+            )}
+          </Card>
 
-          {/* Right Column */}
-          <div className="space-y-6">
-            {/* Content */}
-            <Card className="bg-gray-900 border-gray-800 p-6">
-              <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                <FileText size={20} />
-                Конспект занятия
-              </h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-gray-300">Текст конспекта</Label>
-                  <Textarea
-                    value={formData.content}
-                    onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-                    className="bg-gray-800 border-gray-700 text-white mt-1 font-mono text-sm"
-                    placeholder="Введите текст конспекта занятия..."
-                    rows={20}
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Поддерживается Markdown форматирование
-                  </p>
-                </div>
-              </div>
-            </Card>
-          </div>
-        </div>
+          {/* Редактор контента */}
+          <Card className="bg-white border-gray-200 p-6">
+            <Label className="text-black font-semibold mb-4 block">
+              Конспект занятия *
+            </Label>
 
-        {/* Actions */}
-        <div className="flex justify-end gap-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => navigate('/admin/lessons')}
-            className="bg-gray-800 border-gray-700 text-white hover:bg-gray-700"
-          >
-            Отмена
-          </Button>
-          <Button
-            type="submit"
-            disabled={loading || uploadingVideo}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            <Save size={16} className="mr-2" />
-            {loading ? 'Сохранение...' : isEditMode ? 'Сохранить изменения' : 'Создать урок'}
-          </Button>
-        </div>
-      </form>
+            {/* Панель инструментов */}
+            <div className="flex flex-wrap items-center gap-2 p-3 bg-gray-50 rounded-t-lg border border-b-0 border-gray-300">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={formatBold}
+                className="h-8 w-8 p-0"
+                title="Жирный (Ctrl+B)"
+              >
+                <Bold size={16} />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={formatItalic}
+                className="h-8 w-8 p-0"
+                title="Курсив (Ctrl+I)"
+              >
+                <Italic size={16} />
+              </Button>
+              <div className="w-px h-6 bg-gray-300 mx-1" />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={formatHeading}
+                className="h-8 w-8 p-0"
+                title="Заголовок"
+              >
+                <Heading2 size={16} />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={formatList}
+                className="h-8 w-8 p-0"
+                title="Список"
+              >
+                <List size={16} />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={formatQuote}
+                className="h-8 w-8 p-0"
+                title="Цитата"
+              >
+                <Quote size={16} />
+              </Button>
+              <div className="w-px h-6 bg-gray-300 mx-1" />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={formatHighlight}
+                className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+                title="Выделить текст"
+              >
+                <Highlighter size={16} />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={formatLink}
+                className="h-8 w-8 p-0"
+                title="Ссылка"
+              >
+                <LinkIcon size={16} />
+              </Button>
+            </div>
+
+            {/* Текстовый редактор */}
+            <Textarea
+              ref={contentTextareaRef}
+              value={formData.content}
+              onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
+              className="bg-white border-gray-300 text-black font-mono text-sm rounded-t-none min-h-[500px] resize-y"
+              placeholder="Начните писать конспект урока здесь...
+
+Вы можете использовать:
+- **жирный текст**
+- *курсив*
+- ### Заголовки
+- Списки
+- > Цитаты
+- [Ссылки](https://example.com)
+
+Или выделите текст и используйте кнопки форматирования выше."
+              required
+            />
+
+            <div className="mt-3 p-3 bg-blue-50 rounded border border-blue-200">
+              <p className="text-xs text-gray-700">
+                💡 <strong>Совет:</strong> Выделите текст и нажмите кнопку "Выделить" для создания красивых выделений с зеленым фоном
+              </p>
+            </div>
+          </Card>
+
+          {/* Кнопка публикации */}
+          <div className="sticky bottom-0 bg-white border-t-2 border-gray-300 p-6 -mx-6 shadow-2xl z-50">
+            <div className="max-w-7xl mx-auto flex items-center justify-end gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => navigate('/admin/lessons')}
+                className="bg-white border-gray-300 text-black hover:bg-gray-50 px-6"
+              >
+                Отмена
+              </Button>
+              <Button
+                type="submit"
+                disabled={loading || uploadingVideo}
+                className="bg-green-600 hover:bg-green-700 text-white px-10 py-6 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+              >
+                <Globe size={20} className="mr-2" />
+                {loading ? 'Публикация...' : 'Опубликовать урок'}
+              </Button>
+            </div>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
-

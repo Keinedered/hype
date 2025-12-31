@@ -191,6 +191,8 @@ class Lesson(Base):
     content_type = Column(String, default='text')  # text, video, interactive, assignment
     tags = Column(Text)  # JSON array
     estimated_time = Column(Integer, default=0)  # minutes
+    status = Column(String, default='draft', index=True)  # draft, published, archived
+    published_at = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     

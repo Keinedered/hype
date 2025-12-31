@@ -48,6 +48,8 @@ export function GraphEditor() {
   const [isEdgeTypeDialogOpen, setIsEdgeTypeDialogOpen] = useState(false);
   const [selectedEdgeType, setSelectedEdgeType] = useState<'required' | 'alternative' | 'recommended'>('required');
   const [moduleLessonCounts, setModuleLessonCounts] = useState<Record<string, number>>({});
+  const [modules, setModules] = useState<any[]>([]);
+  const [courses, setCourses] = useState<any[]>([]);
   const hasLoadedRef = useRef(false);
 
   // Вспомогательные функции должны быть определены до их использования
@@ -85,15 +87,20 @@ export function GraphEditor() {
         adminAPI.graph.getEdges().catch(() => []),
       ]);
 
-      // Загружаем количество уроков для модулей
+      // Загружаем количество уроков для модулей и списки модулей/курсов
       let counts: Record<string, number> = {};
       try {
-        const modules = await adminAPI.modules.getAll().catch(() => []);
-        for (const module of modules) {
+        const modulesList = await adminAPI.modules.getAll().catch(() => []);
+        setModules(Array.isArray(modulesList) ? modulesList : []);
+        
+        for (const module of modulesList) {
           const lessons = await adminAPI.lessons.getAll({ module_id: module.id }).catch(() => []);
           counts[module.id] = Array.isArray(lessons) ? lessons.length : 0;
         }
         setModuleLessonCounts(counts);
+        
+        const coursesList = await adminAPI.courses.getAll().catch(() => []);
+        setCourses(Array.isArray(coursesList) ? coursesList : []);
       } catch (error) {
         console.error('Failed to load module lesson counts:', error);
       }
@@ -329,7 +336,7 @@ export function GraphEditor() {
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div>
-              <Label className="text-gray-300">ID узла *</Label>
+              <Label className="text-gray-200">ID узла *</Label>
               <Input
                 value={nodeForm.id}
                 onChange={(e) => setNodeForm({ ...nodeForm, id: e.target.value })}
@@ -338,7 +345,7 @@ export function GraphEditor() {
               />
             </div>
             <div>
-              <Label className="text-gray-300">Название *</Label>
+              <Label className="text-gray-200">Название *</Label>
               <Input
                 value={nodeForm.title}
                 onChange={(e) => setNodeForm({ ...nodeForm, title: e.target.value })}
@@ -347,33 +354,102 @@ export function GraphEditor() {
               />
             </div>
             <div>
-              <Label className="text-gray-300">Тип *</Label>
-              <Select value={nodeForm.type} onValueChange={(value) => setNodeForm({ ...nodeForm, type: value })}>
+              <Label className="text-gray-200">Тип *</Label>
+              <Select value={nodeForm.type} onValueChange={(value) => {
+                setNodeForm({ ...nodeForm, type: value, entity_id: '', id: '', title: '' });
+              }}>
                 <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-700">
-                  <SelectItem value="track">Track</SelectItem>
-                  <SelectItem value="course">Course</SelectItem>
-                  <SelectItem value="module">Module</SelectItem>
-                  <SelectItem value="lesson">Lesson</SelectItem>
-                  <SelectItem value="concept">Concept</SelectItem>
+                <SelectContent className="bg-gray-800 border-gray-700 text-white shadow-lg">
+                  <SelectItem value="track" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Track</SelectItem>
+                  <SelectItem value="course" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Course</SelectItem>
+                  <SelectItem value="module" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Module</SelectItem>
+                  <SelectItem value="lesson" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Lesson</SelectItem>
+                  <SelectItem value="concept" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Concept</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label className="text-gray-300">Entity ID</Label>
-              <Input
-                value={nodeForm.entity_id}
-                onChange={(e) => setNodeForm({ ...nodeForm, entity_id: e.target.value })}
-                placeholder="course-react-basics"
-                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
-              />
-              <p className="text-gray-500 text-xs mt-1">ID связанной сущности (курс, модуль, урок и т.д.)</p>
-            </div>
+            
+            {nodeForm.type === 'module' && (
+              <div>
+                <Label className="text-gray-200">Выберите модуль *</Label>
+                <Select
+                  value={nodeForm.entity_id}
+                  onValueChange={(value) => {
+                    const selectedModule = modules.find(m => m.id === value);
+                    if (selectedModule) {
+                      setNodeForm({
+                        ...nodeForm,
+                        entity_id: selectedModule.id,
+                        id: `node-${selectedModule.id}`,
+                        title: selectedModule.title,
+                      });
+                    }
+                  }}
+                >
+                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                    <SelectValue placeholder="Выберите модуль" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-800 border-gray-700 text-white shadow-lg">
+                    {modules.map((module) => (
+                      <SelectItem key={module.id} value={module.id} className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">
+                        {module.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-gray-500 text-xs mt-1">Выберите модуль для создания узла графа</p>
+              </div>
+            )}
+            
+            {nodeForm.type === 'course' && (
+              <div>
+                <Label className="text-gray-200">Выберите курс</Label>
+                <Select
+                  value={nodeForm.entity_id}
+                  onValueChange={(value) => {
+                    const selectedCourse = courses.find(c => c.id === value);
+                    if (selectedCourse) {
+                      setNodeForm({
+                        ...nodeForm,
+                        entity_id: selectedCourse.id,
+                        id: `node-${selectedCourse.id}`,
+                        title: selectedCourse.title,
+                      });
+                    }
+                  }}
+                >
+                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                    <SelectValue placeholder="Выберите курс (необязательно)" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-800 border-gray-700 text-white shadow-lg">
+                    <SelectItem value="" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Без привязки</SelectItem>
+                    {courses.map((course) => (
+                      <SelectItem key={course.id} value={course.id} className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">
+                        {course.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            
+            {nodeForm.type !== 'module' && nodeForm.type !== 'course' && (
+              <div>
+                <Label className="text-gray-200">Entity ID</Label>
+                <Input
+                  value={nodeForm.entity_id}
+                  onChange={(e) => setNodeForm({ ...nodeForm, entity_id: e.target.value })}
+                  placeholder="course-react-basics"
+                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                />
+                <p className="text-gray-500 text-xs mt-1">ID связанной сущности (курс, модуль, урок и т.д.)</p>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-gray-300">X позиция</Label>
+                <Label className="text-gray-200">X позиция</Label>
                 <Input
                   type="number"
                   value={nodeForm.x}
@@ -382,7 +458,7 @@ export function GraphEditor() {
                 />
               </div>
               <div>
-                <Label className="text-gray-300">Y позиция</Label>
+                <Label className="text-gray-200">Y позиция</Label>
                 <Input
                   type="number"
                   value={nodeForm.y}
@@ -406,7 +482,7 @@ export function GraphEditor() {
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div>
-              <Label className="text-gray-300">Тип связи *</Label>
+              <Label className="text-gray-200">Тип связи *</Label>
               <Select
                 value={selectedEdgeType}
                 onValueChange={(value: 'required' | 'alternative' | 'recommended') =>
@@ -416,10 +492,10 @@ export function GraphEditor() {
                 <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-700">
-                  <SelectItem value="required">Обязательная (required)</SelectItem>
-                  <SelectItem value="alternative">Альтернативная (alternative)</SelectItem>
-                  <SelectItem value="recommended">Рекомендуемая (recommended)</SelectItem>
+                <SelectContent className="bg-gray-800 border-gray-700 text-white shadow-lg">
+                  <SelectItem value="required" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Обязательная (required)</SelectItem>
+                  <SelectItem value="alternative" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Альтернативная (alternative)</SelectItem>
+                  <SelectItem value="recommended" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Рекомендуемая (recommended)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -430,7 +506,7 @@ export function GraphEditor() {
                   setPendingConnection(null);
                 }}
                 variant="outline"
-                className="flex-1 border-gray-700 text-gray-300 hover:bg-gray-800"
+                className="flex-1 border-gray-700 text-gray-200 hover:bg-gray-800"
               >
                 Отмена
               </Button>

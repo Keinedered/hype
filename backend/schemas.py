@@ -147,6 +147,8 @@ class LessonBase(BaseModel):
     content_type: Optional[str] = "text"
     tags: Optional[str] = None
     estimated_time: Optional[int] = 0
+    status: Optional[str] = 'draft'  # draft, published, archived
+    published_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -291,6 +293,15 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: Optional[str] = None
+
+
+class CourseProgressUpdate(BaseModel):
+    progress: float
+    status: CourseStatus
+
+
+class LessonProgressUpdate(BaseModel):
+    status: CourseStatus
 
 
 

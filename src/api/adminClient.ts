@@ -221,6 +221,12 @@ export const adminAPI = {
       });
     },
     
+    async publish(lessonId: string) {
+      return adminFetch(`/admin/lessons/${lessonId}/publish`, {
+        method: 'POST',
+      });
+    },
+    
     async delete(lessonId: string) {
       return adminFetch(`/admin/lessons/${lessonId}`, {
         method: 'DELETE',
@@ -384,6 +390,17 @@ export const adminAPI = {
   analytics: {
     async get(timeRange: string = 'all') {
       return adminFetch(`/admin/analytics?time_range=${timeRange}`);
+    },
+  },
+
+  // Tracks
+  tracks: {
+    async getAll() {
+      return adminFetch('/tracks');
+    },
+    
+    async getById(trackId: string) {
+      return adminFetch(`/tracks/${trackId}`);
     },
   },
 };

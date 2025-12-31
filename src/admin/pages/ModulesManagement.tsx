@@ -291,6 +291,13 @@ export function ModulesManagement() {
           <h1 className="text-3xl font-bold text-white mb-2">Управление модулями</h1>
           <p className="text-gray-400 text-sm">Создание и редактирование модулей курсов</p>
         </div>
+        <Button 
+          className="bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2 h-auto"
+          onClick={() => navigate('/admin/modules/new')}
+        >
+          <Plus className="mr-2" size={20} />
+          Создать модуль
+        </Button>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button 
@@ -298,7 +305,7 @@ export function ModulesManagement() {
               onClick={() => resetForm()}
             >
               <Plus className="mr-2" size={20} />
-              Добавить новый модуль
+              Добавить новый модуль (старый способ)
             </Button>
           </DialogTrigger>
           <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl max-h-[80vh] overflow-y-auto">
@@ -331,12 +338,12 @@ export function ModulesManagement() {
                     });
                   }}
                 >
-                  <SelectTrigger className="bg-gray-800 border-gray-700">
+                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                     <SelectValue placeholder="Выберите курс" />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-700">
+                  <SelectContent className="bg-gray-800 border-gray-700 text-white shadow-lg">
                     {courses.map((course) => (
-                      <SelectItem key={course.id} value={course.id}>
+                      <SelectItem key={course.id} value={course.id} className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">
                         {course.title}
                       </SelectItem>
                     ))}
@@ -404,14 +411,14 @@ export function ModulesManagement() {
                     }
                     className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500"
                   />
-                  <Label htmlFor="createGraphNodeModule" className="cursor-pointer text-gray-300">
+                  <Label htmlFor="createGraphNodeModule" className="cursor-pointer text-gray-200">
                     Создать узел графа знаний
                   </Label>
                 </div>
                 {graphOptions.createGraphNode && (
-                  <div className="bg-gray-800/50 p-4 rounded-lg grid grid-cols-2 gap-4 border border-gray-700">
+                  <div className="bg-gray-800 p-4 rounded-lg grid grid-cols-2 gap-4 border border-gray-700">
                     <div>
-                      <Label className="text-gray-300">Координата X</Label>
+                      <Label className="text-gray-200">Координата X</Label>
                       <Input
                         type="number"
                         value={graphOptions.x}
@@ -423,7 +430,7 @@ export function ModulesManagement() {
                       <p className="text-gray-500 text-xs mt-1">0 = автопозиционирование</p>
                     </div>
                     <div>
-                      <Label className="text-gray-300">Координата Y</Label>
+                      <Label className="text-gray-200">Координата Y</Label>
                       <Input
                         type="number"
                         value={graphOptions.y}
@@ -450,13 +457,13 @@ export function ModulesManagement() {
       <div className="mb-4">
         <Label>Фильтр по курсу</Label>
         <Select value={selectedCourseId || 'all'} onValueChange={(value) => setSelectedCourseId(value === 'all' ? '' : value)}>
-          <SelectTrigger className="bg-gray-800 border-gray-700 w-64">
+          <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-64">
             <SelectValue placeholder="Все курсы" />
           </SelectTrigger>
-          <SelectContent className="bg-gray-800 border-gray-700">
-            <SelectItem value="all">Все курсы</SelectItem>
+          <SelectContent className="bg-gray-800 border-gray-700 text-white shadow-lg">
+            <SelectItem value="all" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Все курсы</SelectItem>
             {courses.map((course) => (
-              <SelectItem key={course.id} value={course.id}>
+              <SelectItem key={course.id} value={course.id} className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">
                 {course.title}
               </SelectItem>
             ))}
@@ -516,7 +523,7 @@ export function ModulesManagement() {
                             variant="ghost"
                             size="icon"
                             className="text-gray-400 hover:text-blue-400 hover:bg-gray-800"
-                            onClick={() => openEditDialog(module)}
+                            onClick={() => navigate(`/admin/modules/${module.id}/edit`)}
                             title="Редактировать"
                           >
                             <Edit size={18} />
@@ -553,11 +560,11 @@ export function ModulesManagement() {
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div>
-              <Label className="text-gray-300">ID модуля</Label>
-              <Input value={formData.id} disabled className="bg-gray-800/50 border-gray-700 text-gray-400 cursor-not-allowed" />
+              <Label className="text-gray-200">ID модуля</Label>
+              <Input value={formData.id} disabled className="bg-gray-800 border-gray-700 text-gray-300 cursor-not-allowed" />
             </div>
             <div>
-              <Label className="text-gray-300">Название *</Label>
+              <Label className="text-gray-200">Название *</Label>
               <Input
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -565,7 +572,7 @@ export function ModulesManagement() {
               />
             </div>
             <div>
-              <Label className="text-gray-300">Описание</Label>
+              <Label className="text-gray-200">Описание</Label>
               <Textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -574,7 +581,7 @@ export function ModulesManagement() {
               />
             </div>
             <div>
-              <Label className="text-gray-300">Порядковый номер</Label>
+              <Label className="text-gray-200">Порядковый номер</Label>
               <Input
                 type="number"
                 min="0"
@@ -586,7 +593,7 @@ export function ModulesManagement() {
               />
             </div>
             <div>
-              <Label className="text-gray-300">Предварительные требования</Label>
+              <Label className="text-gray-200">Предварительные требования</Label>
               <Input
                 value={formData.prerequisites}
                 onChange={(e) => setFormData({ ...formData, prerequisites: e.target.value })}
@@ -597,7 +604,7 @@ export function ModulesManagement() {
             {/* Уроки модуля */}
             <div className="border-t border-gray-700 pt-4">
               <div className="flex items-center justify-between mb-3">
-                <Label className="text-gray-300 text-base font-semibold">Уроки модуля</Label>
+                <Label className="text-gray-200 text-base font-semibold">Уроки модуля</Label>
                 <Button
                   type="button"
                   variant="outline"
@@ -651,7 +658,7 @@ export function ModulesManagement() {
 
             {/* Хендбук и задания для уроков */}
             <div className="border-t border-gray-700 pt-4">
-              <Label className="text-gray-300 text-base font-semibold mb-3 block">Хендбук и задания</Label>
+              <Label className="text-gray-200 text-base font-semibold mb-3 block">Хендбук и задания</Label>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {moduleLessons.map((lesson) => (
                   <div

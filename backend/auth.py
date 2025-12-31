@@ -3,7 +3,7 @@ from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer, HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from database import get_db
 import models
@@ -12,6 +12,7 @@ from config import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
+http_bearer = HTTPBearer(auto_error=False)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -93,74 +94,35 @@ async def get_current_active_user(
     return current_user
 
 
+async def get_optional_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(http_bearer),
+    db: Session = Depends(get_db)
+) -> Optional[models.User]:
+    """Опционально получить текущего пользователя из токена (не выбрасывает исключение если токена нет)"""
+    if not credentials:
+        return None
+    try:
+        token = credentials.credentials
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            return None
+        token_data = schemas.TokenData(username=username)
+        user = get_user_by_username(db, username=token_data.username)
+        return user if user and user.is_active else None
+    except (JWTError, HTTPException, Exception):
+        return None
+
+
 
 async def get_current_admin(
     current_user: models.User = Depends(get_current_active_user)
 ) -> models.User:
     """Проверка прав администратора - пользователь должен иметь роль "admin" """
-    import json
-    import os
-    log_path = r"c:\graph\hype\.cursor\debug.log"
-    try:
-        log_entry = {
-            "location": "auth.py:97",
-            "message": "get_current_admin called",
-            "data": {
-                "user_id": current_user.id,
-                "username": current_user.username,
-                "user_role": str(current_user.role),
-                "expected_role": "admin",
-                "role_match": current_user.role == models.UserRole.admin
-            },
-            "timestamp": int(__import__('time').time() * 1000),
-            "sessionId": "debug-session",
-            "runId": "initial",
-            "hypothesisId": "A"
-        }
-        with open(log_path, 'a', encoding='utf-8') as f:
-            f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
-    except Exception:
-        pass
     if current_user.role != models.UserRole.admin:
-        try:
-            log_entry = {
-                "location": "auth.py:101",
-                "message": "Admin role check failed",
-                "data": {
-                    "user_id": current_user.id,
-                    "username": current_user.username,
-                    "user_role": str(current_user.role),
-                    "expected_role": "admin"
-                },
-                "timestamp": int(__import__('time').time() * 1000),
-                "sessionId": "debug-session",
-                "runId": "initial",
-                "hypothesisId": "A"
-            }
-            with open(log_path, 'a', encoding='utf-8') as f:
-                f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
-        except Exception:
-            pass
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not enough permissions"
         )
-    try:
-        log_entry = {
-            "location": "auth.py:106",
-            "message": "Admin role check passed",
-            "data": {
-                "user_id": current_user.id,
-                "username": current_user.username
-            },
-            "timestamp": int(__import__('time').time() * 1000),
-            "sessionId": "debug-session",
-            "runId": "initial",
-            "hypothesisId": "A"
-        }
-        with open(log_path, 'a', encoding='utf-8') as f:
-            f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
-    except Exception:
-        pass
     return current_user
 

@@ -8,7 +8,9 @@ import { AuthPage } from './components/AuthPage';
 import { AdminLayout } from './admin/components/AdminLayout';
 import { Dashboard } from './admin/pages/Dashboard';
 import { CoursesManagement } from './admin/pages/CoursesManagement';
+import { CourseEditor } from './admin/pages/CourseEditor';
 import { ModulesManagement } from './admin/pages/ModulesManagement';
+import { ModuleEditor } from './admin/pages/ModuleEditor';
 import { LessonsManagement } from './admin/pages/LessonsManagement';
 import { LessonsBuilder } from './admin/pages/LessonsBuilder';
 import { LessonEditor } from './admin/pages/LessonEditor';
@@ -47,11 +49,16 @@ createRoot(document.getElementById('root')!).render(
             </ProtectedAdminRoute>
           }>
             <Route index element={<Dashboard />} />
+            <Route path="courses/new" element={<CourseEditor />} />
+            <Route path="courses/:id/edit" element={<CourseEditor />} />
             <Route path="courses" element={<CoursesManagement />} />
+            <Route path="modules/new" element={<ModuleEditor />} />
+            <Route path="modules/:id/edit" element={<ModuleEditor />} />
             <Route path="modules" element={<ModulesManagement />} />
-            <Route path="lessons" element={<LessonsBuilder />} />
+            {/* Более специфичные маршруты должны идти первыми */}
             <Route path="lessons/new" element={<LessonEditor />} />
             <Route path="lessons/:id/edit" element={<LessonEditor />} />
+            <Route path="lessons" element={<LessonsBuilder />} />
             <Route path="lessons-old" element={<LessonsManagement />} />
             <Route path="graph" element={<GraphEditor />} />
             <Route path="handbook" element={<HandbookManagement />} />

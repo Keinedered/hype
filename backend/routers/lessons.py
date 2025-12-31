@@ -12,14 +12,14 @@ router = APIRouter(prefix="/lessons")
 
 @router.get("/module/{module_id}", response_model=List[schemas.Lesson])
 def get_module_lessons(module_id: str, db: Session = Depends(get_db)):
-    """Получить все уроки модуля"""
-    return crud.get_lessons(db, module_id)
+    """Получить все уроки модуля (только опубликованные для обычных пользователей)"""
+    return crud.get_lessons(db, module_id, published_only=True)
 
 
 @router.get("/{lesson_id}", response_model=schemas.Lesson)
 def get_lesson(lesson_id: str, db: Session = Depends(get_db)):
-    """Получить урок по ID"""
-    lesson = crud.get_lesson(db, lesson_id)
+    """Получить урок по ID (только опубликованные для обычных пользователей)"""
+    lesson = crud.get_lesson(db, lesson_id, published_only=True)
     if not lesson:
         raise HTTPException(status_code=404, detail="Lesson not found")
     return lesson
@@ -41,10 +41,15 @@ def get_lesson_with_graph(
 @router.post("/{lesson_id}/progress")
 def update_lesson_progress(
     lesson_id: str,
-    status: str,
+    progress_data: schemas.LessonProgressUpdate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_active_user)
 ):
     """Обновить прогресс по уроку"""
-    return crud.update_lesson_progress(db, current_user.id, lesson_id, status)
+    try:
+        return crud.update_lesson_progress(db, current_user.id, lesson_id, progress_data.status.value)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update progress: {str(e)}")
 

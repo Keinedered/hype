@@ -392,12 +392,30 @@ def delete_module(
         raise HTTPException(status_code=404, detail='Module not found')
     
     course_id = module.course_id
+    
+    # Освобождаем уроки (устанавливаем module_id = NULL)
+    # Это делается автоматически через ondelete="SET NULL", но лучше сделать явно
+    lessons = db.query(models.Lesson).filter(models.Lesson.module_id == module_id).all()
+    for lesson in lessons:
+        lesson.module_id = None
+    
+    # Удаляем узел графа модуля
+    try:
+        crud.delete_graph_node_for_module(db, module_id)
+    except Exception as e:
+        logger.warning(f"Failed to delete graph node for module {module_id}: {e}", exc_info=True)
+    
+    # Удаляем модуль (Handbook удалится автоматически через CASCADE)
     db.delete(module)
     safe_commit(db, "delete_module")
     
-    # Обновить счетчик модулей в курсе (в одной транзакции)
+    # Обновить счетчик модулей в курсе
     update_course_module_count(db, course_id)
     safe_commit(db, "update_course_module_count")
+    
+    # Обновить счетчик уроков в курсе (так как уроки были освобождены)
+    update_course_lesson_count(db, course_id)
+    safe_commit(db, "update_course_lesson_count")
     
     return None
 
@@ -433,6 +451,9 @@ def create_lesson(
         lesson_data['estimated_time'] = 0
     if lesson_data.get('order_index') is None:
         lesson_data['order_index'] = 0
+    # Устанавливаем статус 'draft' по умолчанию для новых уроков
+    if lesson_data.get('status') is None:
+        lesson_data['status'] = 'draft'
     
     new_lesson = models.Lesson(**lesson_data)
     db.add(new_lesson)
@@ -681,6 +702,81 @@ async def upload_video(
         "video_duration": lesson.video_duration or "",
         "message": "Video uploaded successfully"
     })
+
+
+@router.post('/admin/lessons/{lesson_id}/publish')
+def publish_lesson(
+    lesson_id: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_admin)
+):
+    """Опубликовать урок и синхронизировать все БД"""
+    lesson = db.query(models.Lesson).filter(models.Lesson.id == lesson_id).first()
+    if not lesson:
+        raise HTTPException(status_code=404, detail='Lesson not found')
+    
+    # Устанавливаем статус опубликован
+    lesson.status = 'published'
+    lesson.published_at = datetime.now()
+    
+    # Синхронизация счетчиков в модуле и курсе
+    if lesson.module_id:
+        module = db.query(models.Module).filter(models.Module.id == lesson.module_id).first()
+        if module:
+            # Обновляем счетчик уроков в курсе
+            update_course_lesson_count(db, module.course_id)
+            # Также обновляем счетчик модулей в курсе (на случай если модуль был создан)
+            update_course_module_count(db, module.course_id)
+    
+    # Создаем/обновляем узел графа знаний, если его еще нет
+    try:
+        graph_node = crud.get_graph_node_by_entity(db, lesson.id, models.NodeType.lesson)
+        if not graph_node:
+            # Создаем узел графа, если его нет
+            crud.create_graph_node_for_lesson(
+                db,
+                lesson,
+                x=0.0,
+                y=0.0,
+                auto_position=True,
+                auto_create_edge=True
+            )
+        else:
+            # Обновляем статус узла на открытый, если урок опубликован
+            graph_node.status = models.NodeStatus.open
+            # Обновляем название узла, если оно изменилось
+            if graph_node.title != lesson.title:
+                graph_node.title = lesson.title
+    except Exception as e:
+        logger.warning(f"Failed to create/update graph node for lesson {lesson_id}: {e}", exc_info=True)
+    
+    # Создаем задание для урока, если его еще нет
+    try:
+        existing_assignment = db.query(models.Assignment).filter(
+            models.Assignment.lesson_id == lesson_id
+        ).first()
+        if not existing_assignment:
+            # Создаем базовое задание для урока
+            assignment = models.Assignment(
+                id=f"assignment-{lesson_id}",
+                lesson_id=lesson_id,
+                description="Выполните задание к уроку",
+                criteria="",
+                requires_text=True,
+                requires_file=False,
+                requires_link=False
+            )
+            db.add(assignment)
+    except Exception as e:
+        logger.warning(f"Failed to create assignment for lesson {lesson_id}: {e}", exc_info=True)
+    
+    safe_commit(db, "publish_lesson")
+    return {
+        'message': 'Lesson published successfully and synchronized with all databases',
+        'lesson_id': lesson_id,
+        'status': 'published',
+        'published_at': lesson.published_at.isoformat() if lesson.published_at else None
+    }
 
 
 @router.delete('/admin/lessons/{lesson_id}', status_code=status.HTTP_204_NO_CONTENT)

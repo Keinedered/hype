@@ -48,10 +48,10 @@ interface Module {
 
 // 4 фиксированных курса (соответствуют реальным ID из базы данных)
 const FIXED_COURSES = [
-  { id: 'event-basics', title: 'Основы ивент-менеджмента', track: 'event' },
-  { id: 'product-intro', title: 'Введение в продуктовый менеджмент', track: 'digital' },
-  { id: 'business-comm', title: 'Основы деловой переписки', track: 'communication' },
-  { id: 'graphic-design', title: 'Основы графического дизайна', track: 'design' },
+  { id: 'event-basics', title: 'Ивент индустрия', track: 'event' },
+  { id: 'product-intro', title: 'Цифровые продукты', track: 'digital' },
+  { id: 'business-comm', title: 'Внешние коммуникации', track: 'communication' },
+  { id: 'graphic-design', title: 'Дизайн', track: 'design' },
 ];
 
 export function LessonsBuilder() {
@@ -59,11 +59,6 @@ export function LessonsBuilder() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [modules, setModules] = useState<Module[]>([]);
   const [isCreateLessonDialogOpen, setIsCreateLessonDialogOpen] = useState(false);
-  const [isCreateModuleDialogOpen, setIsCreateModuleDialogOpen] = useState(false);
-  const [isEditLessonDialogOpen, setIsEditLessonDialogOpen] = useState(false);
-  const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
-  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
-  const [selectedCourseId, setSelectedCourseId] = useState<string>('');
   const [lessonFormData, setLessonFormData] = useState({
     id: '',
     title: '',
@@ -74,13 +69,6 @@ export function LessonsBuilder() {
     content_type: 'text',
     tags: '',
     estimated_time: 0,
-  });
-  const [moduleFormData, setModuleFormData] = useState({
-    id: '',
-    course_id: '',
-    title: '',
-    description: '',
-    selectedLessonIds: [] as string[],
   });
 
   useEffect(() => {
@@ -114,10 +102,6 @@ export function LessonsBuilder() {
 
   // Уроки без модуля (свободные)
   const freeLessons = lessons.filter(l => !l.module_id);
-  // Уроки в выбранном модуле
-  const moduleLessons = selectedModuleId 
-    ? lessons.filter(l => l.module_id === selectedModuleId)
-    : [];
 
   const handleCreateLesson = async () => {
     if (!lessonFormData.id || !lessonFormData.id.trim()) {
@@ -155,59 +139,6 @@ export function LessonsBuilder() {
     }
   };
 
-  const handleCreateModule = async () => {
-    if (!moduleFormData.id || !moduleFormData.id.trim()) {
-      toast.error('Введите ID модуля');
-      return;
-    }
-    if (!moduleFormData.title || !moduleFormData.title.trim()) {
-      toast.error('Введите название модуля');
-      return;
-    }
-    if (!moduleFormData.course_id) {
-      toast.error('Выберите курс');
-      return;
-    }
-    if (moduleFormData.selectedLessonIds.length === 0) {
-      toast.error('Выберите хотя бы один урок для модуля');
-      return;
-    }
-
-    try {
-      // Создаем модуль
-      const moduleData = {
-        id: moduleFormData.id.trim(),
-        course_id: moduleFormData.course_id,
-        title: moduleFormData.title.trim(),
-        description: moduleFormData.description || '',
-        order_index: modules.filter(m => m.course_id === moduleFormData.course_id).length + 1,
-        prerequisites: '',
-      };
-
-      // Создаем модуль с автоматическим созданием узла графа
-      const createdModule = await adminAPI.modules.create(moduleData, {
-        createGraphNode: true,
-        x: 0, // Автопозиционирование
-        y: 0,
-      });
-      
-      // Привязываем уроки к модулю
-      for (const lessonId of moduleFormData.selectedLessonIds) {
-        await adminAPI.lessons.update(lessonId, {
-          module_id: createdModule.id,
-        });
-      }
-
-      toast.success('Модуль успешно создан и уроки привязаны');
-      fetchLessons();
-      fetchModules();
-      setIsCreateModuleDialogOpen(false);
-      resetModuleForm();
-    } catch (error: any) {
-      toast.error(error.message || 'Ошибка при создании модуля');
-    }
-  };
-
   const resetLessonForm = () => {
     setLessonFormData({
       id: '',
@@ -222,22 +153,13 @@ export function LessonsBuilder() {
     });
   };
 
-  const resetModuleForm = () => {
-    setModuleFormData({
-      id: '',
-      course_id: '',
-      title: '',
-      description: '',
-      selectedLessonIds: [],
-    });
-  };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-white min-h-screen p-6">
       <div className="flex justify-between items-center flex-wrap gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Конструктор контента</h1>
-          <p className="text-gray-400 text-sm">Создавайте уроки, объединяйте их в модули, модули в курсы</p>
+          <h1 className="text-3xl font-bold text-black mb-2">Конструктор контента</h1>
+          <p className="text-gray-600 text-sm">Создавайте уроки, объединяйте их в модули, модули в курсы</p>
         </div>
         <div className="flex gap-3 flex-shrink-0">
           <button
@@ -253,7 +175,7 @@ export function LessonsBuilder() {
             type="button"
             onClick={() => {
               if (freeLessons.length > 0) {
-                setIsCreateModuleDialogOpen(true);
+                navigate('/admin/modules/new');
               } else {
                 toast.info('Сначала создайте хотя бы один урок');
               }
@@ -269,46 +191,37 @@ export function LessonsBuilder() {
             <Package size={20} />
             Создать модуль
           </button>
+          <button
+            type="button"
+            onClick={() => navigate('/admin/courses/new')}
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold transition-all bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 shadow-md cursor-pointer"
+            style={{ backgroundColor: '#9333ea', color: '#ffffff' }}
+          >
+            <BookOpen size={20} />
+            Создать курс
+          </button>
         </div>
       </div>
 
       {/* Свободные уроки (без модуля) */}
-      <Card className="p-6 bg-gray-900 border-gray-800">
+      <Card className="p-6 bg-white border-gray-200">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-white">Свободные уроки ({freeLessons.length})</h2>
-          <button
-            type="button"
-            onClick={() => navigate('/admin/lessons/new')}
-            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 shadow-md cursor-pointer"
-            style={{ backgroundColor: '#2563eb', color: '#ffffff' }}
-          >
-            <Plus size={18} />
-            Добавить урок
-          </button>
+          <h2 className="text-xl font-bold text-black">Свободные уроки ({freeLessons.length})</h2>
         </div>
         {freeLessons.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-gray-400 text-sm mb-4">Нет свободных уроков. Создайте первый урок.</p>
-            <button
-              type="button"
-              onClick={() => navigate('/admin/lessons/new')}
-              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-base font-semibold transition-all bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 shadow-md cursor-pointer"
-              style={{ backgroundColor: '#2563eb', color: '#ffffff' }}
-            >
-              <Plus size={20} />
-              Создать первый урок
-            </button>
+            <p className="text-gray-600 text-sm">Нет свободных уроков. Используйте кнопку "Создать урок" в шапке страницы.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {freeLessons.map((lesson) => (
-              <Card key={lesson.id} className="p-4 bg-gray-800 border-gray-700">
+              <Card key={lesson.id} className="p-4 bg-white border-gray-300">
                 <div className="flex justify-between items-start mb-2">
-                  <h3 className="text-white font-semibold">{lesson.title}</h3>
+                  <h3 className="text-black font-semibold">{lesson.title}</h3>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="text-gray-400 hover:text-red-400"
+                    className="text-gray-600 hover:text-red-600"
                     onClick={async () => {
                       if (confirm('Удалить урок?')) {
                         try {
@@ -324,13 +237,13 @@ export function LessonsBuilder() {
                     <Trash2 size={16} />
                   </Button>
                 </div>
-                <p className="text-gray-400 text-sm line-clamp-2">{lesson.description || 'Без описания'}</p>
+                <p className="text-gray-600 text-sm line-clamp-2">{lesson.description || 'Без описания'}</p>
                 <div className="mt-2 flex gap-2">
-                  <span className="text-xs text-gray-500 bg-gray-700 px-2 py-1 rounded">
+                  <span className="text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded border border-gray-300">
                     {lesson.content_type}
                   </span>
                   {lesson.estimated_time > 0 && (
-                    <span className="text-xs text-gray-500 bg-gray-700 px-2 py-1 rounded">
+                    <span className="text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded border border-gray-300">
                       {lesson.estimated_time} мин
                     </span>
                   )}
@@ -343,29 +256,29 @@ export function LessonsBuilder() {
 
       {/* Модули по курсам */}
       <div className="space-y-4">
-        <h2 className="text-xl font-bold text-white">Модули по курсам</h2>
+        <h2 className="text-xl font-bold text-black">Модули по курсам</h2>
         {FIXED_COURSES.map((course) => {
           const courseModules = modules.filter(m => m.course_id === course.id);
           return (
-            <Card key={course.id} className="p-6 bg-gray-900 border-gray-800">
-              <h3 className="text-lg font-bold text-white mb-4">{course.title}</h3>
+            <Card key={course.id} className="p-6 bg-white border-gray-200">
+              <h3 className="text-lg font-bold text-black mb-4">{course.title}</h3>
               {courseModules.length === 0 ? (
-                <p className="text-gray-400 text-sm">Нет модулей в этом курсе</p>
+                <p className="text-gray-600 text-sm">Нет модулей в этом курсе</p>
               ) : (
                 <div className="space-y-3">
                   {courseModules.map((module) => {
                     const moduleLessonsList = lessons.filter(l => l.module_id === module.id);
                     return (
-                      <Card key={module.id} className="p-4 bg-gray-800 border-gray-700">
+                      <Card key={module.id} className="p-4 bg-white border-gray-300">
                         <div className="flex justify-between items-start mb-2">
                           <div>
-                            <h4 className="text-white font-semibold">{module.title}</h4>
-                            <p className="text-gray-400 text-sm">{module.description || 'Без описания'}</p>
+                            <h4 className="text-black font-semibold">{module.title}</h4>
+                            <p className="text-gray-600 text-sm">{module.description || 'Без описания'}</p>
                           </div>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="text-gray-400 hover:text-red-400"
+                            className="text-gray-600 hover:text-red-600"
                             onClick={async () => {
                               if (confirm('Удалить модуль? Уроки станут свободными.')) {
                                 try {
@@ -387,12 +300,12 @@ export function LessonsBuilder() {
                           </Button>
                         </div>
                         <div className="mt-3">
-                          <p className="text-xs text-gray-500 mb-2">Уроки в модуле ({moduleLessonsList.length}):</p>
+                          <p className="text-xs text-gray-700 mb-2">Уроки в модуле ({moduleLessonsList.length}):</p>
                           <div className="flex flex-wrap gap-2">
                             {moduleLessonsList.map((lesson) => (
                               <span
                                 key={lesson.id}
-                                className="text-xs text-gray-400 bg-gray-700 px-2 py-1 rounded"
+                                className="text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded border border-gray-300"
                               >
                                 {lesson.title}
                               </span>
@@ -440,7 +353,7 @@ export function LessonsBuilder() {
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div>
-              <Label className="text-gray-300">ID урока *</Label>
+              <Label className="text-gray-200">ID урока *</Label>
               <Input
                 value={lessonFormData.id}
                 onChange={(e) => setLessonFormData({ ...lessonFormData, id: e.target.value })}
@@ -449,7 +362,7 @@ export function LessonsBuilder() {
               />
             </div>
             <div>
-              <Label className="text-gray-300">Название *</Label>
+              <Label className="text-gray-200">Название *</Label>
               <Input
                 value={lessonFormData.title}
                 onChange={(e) => setLessonFormData({ ...lessonFormData, title: e.target.value })}
@@ -458,7 +371,7 @@ export function LessonsBuilder() {
               />
             </div>
             <div>
-              <Label className="text-gray-300">Описание</Label>
+              <Label className="text-gray-200">Описание</Label>
               <Textarea
                 value={lessonFormData.description}
                 onChange={(e) => setLessonFormData({ ...lessonFormData, description: e.target.value })}
@@ -467,7 +380,7 @@ export function LessonsBuilder() {
               />
             </div>
             <div>
-              <Label className="text-gray-300">Контент</Label>
+              <Label className="text-gray-200">Контент</Label>
               <Textarea
                 value={lessonFormData.content}
                 onChange={(e) => setLessonFormData({ ...lessonFormData, content: e.target.value })}
@@ -477,7 +390,7 @@ export function LessonsBuilder() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-gray-300">Тип контента</Label>
+                <Label className="text-gray-200">Тип контента</Label>
                 <Select
                   value={lessonFormData.content_type}
                   onValueChange={(value) => setLessonFormData({ ...lessonFormData, content_type: value })}
@@ -485,15 +398,15 @@ export function LessonsBuilder() {
                   <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-700">
-                    <SelectItem value="text">Текст</SelectItem>
-                    <SelectItem value="video">Видео</SelectItem>
-                    <SelectItem value="interactive">Интерактивный</SelectItem>
+                  <SelectContent className="bg-gray-800 border-gray-700 text-white shadow-lg">
+                    <SelectItem value="text" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Текст</SelectItem>
+                    <SelectItem value="video" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Видео</SelectItem>
+                    <SelectItem value="interactive" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Интерактивный</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label className="text-gray-300">Время (мин)</Label>
+                <Label className="text-gray-200">Время (мин)</Label>
                 <Input
                   type="number"
                   value={lessonFormData.estimated_time}
@@ -506,7 +419,7 @@ export function LessonsBuilder() {
             {lessonFormData.content_type === 'video' && (
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-gray-300">URL видео</Label>
+                  <Label className="text-gray-200">URL видео</Label>
                   <Input
                     value={lessonFormData.video_url}
                     onChange={(e) => setLessonFormData({ ...lessonFormData, video_url: e.target.value })}
@@ -515,7 +428,7 @@ export function LessonsBuilder() {
                   />
                 </div>
                 <div>
-                  <Label className="text-gray-300">Длительность видео</Label>
+                  <Label className="text-gray-200">Длительность видео</Label>
                   <Input
                     value={lessonFormData.video_duration}
                     onChange={(e) => setLessonFormData({ ...lessonFormData, video_duration: e.target.value })}
@@ -526,7 +439,7 @@ export function LessonsBuilder() {
               </div>
             )}
             <div>
-              <Label className="text-gray-300">Теги (через запятую)</Label>
+              <Label className="text-gray-200">Теги (через запятую)</Label>
               <Input
                 value={lessonFormData.tags}
                 onChange={(e) => setLessonFormData({ ...lessonFormData, tags: e.target.value })}
@@ -541,7 +454,7 @@ export function LessonsBuilder() {
                   setIsCreateLessonDialogOpen(false);
                   resetLessonForm();
                 }}
-                className="flex-1 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all border border-gray-700 bg-transparent text-gray-300 hover:bg-gray-800 px-4 py-2 cursor-pointer"
+                className="flex-1 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all border border-gray-700 bg-transparent text-gray-200 hover:bg-gray-800 px-4 py-2 cursor-pointer"
                 style={{ borderColor: '#374151', color: '#d1d5db' }}
               >
                 Отмена
@@ -560,130 +473,6 @@ export function LessonsBuilder() {
         </DialogContent>
       </Dialog>
 
-      {/* Диалог создания модуля */}
-      <Dialog open={isCreateModuleDialogOpen} onOpenChange={(open) => {
-        setIsCreateModuleDialogOpen(open);
-        if (!open) resetModuleForm();
-      }}>
-        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Создать модуль из уроков</DialogTitle>
-            <DialogDescription className="text-gray-400">
-              Выберите курс и уроки для объединения в модуль.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 mt-4">
-            <div>
-              <Label className="text-gray-300">ID модуля *</Label>
-              <Input
-                value={moduleFormData.id}
-                onChange={(e) => setModuleFormData({ ...moduleFormData, id: e.target.value })}
-                placeholder="module-1"
-                className="bg-gray-800 border-gray-700 text-white"
-              />
-            </div>
-            <div>
-              <Label className="text-gray-300">Курс *</Label>
-              <Select
-                value={moduleFormData.course_id}
-                onValueChange={(value) => setModuleFormData({ ...moduleFormData, course_id: value })}
-              >
-                <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
-                  <SelectValue placeholder="Выберите курс" />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-700">
-                  {FIXED_COURSES.map((course) => (
-                    <SelectItem key={course.id} value={course.id}>
-                      {course.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-gray-300">Название модуля *</Label>
-              <Input
-                value={moduleFormData.title}
-                onChange={(e) => setModuleFormData({ ...moduleFormData, title: e.target.value })}
-                placeholder="Название модуля"
-                className="bg-gray-800 border-gray-700 text-white"
-              />
-            </div>
-            <div>
-              <Label className="text-gray-300">Описание</Label>
-              <Textarea
-                value={moduleFormData.description}
-                onChange={(e) => setModuleFormData({ ...moduleFormData, description: e.target.value })}
-                className="bg-gray-800 border-gray-700 text-white"
-                rows={3}
-              />
-            </div>
-            <div>
-              <Label className="text-gray-300">Выберите уроки для модуля *</Label>
-              <div className="max-h-60 overflow-y-auto border border-gray-700 rounded p-3 bg-gray-800">
-                {freeLessons.length === 0 ? (
-                  <p className="text-gray-400 text-sm">Нет свободных уроков</p>
-                ) : (
-                  <div className="space-y-2">
-                    {freeLessons.map((lesson) => (
-                      <label
-                        key={lesson.id}
-                        className="flex items-center space-x-2 cursor-pointer hover:bg-gray-700 p-2 rounded"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={moduleFormData.selectedLessonIds.includes(lesson.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setModuleFormData({
-                                ...moduleFormData,
-                                selectedLessonIds: [...moduleFormData.selectedLessonIds, lesson.id],
-                              });
-                            } else {
-                              setModuleFormData({
-                                ...moduleFormData,
-                                selectedLessonIds: moduleFormData.selectedLessonIds.filter(id => id !== lesson.id),
-                              });
-                            }
-                          }}
-                          className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600"
-                        />
-                        <span className="text-white text-sm">{lesson.title}</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="flex gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsCreateModuleDialogOpen(false);
-                  resetModuleForm();
-                }}
-                className="flex-1 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all border border-gray-700 bg-transparent text-gray-300 hover:bg-gray-800 px-4 py-2 cursor-pointer"
-                style={{ borderColor: '#374151', color: '#d1d5db' }}
-              >
-                Отмена
-              </button>
-              <button
-                type="button"
-                onClick={handleCreateModule}
-                disabled={moduleFormData.selectedLessonIds.length === 0}
-                className="flex-1 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold transition-all bg-green-600 hover:bg-green-700 text-white px-4 py-2 shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ 
-                  backgroundColor: moduleFormData.selectedLessonIds.length > 0 ? '#16a34a' : '#6b7280',
-                  color: '#ffffff'
-                }}
-              >
-                <Package size={18} />
-                Создать модуль ({moduleFormData.selectedLessonIds.length} уроков)
-              </button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -141,19 +141,27 @@ def get_module(db: Session, module_id: str) -> Optional[models.Module]:
 
 
 # Lessons
-def get_lessons(db: Session, module_id: str) -> List[models.Lesson]:
+def get_lessons(db: Session, module_id: str, published_only: bool = True) -> List[models.Lesson]:
     """Получить все уроки модуля"""
-    return db.query(models.Lesson).filter(
+    query = db.query(models.Lesson).filter(
         models.Lesson.module_id == module_id
-    ).order_by(models.Lesson.order_index).all()
+    )
+    # Фильтруем только опубликованные уроки для обычных пользователей
+    if published_only:
+        query = query.filter(models.Lesson.status == 'published')
+    return query.order_by(models.Lesson.order_index).all()
 
 
-def get_lesson(db: Session, lesson_id: str) -> Optional[models.Lesson]:
+def get_lesson(db: Session, lesson_id: str, published_only: bool = True) -> Optional[models.Lesson]:
     """Получить урок по ID"""
-    return db.query(models.Lesson).options(
+    query = db.query(models.Lesson).options(
         joinedload(models.Lesson.handbook_excerpts),
         joinedload(models.Lesson.assignment)
-    ).filter(models.Lesson.id == lesson_id).first()
+    ).filter(models.Lesson.id == lesson_id)
+    # Фильтруем только опубликованные уроки для обычных пользователей
+    if published_only:
+        query = query.filter(models.Lesson.status == 'published')
+    return query.first()
 
 
 # Graph
@@ -271,6 +279,29 @@ def delete_graph_node_for_lesson(db: Session, lesson_id: str) -> bool:
     if graph_node:
         db.delete(graph_node)
         # Не делаем commit здесь - он будет сделан в роутере вместе с удалением урока
+        return True
+    return False
+
+
+def delete_graph_node_for_module(db: Session, module_id: str) -> bool:
+    """Удалить узел графа для модуля и все связанные ребра"""
+    graph_node = get_graph_node_by_entity(db, module_id, models.NodeType.module)
+    if graph_node:
+        # Удаляем все ребра, связанные с этим узлом (входящие и исходящие)
+        # Ребра удалятся автоматически через CASCADE, но лучше сделать явно для ясности
+        incoming_edges = db.query(models.GraphEdge).filter(
+            models.GraphEdge.target_id == graph_node.id
+        ).all()
+        outgoing_edges = db.query(models.GraphEdge).filter(
+            models.GraphEdge.source_id == graph_node.id
+        ).all()
+        
+        for edge in incoming_edges + outgoing_edges:
+            db.delete(edge)
+        
+        # Удаляем сам узел
+        db.delete(graph_node)
+        # Не делаем commit здесь - он будет сделан в роутере вместе с удалением модуля
         return True
     return False
 
@@ -538,6 +569,12 @@ def mark_notification_read(db: Session, notification_id: str, user_id: str) -> O
 # User progress
 def update_course_progress(db: Session, user_id: str, course_id: str, progress: float, status: str):
     """Обновить прогресс по курсу"""
+    # Конвертируем строку в enum
+    try:
+        status_enum = models.CourseStatus(status)
+    except ValueError:
+        raise ValueError(f"Invalid status: {status}. Must be one of: {[s.value for s in models.CourseStatus]}")
+    
     user_course = db.query(models.UserCourse).filter(
         models.UserCourse.user_id == user_id,
         models.UserCourse.course_id == course_id
@@ -545,15 +582,15 @@ def update_course_progress(db: Session, user_id: str, course_id: str, progress: 
     
     if user_course:
         user_course.progress = progress
-        user_course.status = status
-        if status == "completed" and not user_course.completed_at:
+        user_course.status = status_enum
+        if status_enum == models.CourseStatus.completed and not user_course.completed_at:
             user_course.completed_at = func.now()
     else:
         user_course = models.UserCourse(
             user_id=user_id,
             course_id=course_id,
             progress=progress,
-            status=status,
+            status=status_enum,
             started_at=func.now()
         )
         db.add(user_course)
@@ -564,21 +601,27 @@ def update_course_progress(db: Session, user_id: str, course_id: str, progress: 
 
 def update_lesson_progress(db: Session, user_id: str, lesson_id: str, status: str):
     """Обновить прогресс по уроку"""
+    # Конвертируем строку в enum (UserLesson использует CourseStatus)
+    try:
+        status_enum = models.CourseStatus(status)
+    except ValueError:
+        raise ValueError(f"Invalid status: {status}. Must be one of: {[s.value for s in models.CourseStatus]}")
+    
     user_lesson = db.query(models.UserLesson).filter(
         models.UserLesson.user_id == user_id,
         models.UserLesson.lesson_id == lesson_id
     ).first()
     
     if user_lesson:
-        user_lesson.status = status
-        if status == "completed" and not user_lesson.completed_at:
+        user_lesson.status = status_enum
+        if status_enum == models.CourseStatus.completed and not user_lesson.completed_at:
             user_lesson.completed_at = func.now()
     else:
         user_lesson = models.UserLesson(
             user_id=user_id,
             lesson_id=lesson_id,
-            status=status,
-            completed_at=func.now() if status == "completed" else None
+            status=status_enum,
+            completed_at=func.now() if status_enum == models.CourseStatus.completed else None
         )
         db.add(user_lesson)
     

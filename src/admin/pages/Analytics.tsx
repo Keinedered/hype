@@ -85,14 +85,14 @@ export function Analytics() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-white">Аналитика</h1>
         <Select value={timeRange} onValueChange={setTimeRange}>
-          <SelectTrigger className="bg-gray-900 border-gray-800 w-48">
+          <SelectTrigger className="bg-gray-900 border-gray-800 text-white w-48">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="bg-gray-900 border-gray-800">
-            <SelectItem value="all">Все время</SelectItem>
-            <SelectItem value="month">Последний месяц</SelectItem>
-            <SelectItem value="week">Последняя неделя</SelectItem>
-            <SelectItem value="day">Сегодня</SelectItem>
+          <SelectContent className="bg-gray-800 border-gray-700 text-white shadow-lg">
+            <SelectItem value="all" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Все время</SelectItem>
+            <SelectItem value="month" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Последний месяц</SelectItem>
+            <SelectItem value="week" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Последняя неделя</SelectItem>
+            <SelectItem value="day" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Сегодня</SelectItem>
           </SelectContent>
         </Select>
       </div>

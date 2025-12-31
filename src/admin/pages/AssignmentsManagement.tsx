@@ -318,7 +318,7 @@ export function AssignmentsManagement() {
                   <p className="text-gray-400">User: {submission.user_id}</p>
                   <p className="text-gray-400">Assignment: {submission.assignment_id}</p>
                   {submission.text_answer && (
-                    <p className="text-gray-300 mt-2">{submission.text_answer}</p>
+                    <p className="text-gray-200 mt-2">{submission.text_answer}</p>
                   )}
                   {submission.link_url && (
                     <a href={submission.link_url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline mt-2 block">
@@ -331,7 +331,7 @@ export function AssignmentsManagement() {
                   {submission.curator_comment && (
                     <div className="mt-3 p-3 bg-gray-800 rounded border-l-4 border-blue-500">
                       <p className="text-sm font-semibold text-blue-400 mb-1">Комментарий куратора:</p>
-                      <p className="text-gray-300 text-sm">{submission.curator_comment}</p>
+                      <p className="text-gray-200 text-sm">{submission.curator_comment}</p>
                       {submission.reviewed_at && (
                         <p className="text-gray-500 text-xs mt-2">Проверено: {new Date(submission.reviewed_at).toLocaleString('ru-RU')}</p>
                       )}
@@ -411,7 +411,7 @@ export function AssignmentsManagement() {
                     setFormData({ ...formData, requires_text: checked as boolean })
                   }
                 />
-                <label htmlFor="text" className="text-sm text-gray-300">
+                <label htmlFor="text" className="text-sm text-gray-200">
                   Текстовый ответ
                 </label>
               </div>
@@ -423,7 +423,7 @@ export function AssignmentsManagement() {
                     setFormData({ ...formData, requires_file: checked as boolean })
                   }
                 />
-                <label htmlFor="file" className="text-sm text-gray-300">
+                <label htmlFor="file" className="text-sm text-gray-200">
                   Файл
                 </label>
               </div>
@@ -435,7 +435,7 @@ export function AssignmentsManagement() {
                     setFormData({ ...formData, requires_link: checked as boolean })
                   }
                 />
-                <label htmlFor="link" className="text-sm text-gray-300">
+                <label htmlFor="link" className="text-sm text-gray-200">
                   Ссылка
                 </label>
               </div>
@@ -501,7 +501,7 @@ export function AssignmentsManagement() {
                     setFormData({ ...formData, requires_text: checked as boolean })
                   }
                 />
-                <label htmlFor="edit-text" className="text-sm text-gray-300">
+                <label htmlFor="edit-text" className="text-sm text-gray-200">
                   Текстовый ответ
                 </label>
               </div>
@@ -513,7 +513,7 @@ export function AssignmentsManagement() {
                     setFormData({ ...formData, requires_file: checked as boolean })
                   }
                 />
-                <label htmlFor="edit-file" className="text-sm text-gray-300">
+                <label htmlFor="edit-file" className="text-sm text-gray-200">
                   Файл
                 </label>
               </div>
@@ -525,7 +525,7 @@ export function AssignmentsManagement() {
                     setFormData({ ...formData, requires_link: checked as boolean })
                   }
                 />
-                <label htmlFor="edit-link" className="text-sm text-gray-300">
+                <label htmlFor="edit-link" className="text-sm text-gray-200">
                   Ссылка
                 </label>
               </div>
@@ -552,9 +552,9 @@ export function AssignmentsManagement() {
                     <SelectTrigger className="bg-gray-800 border-gray-700">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-700">
-                      <SelectItem value="accepted">Принято</SelectItem>
-                      <SelectItem value="needs_revision">Требует доработки</SelectItem>
+                    <SelectContent className="bg-gray-800 border-gray-700 text-white shadow-lg">
+                      <SelectItem value="accepted" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Принято</SelectItem>
+                      <SelectItem value="needs_revision" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Требует доработки</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

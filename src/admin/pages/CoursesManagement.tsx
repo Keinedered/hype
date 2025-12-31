@@ -22,6 +22,7 @@ import {
 import { Plus, Edit, Trash2, Eye, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 import { adminAPI } from '@/api/adminClient';
+import { useNavigate } from 'react-router-dom';
 
 interface Course {
   id: string;
@@ -35,6 +36,7 @@ interface Course {
 }
 
 export function CoursesManagement() {
+  const navigate = useNavigate();
   const [courses, setCourses] = useState<Course[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -263,6 +265,9 @@ export function CoursesManagement() {
           <h1 className="text-3xl font-bold text-white mb-2">Управление курсами</h1>
           <p className="text-gray-400 text-sm">Создание и управление курсами платформы</p>
         </div>
+        <div className="text-gray-400 text-sm">
+          Доступно 4 фиксированных курса для редактирования
+        </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
           setIsCreateDialogOpen(open);
           if (!open) {
@@ -275,7 +280,7 @@ export function CoursesManagement() {
               onClick={() => resetForm()}
             >
               <Plus className="mr-2" size={20} />
-              Добавить новый курс
+              Добавить новый курс (старый способ)
             </Button>
           </DialogTrigger>
           <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -287,7 +292,7 @@ export function CoursesManagement() {
             </DialogHeader>
             <div className="space-y-4 mt-4">
               <div>
-                <Label className="text-gray-300">ID курса *</Label>
+                <Label className="text-gray-200">ID курса *</Label>
                 <Input
                   value={formData.id}
                   onChange={(e) => setFormData({ ...formData, id: e.target.value })}
@@ -297,7 +302,7 @@ export function CoursesManagement() {
                 <p className="text-gray-500 text-xs mt-1">Уникальный идентификатор курса (латиница, дефисы)</p>
               </div>
               <div>
-                <Label className="text-gray-300">Название *</Label>
+                <Label className="text-gray-200">Название *</Label>
                 <Input
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -306,7 +311,7 @@ export function CoursesManagement() {
                 />
               </div>
               <div>
-                <Label className="text-gray-300">Краткое описание *</Label>
+                <Label className="text-gray-200">Краткое описание *</Label>
                 <Textarea
                   value={formData.short_description}
                   onChange={(e) => setFormData({ ...formData, short_description: e.target.value })}
@@ -317,7 +322,7 @@ export function CoursesManagement() {
                 <p className="text-gray-500 text-xs mt-1">Краткое описание, которое будет отображаться в каталоге</p>
               </div>
               <div>
-                <Label className="text-gray-300">Полное описание *</Label>
+                <Label className="text-gray-200">Полное описание *</Label>
                 <Textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -329,35 +334,35 @@ export function CoursesManagement() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-gray-300">Уровень *</Label>
+                  <Label className="text-gray-200">Уровень *</Label>
                   <Select value={formData.level} onValueChange={(value) => setFormData({ ...formData, level: value })}>
                     <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-700">
-                      <SelectItem value="beginner">Beginner</SelectItem>
-                      <SelectItem value="intermediate">Intermediate</SelectItem>
-                      <SelectItem value="advanced">Advanced</SelectItem>
+                    <SelectContent className="bg-gray-800 border-gray-700 text-white shadow-lg">
+                      <SelectItem value="beginner" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Beginner</SelectItem>
+                      <SelectItem value="intermediate" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Intermediate</SelectItem>
+                      <SelectItem value="advanced" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Advanced</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-gray-300">Трек *</Label>
+                  <Label className="text-gray-200">Трек *</Label>
                   <Select value={formData.track_id} onValueChange={(value) => setFormData({ ...formData, track_id: value })}>
                     <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-700">
-                      <SelectItem value="digital">Digital</SelectItem>
-                      <SelectItem value="design">Design</SelectItem>
-                      <SelectItem value="event">Event</SelectItem>
-                      <SelectItem value="communication">Communication</SelectItem>
+                    <SelectContent className="bg-gray-800 border-gray-700 text-white shadow-lg">
+                      <SelectItem value="digital" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Digital</SelectItem>
+                      <SelectItem value="design" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Design</SelectItem>
+                      <SelectItem value="event" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Event</SelectItem>
+                      <SelectItem value="communication" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Communication</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <div>
-                <Label className="text-gray-300">Версия</Label>
+                <Label className="text-gray-200">Версия</Label>
                 <Input
                   value={formData.version}
                   onChange={(e) => setFormData({ ...formData, version: e.target.value })}
@@ -367,7 +372,7 @@ export function CoursesManagement() {
                 <p className="text-gray-500 text-xs mt-1">Версия курса (по умолчанию 1.0)</p>
               </div>
               <div>
-                <Label className="text-gray-300">Срок записи (опционально)</Label>
+                <Label className="text-gray-200">Срок записи (опционально)</Label>
                 <Input
                   type="date"
                   value={formData.enrollment_deadline}
@@ -379,7 +384,7 @@ export function CoursesManagement() {
               
               {/* Авторы */}
               <div>
-                <Label className="text-gray-300">Авторы курса</Label>
+                <Label className="text-gray-200">Авторы курса</Label>
                 <div className="flex gap-2 mb-3">
                   <Input
                     value={authorInput}
@@ -397,7 +402,7 @@ export function CoursesManagement() {
                     type="button" 
                     onClick={addAuthor} 
                     variant="outline"
-                    className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+                    className="border-gray-700 text-gray-200 hover:bg-gray-800 hover:text-white"
                   >
                     Добавить
                   </Button>
@@ -436,14 +441,14 @@ export function CoursesManagement() {
                     onChange={(e) => setGraphOptions({ ...graphOptions, createGraphNode: e.target.checked })}
                     className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500"
                   />
-                  <Label htmlFor="createGraphNode" className="cursor-pointer text-gray-300">
+                  <Label htmlFor="createGraphNode" className="cursor-pointer text-gray-200">
                     Создать узел графа знаний
                   </Label>
                 </div>
                 {graphOptions.createGraphNode && (
-                  <div className="bg-gray-800/50 p-4 rounded-lg grid grid-cols-2 gap-4 border border-gray-700">
+                  <div className="bg-gray-800 p-4 rounded-lg grid grid-cols-2 gap-4 border border-gray-700">
                     <div>
-                      <Label className="text-gray-300">Координата X</Label>
+                      <Label className="text-gray-200">Координата X</Label>
                       <Input
                         type="number"
                         value={graphOptions.x}
@@ -453,7 +458,7 @@ export function CoursesManagement() {
                       <p className="text-gray-500 text-xs mt-1">0 = автопозиционирование</p>
                     </div>
                     <div>
-                      <Label className="text-gray-300">Координата Y</Label>
+                      <Label className="text-gray-200">Координата Y</Label>
                       <Input
                         type="number"
                         value={graphOptions.y}
@@ -517,7 +522,7 @@ export function CoursesManagement() {
                           variant="ghost" 
                           size="icon" 
                           className="text-gray-400 hover:text-blue-400 hover:bg-gray-800"
-                          onClick={() => openEditDialog(course)}
+                          onClick={() => navigate(`/admin/courses/${course.id}/edit`)}
                           title="Редактировать курс"
                         >
                           <Edit size={18} />
@@ -584,15 +589,15 @@ export function CoursesManagement() {
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <div>
-              <Label className="text-gray-300">ID курса</Label>
+              <Label className="text-gray-200">ID курса</Label>
               <Input
                 value={formData.id}
                 disabled
-                className="bg-gray-800/50 border-gray-700 text-gray-400 cursor-not-allowed"
+                className="bg-gray-800 border-gray-700 text-gray-300 cursor-not-allowed"
               />
             </div>
             <div>
-              <Label className="text-gray-300">Название *</Label>
+              <Label className="text-gray-200">Название *</Label>
               <Input
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -601,7 +606,7 @@ export function CoursesManagement() {
               />
             </div>
             <div>
-              <Label className="text-gray-300">Краткое описание *</Label>
+              <Label className="text-gray-200">Краткое описание *</Label>
               <Textarea
                 value={formData.short_description}
                 onChange={(e) => setFormData({ ...formData, short_description: e.target.value })}
@@ -612,7 +617,7 @@ export function CoursesManagement() {
               <p className="text-gray-500 text-xs mt-1">Краткое описание, которое будет отображаться в каталоге</p>
             </div>
             <div>
-              <Label className="text-gray-300">Полное описание *</Label>
+              <Label className="text-gray-200">Полное описание *</Label>
               <Textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -624,36 +629,36 @@ export function CoursesManagement() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-gray-300">Уровень *</Label>
+                <Label className="text-gray-200">Уровень *</Label>
                 <Select value={formData.level} onValueChange={(value) => setFormData({ ...formData, level: value })}>
                   <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-700">
-                    <SelectItem value="beginner">Beginner</SelectItem>
-                    <SelectItem value="intermediate">Intermediate</SelectItem>
-                    <SelectItem value="advanced">Advanced</SelectItem>
+                  <SelectContent className="bg-gray-800 border-gray-700 text-white shadow-lg">
+                    <SelectItem value="beginner" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Beginner</SelectItem>
+                    <SelectItem value="intermediate" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Intermediate</SelectItem>
+                    <SelectItem value="advanced" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Advanced</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label className="text-gray-300">Трек *</Label>
+                <Label className="text-gray-200">Трек *</Label>
                 <Select value={formData.track_id} onValueChange={(value) => setFormData({ ...formData, track_id: value })}>
                   <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-700">
-                    <SelectItem value="digital">Digital</SelectItem>
-                    <SelectItem value="design">Design</SelectItem>
-                    <SelectItem value="event">Event</SelectItem>
-                    <SelectItem value="communication">Communication</SelectItem>
+                  <SelectContent className="bg-gray-800 border-gray-700 text-white shadow-lg">
+                    <SelectItem value="digital" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Digital</SelectItem>
+                    <SelectItem value="design" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Design</SelectItem>
+                    <SelectItem value="event" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Event</SelectItem>
+                    <SelectItem value="communication" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Communication</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             
             <div>
-              <Label className="text-gray-300">Версия</Label>
+              <Label className="text-gray-200">Версия</Label>
               <Input
                 value={formData.version}
                 onChange={(e) => setFormData({ ...formData, version: e.target.value })}
@@ -664,7 +669,7 @@ export function CoursesManagement() {
             </div>
             
             <div>
-              <Label className="text-gray-300">Срок записи (опционально)</Label>
+              <Label className="text-gray-200">Срок записи (опционально)</Label>
               <Input
                 type="date"
                 value={formData.enrollment_deadline}
@@ -675,7 +680,7 @@ export function CoursesManagement() {
             </div>
             
             <div>
-              <Label className="text-gray-300">Авторы курса</Label>
+              <Label className="text-gray-200">Авторы курса</Label>
               <div className="flex gap-2 mb-3">
                 <Input
                   value={authorInput}
@@ -693,7 +698,7 @@ export function CoursesManagement() {
                   type="button" 
                   onClick={addAuthor} 
                   variant="outline"
-                  className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+                  className="border-gray-700 text-gray-200 hover:bg-gray-800 hover:text-white"
                 >
                   Добавить
                 </Button>

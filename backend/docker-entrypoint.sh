@@ -24,6 +24,7 @@ python init_db.py
 echo ""
 echo "🔧 Применение миграций..."
 python add_lesson_columns.py
+python add_lesson_status_columns.py
 
 echo ""
 echo "🚀 Запуск FastAPI сервера..."
