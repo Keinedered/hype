@@ -1,9 +1,11 @@
-import { useState, useRef, useEffect, WheelEvent, MouseEvent } from 'react';
+import { useState, useRef, useEffect, useMemo, WheelEvent, MouseEvent } from 'react';
 import { GraphNode, GraphEdge } from '../types';
 import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
+import { Progress } from './ui/progress';
 import { courses, tracks } from '../data/mockData';
+import { modulesAPI } from '../api/client';
 
 interface KnowledgeGraphProps {
   nodes: GraphNode[];
@@ -13,29 +15,83 @@ interface KnowledgeGraphProps {
 }
 
 export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: KnowledgeGraphProps) {
-  const [zoom, setZoom] = useState(0.8);
+  const [zoom, setZoom] = useState(1.0); // Начальный zoom = 1.0 для нормального отображения
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
+  const [moduleProgress, setModuleProgress] = useState<{ completed: number; total: number; progress: number } | null>(null);
+  const [isLoadingProgress, setIsLoadingProgress] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Calculate viewBox based on nodes with text blocks
-  const calculateViewBox = () => {
-    if (nodes.length === 0) return '0 0 1600 1000';
-    const xs = nodes.map(n => n.x);
-    const ys = nodes.map(n => n.y);
-    // Add extra padding for text blocks (text can extend ~150px from node)
-    const textPadding = 200;
+  // Алгоритм вычисления границ графа (мемоизирован для производительности)
+  const graphBounds = useMemo(() => {
+    if (nodes.length === 0) {
+      return {
+        minX: 0,
+        maxX: 2000,
+        minY: 0,
+        maxY: 1200,
+        centerX: 1000,
+        centerY: 600,
+        width: 2000,
+        height: 1200,
+      };
+    }
+
+    // Фильтруем валидные координаты
+    const validNodes = nodes.filter(n => 
+      typeof n.x === 'number' && 
+      typeof n.y === 'number' && 
+      !isNaN(n.x) && 
+      !isNaN(n.y) && 
+      isFinite(n.x) && 
+      isFinite(n.y)
+    );
+
+    if (validNodes.length === 0) {
+      return {
+        minX: 0,
+        maxX: 2000,
+        minY: 0,
+        maxY: 1200,
+        centerX: 1000,
+        centerY: 600,
+        width: 2000,
+        height: 1200,
+      };
+    }
+
+    const xs = validNodes.map(n => n.x);
+    const ys = validNodes.map(n => n.y);
+
+    const textPadding = 400; // Увеличенный отступ для меток
     const minX = Math.min(...xs) - textPadding;
     const maxX = Math.max(...xs) + textPadding;
     const minY = Math.min(...ys) - textPadding;
     const maxY = Math.max(...ys) + textPadding;
-    const width = maxX - minX;
-    const height = maxY - minY;
-    return `${minX} ${minY} ${width} ${height}`;
-  };
+    const width = Math.max(maxX - minX, 2000);
+    const height = Math.max(maxY - minY, 1200);
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+
+    return {
+      minX,
+      maxX,
+      minY,
+      maxY,
+      centerX,
+      centerY,
+      width,
+      height,
+    };
+  }, [nodes]);
+
+  // Вычисление viewBox на основе границ (простой и надежный подход)
+  const viewBox = useMemo(() => {
+    return `${graphBounds.minX} ${graphBounds.minY} ${graphBounds.width} ${graphBounds.height}`;
+  }, [graphBounds]);
 
   const handleWheel = (e: WheelEvent<SVGSVGElement>) => {
     // This is handled by the useEffect hook for better trackpad support
@@ -103,20 +159,37 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
   };
 
   const handleReset = () => {
-    setZoom(0.8);
+    // Сбрасываем к начальному состоянию с центрированием графа
+    setZoom(1.0);
     setPan({ x: 0, y: 0 });
   };
 
-  const handleNodeClick = (node: GraphNode) => {
+  const handleNodeClick = async (node: GraphNode) => {
     if (node.id === 'root') return;
     
-    // If the node corresponds to a course, select it
-    // In our new mock data, node.id IS the course.id
     setSelectedNode(node);
+    setModuleProgress(null);
     
-    // We can navigate immediately or wait for the button click in the card
-    // The previous implementation selected the node and showed a card
-    // Let's keep that behavior but update the button to navigate to course
+    // Если это модуль, загружаем прогресс
+    if (node.type === 'module') {
+      const moduleId = node.entityId || node.id.replace('node-', '');
+      if (moduleId) {
+        setIsLoadingProgress(true);
+        try {
+          const progress = await modulesAPI.getProgress(moduleId);
+          setModuleProgress({
+            completed: progress.completed_lessons || 0,
+            total: progress.total_lessons || 0,
+            progress: progress.progress || 0
+          });
+        } catch (error) {
+          console.error('Failed to load module progress:', error);
+          setModuleProgress(null);
+        } finally {
+          setIsLoadingProgress(false);
+        }
+      }
+    }
   };
 
   const getTrackColorForNode = (node: GraphNode): string | null => {
@@ -129,24 +202,50 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
     }
 
     // Fallbacks for future graph node types
-    const track = tracks.find((t) => t.id === (node.entityId as any)) ?? tracks.find((t) => t.id === (node.id as any));
+    const track = tracks.find((t) => t.id === node.entityId) ?? tracks.find((t) => t.id === node.id);
     return track?.color ?? null;
   };
 
   const getNodeColors = (node: GraphNode) => {
     const trackColor = getTrackColorForNode(node) ?? '#000000';
+    const isModule = node.type === 'module';
 
+    // Для модулей: белый fill, разная обводка в зависимости от статуса
+    if (isModule) {
+      switch (node.status) {
+        case 'completed':
+        case 'current':
+          // Активные модули - белый fill, черная жирная обводка
+          return { fill: '#ffffff', stroke: '#000000', accent: trackColor, ring: trackColor, strokeWidth: 4 };
+        case 'open':
+          // Открытые модули - белый fill, серая тонкая обводка
+          return { fill: '#ffffff', stroke: '#999999', accent: trackColor, ring: trackColor, strokeWidth: 1.5 };
+        case 'closed':
+          // Закрытые модули - белый fill, серая обводка
+          return { fill: '#ffffff', stroke: '#cccccc', accent: trackColor, ring: trackColor, strokeWidth: 1.5 };
+        default:
+          // По умолчанию - белый fill, серая обводка
+          return { fill: '#ffffff', stroke: '#999999', accent: trackColor, ring: trackColor, strokeWidth: 1.5 };
+      }
+    }
+
+    // Для курсов и других узлов - акцентные цвета
     switch (node.status) {
       case 'completed':
-        return { fill: '#000000', stroke: '#000000', accent: trackColor, ring: trackColor };
+        // Завершенные узлы - акцентный цвет с темной обводкой
+        return { fill: trackColor, stroke: '#000000', accent: trackColor, ring: trackColor, strokeWidth: 3 };
       case 'current':
-        return { fill: trackColor, stroke: '#000000', accent: trackColor, ring: trackColor };
+        // Текущие узлы - акцентный цвет с темной обводкой
+        return { fill: trackColor, stroke: '#000000', accent: trackColor, ring: trackColor, strokeWidth: 3 };
       case 'open':
-        return { fill: '#ffffff', stroke: '#000000', accent: trackColor, ring: trackColor };
+        // Открытые узлы - акцентный цвет с темной обводкой
+        return { fill: trackColor, stroke: '#000000', accent: trackColor, ring: trackColor, strokeWidth: 3 };
       case 'closed':
-        return { fill: '#f5f5f5', stroke: '#666666', accent: '#cccccc', ring: '#cccccc' };
+        // Закрытые узлы - приглушенный акцентный цвет
+        return { fill: trackColor, stroke: '#666666', accent: trackColor, ring: trackColor, strokeWidth: 2 };
       default:
-        return { fill: '#ffffff', stroke: '#000000', accent: trackColor, ring: trackColor };
+        // По умолчанию - акцентный цвет
+        return { fill: trackColor, stroke: '#000000', accent: trackColor, ring: trackColor, strokeWidth: 3 };
     }
   };
 
@@ -157,7 +256,7 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
       case 'alternative':
         return { stroke: '#000000', strokeDasharray: '8,4', strokeWidth: 1.5 };
       case 'recommended':
-        return { stroke: '#666666', strokeDasharray: '4,4', strokeWidth: 1 };
+        return { stroke: '#4a4a4a', strokeDasharray: '4,4', strokeWidth: 1 }; /* Улучшена контрастность */
       default:
         return { stroke: '#000000', strokeDasharray: '0', strokeWidth: 2 };
     }
@@ -362,7 +461,7 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
       {/* Graph SVG */}
       <svg
         ref={svgRef}
-        viewBox={calculateViewBox()}
+        viewBox={viewBox}
         preserveAspectRatio="xMidYMid meet"
         className="w-full h-full cursor-grab active:cursor-grabbing"
         onWheel={handleWheel}
@@ -370,7 +469,7 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        style={{ touchAction: 'none' }}
+        style={{ touchAction: 'none', display: 'block', minHeight: '400px', width: '100%', height: '100%' }}
       >
         <defs>
           {/* Arrow marker for edges */}
@@ -401,7 +500,8 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
           </pattern>
         </defs>
 
-        <g transform={`translate(${pan.x + (containerRef.current?.clientWidth || 0) / 2}, ${pan.y + (containerRef.current?.clientHeight || 0) / 2}) scale(${zoom}) translate(${-800}, ${-500})`}>
+        {/* Основная группа - применяем pan и zoom через transform */}
+        <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
           {/* Background decorative circles */}
           {Array.from({ length: 15 }).map((_, i) => (
             <circle
@@ -421,7 +521,18 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
             const source = nodes.find((n) => n.id === edge.sourceId);
             const target = nodes.find((n) => n.id === edge.targetId);
             
+            // Проверка существования узлов
             if (!source || !target) return null;
+            
+            // Проверка валидности координат
+            if (
+              isNaN(source.x) || isNaN(source.y) || 
+              isNaN(target.x) || isNaN(target.y) ||
+              !isFinite(source.x) || !isFinite(source.y) ||
+              !isFinite(target.x) || !isFinite(target.y)
+            ) {
+              return null;
+            }
 
             // Filter logic
             if (filter === 'completed') {
@@ -447,6 +558,7 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
                 strokeWidth={isHighlighted ? style.strokeWidth * 1.5 : style.strokeWidth}
                 strokeDasharray={style.strokeDasharray}
                 opacity={isHighlighted ? 1 : 0.7}
+                markerEnd="url(#arrowhead-black)"
               />
             );
           })}
@@ -457,8 +569,30 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
              if (filter === 'completed' && node.status !== 'completed') return null;
              if (filter === 'uncompleted' && node.status === 'completed') return null;
 
+            // Проверка валидности координат
+            if (isNaN(node.x) || isNaN(node.y) || !isFinite(node.x) || !isFinite(node.y)) {
+              console.warn(`Invalid coordinates for node ${node.id}: x=${node.x}, y=${node.y}`);
+              return null;
+            }
+
             const colors = getNodeColors(node);
-            const radius = (node.size || 40) / 2;
+            // Размеры узлов в зависимости от типа
+            let baseSize: number;
+            let minRadius: number;
+            if (node.type === 'course') {
+              baseSize = node.size || 35; // Уменьшен размер курсов
+              minRadius = 18;
+            } else if (node.type === 'module') {
+              baseSize = node.size || 45; // Уменьшен размер модулей
+              minRadius = 22;
+            } else if (node.type === 'concept') {
+              baseSize = node.size || 30; // Уменьшен размер концептов
+              minRadius = 15;
+            } else {
+              baseSize = node.size || 25; // Уменьшен размер остальных узлов
+              minRadius = 12;
+            }
+            const radius = Math.max(baseSize / 2, minRadius);
             const isSelected = selectedNode?.id === node.id;
 
             return (
@@ -500,8 +634,8 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
                   r={radius}
                   fill={colors.fill}
                   stroke={colors.stroke}
-                  strokeWidth={isSelected ? 4 : 3}
-                  opacity={node.status === 'closed' ? 0.5 : 1}
+                  strokeWidth={isSelected ? (colors.strokeWidth || 3) + 1 : (colors.strokeWidth || 3)}
+                  opacity={node.status === 'closed' ? 0.6 : 1}
                   className="transition-all"
                 />
 
@@ -528,43 +662,87 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
                     const maxVisualRadius = radius + Math.max(selectionRing, trackRing) + cornerDecorations;
                     
                     // Spacing to keep text close but not overlapping
-                    const minSpacing = 50;
-                    const lines = node.title.split('\n');
-                    const lineHeight = 16;
-                    const padding = 10;
+                    const minSpacing = 70; // Увеличено расстояние между узлом и текстом
+                    const lineHeight = 64; // Увеличен размер строки в 2 раза
+                    const padding = 32; // Увеличен padding в 2 раза
+                    const fixedBlockWidth = 400; // Фиксированная ширина блока
+                    const fontSize = 40;
+                    const charWidth = 24; // Примерная ширина символа
+                    const maxCharsPerLine = Math.floor((fixedBlockWidth - padding * 2) / charWidth);
+                    
+                    // Функция для разбиения текста на строки с учетом фиксированной ширины
+                    const wrapText = (text: string): string[] => {
+                      const words = text.split(/\s+/);
+                      const lines: string[] = [];
+                      let currentLine = '';
+                      
+                      for (const word of words) {
+                        const testLine = currentLine ? `${currentLine} ${word}` : word;
+                        // Проверяем, помещается ли строка (с учетом заглавных букв)
+                        if (testLine.length <= maxCharsPerLine) {
+                          currentLine = testLine;
+                        } else {
+                          if (currentLine) {
+                            lines.push(currentLine);
+                          }
+                          // Если слово само по себе длиннее строки, разбиваем его
+                          if (word.length > maxCharsPerLine) {
+                            let remainingWord = word;
+                            while (remainingWord.length > maxCharsPerLine) {
+                              lines.push(remainingWord.substring(0, maxCharsPerLine));
+                              remainingWord = remainingWord.substring(maxCharsPerLine);
+                            }
+                            currentLine = remainingWord;
+                          } else {
+                            currentLine = word;
+                          }
+                        }
+                      }
+                      
+                      if (currentLine) {
+                        lines.push(currentLine);
+                      }
+                      
+                      return lines.length > 0 ? lines : [text];
+                    };
+                    
+                    // Разбиваем текст на строки (сначала по \n, потом по ширине)
+                    const initialLines = node.title.split('\n');
+                    const wrappedLines: string[] = [];
+                    initialLines.forEach(line => {
+                      wrappedLines.push(...wrapText(line));
+                    });
+                    
+                    const lines = wrappedLines;
                     const totalHeight = lines.length * lineHeight + padding * 2;
-                    const maxLineWidth = Math.max(...lines.map(l => l.length * 7));
-                    const blockWidth = maxLineWidth + padding * 2;
+                    const blockWidth = fixedBlockWidth;
                     
-                    // Calculate angle from center to determine best label position
-                    const centerX = 800;
-                    const centerY = 500;
-                    const dx = node.x - centerX;
-                    const dy = node.y - centerY;
-                    const angle = Math.atan2(dy, dx);
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    
-                    // Position label radially outward from center, far from node
-                    // Use larger distance to ensure no overlap
-                    const labelDistance = distance + maxVisualRadius + minSpacing;
-                    const labelAngle = angle;
-                    
-                    let labelX = centerX + Math.cos(labelAngle) * labelDistance;
-                    let labelY = centerY + Math.sin(labelAngle) * labelDistance;
-                    
-                    // Ensure label is always below the node (easier to read)
-                    // Adjust if node is too high
-                    if (node.y < centerY - 100) {
-                      labelY = node.y + maxVisualRadius + minSpacing;
-                      labelX = node.x;
-                    } else {
-                      labelY = node.y + maxVisualRadius + minSpacing;
-                      labelX = node.x;
-                    }
+                    // Position label below the node (simpler and more readable)
+                    // Always place label below node with proper spacing
+                    const labelX = node.x;
+                    const labelY = node.y + maxVisualRadius + minSpacing;
                     
                     // Connecting line from node bottom to label top
                     const lineStartY = node.y + maxVisualRadius;
                     const lineEndY = labelY - totalHeight / 2;
+                    
+                    // Функция для определения контрастного цвета текста
+                    const getContrastColor = (bgColor: string): string => {
+                      // Преобразуем hex в RGB
+                      const hex = bgColor.replace('#', '');
+                      if (hex.length !== 6) return '#000000'; // Fallback для некорректных цветов
+                      const r = parseInt(hex.substring(0, 2), 16);
+                      const g = parseInt(hex.substring(2, 4), 16);
+                      const b = parseInt(hex.substring(4, 6), 16);
+                      // Вычисляем яркость (luminance)
+                      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+                      // Если фон светлый, текст черный, иначе белый
+                      return luminance > 0.5 ? '#000000' : '#ffffff';
+                    };
+                    
+                    // Используем акцентный цвет для фона метки
+                    const labelBgColor = colors.accent || '#000000';
+                    const labelTextColor = getContrastColor(labelBgColor);
                     
                     return (
                       <>
@@ -574,9 +752,9 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
                           y1={lineStartY}
                           x2={labelX}
                           y2={lineEndY}
-                          stroke="#000000"
+                          stroke={labelBgColor}
                           strokeWidth="1.5"
-                          opacity="0.35"
+                          opacity="0.4"
                           strokeDasharray="4,4"
                         />
                         
@@ -586,12 +764,12 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
                           y={labelY - totalHeight / 2}
                           width={blockWidth}
                           height={totalHeight}
-                          fill="#000000"
+                          fill={labelBgColor}
                           opacity="0.95"
                           rx="4"
-                          stroke="#ffffff"
+                          stroke={labelTextColor}
                           strokeWidth="2"
-                          strokeOpacity="0.5"
+                          strokeOpacity="0.8"
                         />
                         
                         {/* Text lines */}
@@ -601,11 +779,12 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
                             x={labelX}
                             y={labelY - totalHeight / 2 + padding + (i + 0.75) * lineHeight}
                             textAnchor="middle"
-                            fill="#ffffff"
-                            fontSize="10"
-                            fontFamily="monospace"
-                            fontWeight="600"
+                            fill={labelTextColor}
+                            fontSize={fontSize}
+                            fontFamily="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace"
+                            fontWeight="700"
                             className="pointer-events-none"
+                            style={{ textShadow: labelTextColor === '#ffffff' ? '0 1px 2px rgba(0,0,0,0.3)' : '0 1px 2px rgba(255,255,255,0.3)' }}
                           >
                             {line.toUpperCase()}
                           </text>
@@ -643,6 +822,34 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
                 </span>
               )}
             </div>
+            
+            {/* Прогресс модуля */}
+            {selectedNode.type === 'module' && (
+              <div className="space-y-2">
+                {isLoadingProgress ? (
+                  <div className="text-sm font-mono">Загрузка прогресса...</div>
+                ) : moduleProgress ? (
+                  <>
+                    <div className="flex justify-between items-center text-sm font-mono">
+                      <span>Прогресс выполнения:</span>
+                      <span className="font-bold">
+                        {moduleProgress.completed} / {moduleProgress.total} уроков
+                      </span>
+                    </div>
+                    <Progress 
+                      value={moduleProgress.progress} 
+                      className="h-3 border-2 border-black"
+                    />
+                    <div className="text-xs font-mono text-gray-600">
+                      {Math.round(moduleProgress.progress)}% завершено
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-sm font-mono text-gray-500">Прогресс недоступен</div>
+                )}
+              </div>
+            )}
+            
             <Button 
               className="w-full border-2 border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] font-mono tracking-wide transition-all" 
               disabled={selectedNode.status === 'closed'}
@@ -652,7 +859,7 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
                 color: selectedNode.status === 'closed' ? '#666666' : '#ffffff'
               }}
             >
-              {selectedNode.status === 'closed' ? 'НЕДОСТУПНО' : 'ПЕРЕЙТИ К КУРСУ'}
+              {selectedNode.status === 'closed' ? 'НЕДОСТУПНО' : selectedNode.type === 'module' ? 'ПЕРЕЙТИ К МОДУЛЮ' : 'ПЕРЕЙТИ К КУРСУ'}
             </Button>
           </div>
         </Card>

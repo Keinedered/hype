@@ -63,7 +63,7 @@ export function CourseCard({ course, onSelect }: CourseCardProps) {
           <h3 className="font-mono text-xl font-bold tracking-tight uppercase leading-tight">
             {course.title}
           </h3>
-          <p className="text-sm font-mono leading-relaxed opacity-80 line-clamp-3">
+          <p className="text-sm font-mono leading-relaxed text-gray-700 line-clamp-3">
             {course.shortDescription}
           </p>
         </div>

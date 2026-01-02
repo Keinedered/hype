@@ -41,7 +41,8 @@ def list_graph_nodes(
     """Получить список всех узлов графа"""
     try:
         nodes = db.query(models.GraphNode).all()
-        return [graph_node_to_schema(node) for node in nodes]
+        schemas_list = [graph_node_to_schema(node) for node in nodes]
+        return schemas_list
     except Exception as e:
         import traceback
         print(f"Error in list_graph_nodes: {e}")

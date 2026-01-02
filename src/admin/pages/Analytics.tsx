@@ -67,7 +67,7 @@ export function Analytics() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-400">Загрузка аналитики...</p>
+        <p className="text-gray-300">Загрузка аналитики...</p>
       </div>
     );
   }
@@ -75,7 +75,7 @@ export function Analytics() {
   if (!analytics) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-400">Данные недоступны</p>
+        <p className="text-gray-300">Данные недоступны</p>
       </div>
     );
   }
@@ -102,9 +102,9 @@ export function Analytics() {
         <Card className="p-6 bg-gray-900 border-gray-800">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Всего пользователей</p>
+              <p className="text-gray-300 text-sm">Всего пользователей</p>
               <p className="text-3xl font-bold text-white mt-2">{analytics.totalUsers}</p>
-              <p className="text-gray-500 text-xs mt-1">
+              <p className="text-gray-300 text-xs mt-1">
                 Активных: {analytics.activeUsers}
               </p>
             </div>
@@ -115,9 +115,9 @@ export function Analytics() {
         <Card className="p-6 bg-gray-900 border-gray-800">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Курсы</p>
+              <p className="text-gray-300 text-sm">Курсы</p>
               <p className="text-3xl font-bold text-white mt-2">{analytics.totalCourses}</p>
-              <p className="text-gray-500 text-xs mt-1">
+              <p className="text-gray-300 text-xs mt-1">
                 Опубликовано: {analytics.publishedCourses}
               </p>
             </div>
@@ -128,9 +128,9 @@ export function Analytics() {
         <Card className="p-6 bg-gray-900 border-gray-800">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Задания</p>
+              <p className="text-gray-300 text-sm">Задания</p>
               <p className="text-3xl font-bold text-white mt-2">{analytics.totalSubmissions}</p>
-              <p className="text-gray-500 text-xs mt-1">
+              <p className="text-gray-300 text-xs mt-1">
                 На проверке: {analytics.pendingSubmissions}
               </p>
             </div>
@@ -141,11 +141,11 @@ export function Analytics() {
         <Card className="p-6 bg-gray-900 border-gray-800">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Средний прогресс</p>
+              <p className="text-gray-300 text-sm">Средний прогресс</p>
               <p className="text-3xl font-bold text-white mt-2">
                 {analytics.averageCompletionRate.toFixed(1)}%
               </p>
-              <p className="text-gray-500 text-xs mt-1">
+              <p className="text-gray-300 text-xs mt-1">
                 Завершено: {analytics.completedSubmissions}
               </p>
             </div>
@@ -158,7 +158,7 @@ export function Analytics() {
       <Card className="p-6 bg-gray-900 border-gray-800">
         <h2 className="text-xl font-bold text-white mb-4">Прогресс по курсам</h2>
         {analytics.courseProgress.length === 0 ? (
-          <p className="text-gray-400 text-center py-8">Нет данных о прогрессе</p>
+          <p className="text-gray-300 text-center py-8">Нет данных о прогрессе</p>
         ) : (
           <div className="space-y-4">
             {analytics.courseProgress.map((course) => (
@@ -166,7 +166,7 @@ export function Analytics() {
                 <div className="flex justify-between items-start mb-2">
                   <div>
                     <h3 className="text-lg font-semibold text-white">{course.courseTitle}</h3>
-                    <p className="text-gray-400 text-sm">
+                    <p className="text-gray-300 text-sm">
                       Записано: {course.enrolledUsers} | Завершено: {course.completedUsers}
                     </p>
                   </div>
@@ -174,7 +174,7 @@ export function Analytics() {
                     <p className="text-2xl font-bold text-white">
                       {course.averageProgress.toFixed(1)}%
                     </p>
-                    <p className="text-gray-400 text-xs">Средний прогресс</p>
+                    <p className="text-gray-300 text-xs">Средний прогресс</p>
                   </div>
                 </div>
                 <div className="w-full bg-gray-800 rounded-full h-2 mt-2">

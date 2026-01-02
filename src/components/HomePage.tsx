@@ -25,26 +25,26 @@ export function HomePage() {
               </div>
 
               <div className="border-2 border-black bg-white p-6 font-mono space-y-4">
-                <p className="text-sm text-muted-foreground leading-relaxed">
+                <p className="text-sm text-gray-700 leading-relaxed">
                   Проект разработан командой образовательного продукта: дизайн, разработка, методология и кураторская
                   поддержка.
                 </p>
                 <div className="grid sm:grid-cols-2 gap-4 text-sm">
                   <div className="border border-black/20 p-3">
                     <div className="font-bold uppercase tracking-wide">Product</div>
-                    <div className="text-muted-foreground">Концепция, программа, метрики</div>
+                    <div className="text-gray-700">Концепция, программа, метрики</div>
                   </div>
                   <div className="border border-black/20 p-3">
                     <div className="font-bold uppercase tracking-wide">Design</div>
-                    <div className="text-muted-foreground">UX/UI, визуальная система</div>
+                    <div className="text-gray-700">UX/UI, визуальная система</div>
                   </div>
                   <div className="border border-black/20 p-3">
                     <div className="font-bold uppercase tracking-wide">Engineering</div>
-                    <div className="text-muted-foreground">Фронтенд, интерактивная карта</div>
+                    <div className="text-gray-700">Фронтенд, интерактивная карта</div>
                   </div>
                   <div className="border border-black/20 p-3">
                     <div className="font-bold uppercase tracking-wide">Mentors</div>
-                    <div className="text-muted-foreground">Проверка заданий, обратная связь</div>
+                    <div className="text-gray-700">Проверка заданий, обратная связь</div>
                   </div>
                 </div>
               </div>
@@ -56,7 +56,7 @@ export function HomePage() {
               </div>
 
               <div className="border-2 border-black bg-white p-6 font-mono space-y-4">
-                <p className="text-sm text-muted-foreground leading-relaxed">
+                <p className="text-sm text-gray-700 leading-relaxed">
                   Напишите нам — подскажем по трекам, курсам и доступу к материалам.
                 </p>
 
@@ -64,27 +64,27 @@ export function HomePage() {
                   <div className="flex items-start justify-between gap-4 border border-black/20 p-3">
                     <div>
                       <div className="font-bold uppercase tracking-wide">Email</div>
-                      <div className="text-muted-foreground">hello@graph.education</div>
+                      <div className="text-gray-700">hello@graph.education</div>
                     </div>
-                    <div className="text-xs text-muted-foreground uppercase tracking-wide">Поддержка</div>
+                    <div className="text-xs text-gray-600 uppercase tracking-wide">Поддержка</div>
                   </div>
                   <div className="flex items-start justify-between gap-4 border border-black/20 p-3">
                     <div>
                       <div className="font-bold uppercase tracking-wide">Telegram</div>
-                      <div className="text-muted-foreground">@graph_support</div>
+                      <div className="text-gray-700">@graph_support</div>
                     </div>
-                    <div className="text-xs text-muted-foreground uppercase tracking-wide">Быстро</div>
+                    <div className="text-xs text-gray-600 uppercase tracking-wide">Быстро</div>
                   </div>
                   <div className="flex items-start justify-between gap-4 border border-black/20 p-3">
                     <div>
                       <div className="font-bold uppercase tracking-wide">Форма</div>
-                      <div className="text-muted-foreground">Профиль → Обращение</div>
+                      <div className="text-gray-700">Профиль → Обращение</div>
                     </div>
-                    <div className="text-xs text-muted-foreground uppercase tracking-wide">В кабинете</div>
+                    <div className="text-xs text-gray-600 uppercase tracking-wide">В кабинете</div>
                   </div>
                 </div>
 
-                <div className="border-t border-black/10 pt-4 text-xs text-muted-foreground leading-relaxed">
+                <div className="border-t border-black/10 pt-4 text-xs text-gray-700 leading-relaxed">
                   Контакты сейчас демонстрационные — скажи, какие реальные email/соцсети поставить, и я заменю.
                 </div>
               </div>

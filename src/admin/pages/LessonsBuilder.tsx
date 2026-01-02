@@ -48,10 +48,10 @@ interface Module {
 
 // 4 фиксированных курса (соответствуют реальным ID из базы данных)
 const FIXED_COURSES = [
-  { id: 'event-basics', title: 'Ивент индустрия', track: 'event' },
+  { id: 'design', title: 'Дизайн', track: 'design' },
+  { id: 'event-basics', title: 'Ивент', track: 'event' },
   { id: 'product-intro', title: 'Цифровые продукты', track: 'digital' },
   { id: 'business-comm', title: 'Внешние коммуникации', track: 'communication' },
-  { id: 'graphic-design', title: 'Дизайн', track: 'design' },
 ];
 
 export function LessonsBuilder() {
@@ -101,7 +101,7 @@ export function LessonsBuilder() {
   };
 
   // Уроки без модуля (свободные)
-  const freeLessons = lessons.filter(l => !l.module_id);
+  const freeLessons = Array.isArray(lessons) ? lessons.filter(l => !l.module_id) : [];
 
   const handleCreateLesson = async () => {
     if (!lessonFormData.id || !lessonFormData.id.trim()) {
@@ -347,7 +347,7 @@ export function LessonsBuilder() {
         >
           <DialogHeader>
             <DialogTitle>Создать урок</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogDescription className="text-gray-300">
               Создайте урок. Позже вы сможете объединить уроки в модули.
             </DialogDescription>
           </DialogHeader>
@@ -410,7 +410,10 @@ export function LessonsBuilder() {
                 <Input
                   type="number"
                   value={lessonFormData.estimated_time}
-                  onChange={(e) => setLessonFormData({ ...lessonFormData, estimated_time: parseInt(e.target.value) || 0 })}
+                  onChange={(e) => {
+                    const num = parseInt(e.target.value, 10);
+                    setLessonFormData({ ...lessonFormData, estimated_time: isNaN(num) ? 0 : num });
+                  }}
                   className="bg-gray-800 border-gray-700 text-white"
                   min="0"
                 />

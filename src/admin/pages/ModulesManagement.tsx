@@ -1,9 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -12,17 +10,13 @@ import {
   DialogDescription,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Plus, Edit, Trash2, BookOpen, ClipboardList } from 'lucide-react';
-import { toast } from 'sonner';
+import { Plus, Edit, Trash2, FolderOpen } from 'lucide-react';
 import { adminAPI } from '@/api/adminClient';
-import { useNavigate } from 'react-router-dom';
+import { useApiQuery, useApiMutation } from '../hooks';
+import { LoadingState, ErrorState, EmptyState, ConfirmDialog, SearchBar, FormField } from '../components';
+import { useFormValidation } from '../hooks';
+import { generateIdFromTitle } from '../utils';
+import { toast } from 'sonner';
 
 interface Module {
   id: string;
@@ -38,671 +32,497 @@ interface Course {
   title: string;
 }
 
-interface Lesson {
-  id: string;
-  title: string;
-  module_id: string | null;
-}
-
 export function ModulesManagement() {
-  const navigate = useNavigate();
-  const [modules, setModules] = useState<Module[]>([]);
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [allLessons, setAllLessons] = useState<Lesson[]>([]);
-  const [moduleLessons, setModuleLessons] = useState<Lesson[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingModule, setEditingModule] = useState<Module | null>(null);
-  const [selectedCourseId, setSelectedCourseId] = useState<string>('');
-  const [selectedLessonIds, setSelectedLessonIds] = useState<string[]>([]);
-  const [formData, setFormData] = useState({
-    id: '',
-    course_id: '',
-    title: '',
-    description: '',
-    order_index: 0,
-    prerequisites: '',
-  });
-  const [graphOptions, setGraphOptions] = useState({
-    createGraphNode: true,
-    x: 0,
-    y: 0,
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; moduleId: string | null }>({
+    open: false,
+    moduleId: null,
   });
 
-  useEffect(() => {
-    fetchCourses();
-  }, []);
+  // Загрузка данных
+  const { data: coursesData, loading: coursesLoading } = useApiQuery(
+    () => adminAPI.courses.getAll(),
+    { cacheTime: 5 * 60 * 1000 }
+  );
 
-  useEffect(() => {
-    fetchModules();
-  }, [selectedCourseId]);
+  const { data: modulesData, loading: modulesLoading, error, refetch } = useApiQuery(
+    () => adminAPI.modules.getAll(selectedCourseId || undefined),
+    { 
+      cacheTime: 2 * 60 * 1000,
+      enabled: true, // Загружаем всегда, даже если курс не выбран
+    }
+  );
 
-  const fetchAllLessons = async () => {
-    try {
-      const lessons = await adminAPI.lessons.getAll();
-      setAllLessons(Array.isArray(lessons) ? lessons : []);
-    } catch (error: any) {
-      console.error('Failed to fetch lessons:', error);
-      setAllLessons([]);
-    }
-  };
+  const courses = Array.isArray(coursesData) ? coursesData : [];
+  const modules = Array.isArray(modulesData) ? modulesData : [];
 
-  const fetchModuleLessons = async (moduleId: string) => {
-    try {
-      const lessons = await adminAPI.lessons.getAll({ module_id: moduleId });
-      const moduleLessonsList = Array.isArray(lessons) ? lessons : [];
-      setModuleLessons(moduleLessonsList);
-      setSelectedLessonIds(moduleLessonsList.map((l: Lesson) => l.id));
-    } catch (error: any) {
-      console.error('Failed to fetch module lessons:', error);
-      setModuleLessons([]);
-      setSelectedLessonIds([]);
+  // Фильтрация модулей
+  const filteredModules = useMemo(() => {
+    let filtered = modules;
+    
+    if (selectedCourseId) {
+      filtered = filtered.filter((m: Module) => m.course_id === selectedCourseId);
     }
-  };
-
-  const fetchCourses = async () => {
-    try {
-      const data = await adminAPI.courses.getAll();
-      setCourses(Array.isArray(data) ? data : []);
-    } catch (error: any) {
-      console.error('Failed to fetch courses:', error);
-      toast.error(error.message || 'Ошибка загрузки курсов');
-      setCourses([]);
-    }
-  };
-
-  const fetchModules = async () => {
-    try {
-      const data = await adminAPI.modules.getAll(selectedCourseId || undefined);
-      const modulesList = Array.isArray(data) ? data : [];
-      // Сортируем по order_index
-      modulesList.sort((a: Module, b: Module) => (a.order_index || 0) - (b.order_index || 0));
-      setModules(modulesList);
-    } catch (error: any) {
-      console.error('Failed to fetch modules:', error);
-      // Не показываем ошибку, если просто нет данных
-      if (error.message && !error.message.includes('404')) {
-        toast.error(error.message || 'Ошибка загрузки модулей');
-      }
-      setModules([]);
-    }
-  };
-
-  const handleCreate = async () => {
-    // Валидация
-    if (!formData.course_id || !formData.course_id.trim()) {
-      toast.error('Выберите курс');
-      return;
-    }
-    if (!formData.id || !formData.id.trim()) {
-      toast.error('Введите ID модуля');
-      return;
-    }
-    if (!formData.title || !formData.title.trim()) {
-      toast.error('Введите название модуля');
-      return;
-    }
-
-    try {
-      await adminAPI.modules.create(
-        {
-          id: formData.id.trim(),
-          course_id: formData.course_id,
-          title: formData.title.trim(),
-          description: formData.description?.trim() || '',
-          order_index: formData.order_index || getNextOrderIndex(),
-          prerequisites: formData.prerequisites?.trim() || null,
-        },
-        {
-          createGraphNode: graphOptions.createGraphNode,
-          x: graphOptions.x,
-          y: graphOptions.y,
-        }
+    
+    if (searchQuery) {
+      filtered = filtered.filter((m: Module) =>
+        m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        m.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (m.description && m.description.toLowerCase().includes(searchQuery.toLowerCase()))
       );
-      toast.success('Модуль успешно создан');
-      fetchModules();
-      setIsCreateDialogOpen(false);
-      resetForm();
-    } catch (error: any) {
-      toast.error(error.message || 'Ошибка при создании модуля');
     }
+    
+    // Сортируем по order_index
+    return filtered.sort((a: Module, b: Module) => (a.order_index || 0) - (b.order_index || 0));
+  }, [modules, selectedCourseId, searchQuery]);
+
+  // Форма с валидацией
+  const formValidation = useFormValidation(
+    {
+      id: '',
+      course_id: '',
+      title: '',
+      description: '',
+      order_index: 1,
+      prerequisites: '',
+    },
+    {
+      rules: {
+        id: {
+          required: true,
+          minLength: 3,
+          pattern: /^[a-z0-9_-]+$/,
+        },
+        course_id: {
+          required: true,
+        },
+        title: {
+          required: true,
+          minLength: 3,
+        },
+      },
+      validateOnChange: true,
+      validateOnBlur: true,
+    }
+  );
+
+  const formData = formValidation.data;
+  const { setFieldValue, handleBlur, validate, errors, reset: resetForm } = formValidation;
+
+  // Мутации
+  const createMutation = useApiMutation(
+    (data: any) => adminAPI.modules.create(data),
+    {
+      invalidateQueries: ['modules'],
+      successMessage: 'Модуль успешно создан',
+      onSuccess: () => {
+        refetch();
+      },
+    }
+  );
+
+  const updateMutation = useApiMutation(
+    (data: { id: string; data: any }) => adminAPI.modules.update(data.id, data.data),
+    {
+      invalidateQueries: ['modules'],
+      successMessage: 'Модуль успешно обновлен',
+      onSuccess: () => {
+        refetch();
+      },
+    }
+  );
+
+  const deleteMutation = useApiMutation(
+    (id: string) => adminAPI.modules.delete(id),
+    {
+      invalidateQueries: ['modules'],
+      successMessage: 'Модуль успешно удален',
+      onSuccess: () => {
+        refetch();
+      },
+    }
+  );
+
+  // Обработчики
+  const handleCreate = async () => {
+    if (!validate()) {
+      toast.error('Исправьте ошибки в форме');
+      return;
+    }
+
+    const indices = filteredModules.length > 0
+      ? filteredModules.map((m: Module) => m.order_index || 0)
+      : [];
+    const nextIndex = indices.length > 0 ? Math.max(...indices) + 1 : 1;
+
+    const createData = {
+      id: formData.id.trim(),
+      course_id: formData.course_id,
+      title: formData.title.trim(),
+      description: formData.description.trim() || '',
+      order_index: formData.order_index || nextIndex,
+      prerequisites: formData.prerequisites.trim() || null,
+    };
+
+    await createMutation.mutate(createData);
+    setIsCreateDialogOpen(false);
+    resetForm();
   };
 
   const handleUpdate = async () => {
     if (!editingModule) return;
-
-    // Валидация
-    if (!formData.title || !formData.title.trim()) {
-      toast.error('Введите название модуля');
+    if (!validate()) {
+      toast.error('Исправьте ошибки в форме');
       return;
     }
 
-    try {
-      // Обновляем уроки модуля
-      const currentModuleLessons = await adminAPI.lessons.getAll({ module_id: editingModule.id });
-      const currentLessonIds = Array.isArray(currentModuleLessons) 
-        ? currentModuleLessons.map((l: Lesson) => l.id)
-        : [];
-      
-      // Удаляем уроки, которые были удалены из модуля
-      const lessonsToRemove = currentLessonIds.filter(id => !selectedLessonIds.includes(id));
-      for (const lessonId of lessonsToRemove) {
-        await adminAPI.lessons.update(lessonId, { module_id: null });
-      }
-      
-      // Добавляем новые уроки в модуль
-      const lessonsToAdd = selectedLessonIds.filter(id => !currentLessonIds.includes(id));
-      for (const lessonId of lessonsToAdd) {
-        await adminAPI.lessons.update(lessonId, { module_id: editingModule.id });
-      }
+    const updateData = {
+      title: formData.title.trim(),
+      description: formData.description.trim() || '',
+      order_index: formData.order_index || 0,
+      prerequisites: formData.prerequisites.trim() || null,
+    };
 
-      // Обновляем данные модуля
-      const updateData = {
-        title: formData.title.trim(),
-        description: formData.description?.trim() || '',
-        order_index: formData.order_index || 0,
-        prerequisites: formData.prerequisites?.trim() || null,
-      };
-      
-      await adminAPI.modules.update(editingModule.id, updateData);
-      toast.success('Модуль успешно обновлен');
-      fetchModules();
-      setEditingModule(null);
-      setIsEditDialogOpen(false);
-      resetForm();
-    } catch (error: any) {
-      toast.error(error.message || 'Ошибка при обновлении модуля');
-    }
+    await updateMutation.mutate({ id: editingModule.id, data: updateData });
+    setIsEditDialogOpen(false);
+    setEditingModule(null);
+    resetForm();
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Вы уверены, что хотите удалить модуль?')) return;
-
-    try {
-      await adminAPI.modules.delete(id);
-      toast.success('Модуль успешно удален');
-      fetchModules();
-    } catch (error: any) {
-      toast.error(error.message || 'Ошибка при удалении модуля');
-    }
+  const handleDelete = async () => {
+    if (!deleteConfirm.moduleId) return;
+    await deleteMutation.mutate(deleteConfirm.moduleId);
+    setDeleteConfirm({ open: false, moduleId: null });
   };
 
-  const resetForm = () => {
-    // Вычисляем следующий индекс только если есть курс или модули
-    let nextIndex = 1;
-    try {
-      nextIndex = getNextOrderIndex();
-    } catch (e) {
-      // Если ошибка, используем значение по умолчанию
-      nextIndex = modules.length + 1;
-    }
-
-    setFormData({
-      id: '',
-      course_id: selectedCourseId || '',
-      title: '',
-      description: '',
-      order_index: nextIndex,
-      prerequisites: '',
-    });
-    setGraphOptions({
-      createGraphNode: true,
-      x: 0,
-      y: 0,
-    });
-  };
-
-  const openEditDialog = async (module: Module) => {
+  const openEditDialog = (module: Module) => {
     setEditingModule(module);
-    setFormData({
+    resetForm({
       id: module.id,
       course_id: module.course_id,
-      title: module.title || '',
+      title: module.title,
       description: module.description || '',
       order_index: module.order_index || 0,
       prerequisites: module.prerequisites || '',
     });
-    await fetchAllLessons();
-    await fetchModuleLessons(module.id);
     setIsEditDialogOpen(true);
   };
 
-  // Автоматически определить следующий порядковый номер
-  const getNextOrderIndex = () => {
-    if (selectedCourseId) {
-      const courseModules = modules.filter((m) => m.course_id === selectedCourseId);
-      if (courseModules.length > 0) {
-        const indices = courseModules.map((m) => m.order_index || 0);
-        return Math.max(...indices) + 1;
-      }
+  const handleTitleChange = (value: string) => {
+    setFieldValue('title', value);
+    if (!editingModule && !formData.id) {
+      const generatedId = generateIdFromTitle(value);
+      setFieldValue('id', generatedId);
     }
-    // Если нет модулей или не выбран курс, возвращаем 1
-    if (modules.length > 0) {
-      const indices = modules.map((m) => m.order_index || 0);
-      return Math.max(...indices) + 1;
-    }
-    return 1;
   };
+
+  const loading = coursesLoading || modulesLoading;
+
+  if (loading) {
+    return <LoadingState message="Загрузка модулей..." />;
+  }
+
+  if (error) {
+    return <ErrorState error={error} title="Ошибка загрузки модулей" onRetry={refetch} />;
+  }
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">Управление модулями</h1>
-          <p className="text-gray-400 text-sm">Создание и редактирование модулей курсов</p>
+          <p className="text-gray-300 text-sm">
+            Создание и редактирование модулей курсов
+          </p>
         </div>
-        <Button 
-          className="bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2 h-auto"
-          onClick={() => navigate('/admin/modules/new')}
-        >
-          <Plus className="mr-2" size={20} />
-          Создать модуль
-        </Button>
-        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
+          setIsCreateDialogOpen(open);
+          if (!open) resetForm();
+        }}>
           <DialogTrigger asChild>
-            <Button 
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 h-auto"
-              onClick={() => resetForm()}
-            >
+            <Button className="bg-blue-600 hover:bg-blue-700">
               <Plus className="mr-2" size={20} />
-              Добавить новый модуль (старый способ)
+              Создать модуль
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Создать новый модуль</DialogTitle>
-              <DialogDescription className="text-gray-400">
+              <DialogDescription className="text-gray-300">
                 Заполните форму для создания нового модуля
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 mt-4">
-              <div>
-                <Label>Курс *</Label>
-                <Select
-                  value={formData.course_id}
-                  onValueChange={(value) => {
-                    // Вычисляем order_index на основе выбранного курса
-                    const courseModules = modules.filter((m) => m.course_id === value);
-                    let nextIndex = 1;
-                    if (courseModules.length > 0) {
-                      const indices = courseModules.map((m) => m.order_index || 0);
-                      nextIndex = Math.max(...indices) + 1;
-                    } else if (modules.length > 0) {
-                      const indices = modules.map((m) => m.order_index || 0);
-                      nextIndex = Math.max(...indices) + 1;
-                    }
-                    setFormData({ 
-                      ...formData, 
-                      course_id: value,
-                      order_index: nextIndex
-                    });
-                  }}
+              <FormField
+                type="select"
+                label="Курс"
+                value={formData.course_id}
+                onChange={(value) => setFieldValue('course_id', value)}
+                onBlur={() => handleBlur('course_id')}
+                error={errors.course_id}
+                required
+                options={courses.map((c: Course) => ({ value: c.id, label: c.title }))}
+              />
+
+              <FormField
+                type="input"
+                label="ID модуля"
+                value={formData.id}
+                onChange={(value) => setFieldValue('id', value)}
+                onBlur={() => handleBlur('id')}
+                error={errors.id}
+                required
+                hint="Уникальный идентификатор"
+              />
+
+              <FormField
+                type="input"
+                label="Название модуля"
+                value={formData.title}
+                onChange={handleTitleChange}
+                onBlur={() => handleBlur('title')}
+                error={errors.title}
+                required
+              />
+
+              <FormField
+                type="textarea"
+                label="Описание"
+                value={formData.description}
+                onChange={(value) => setFieldValue('description', value)}
+                rows={3}
+                hint="Опционально"
+              />
+
+              <FormField
+                type="input"
+                label="Порядковый номер"
+                value={String(formData.order_index || 1)}
+                onChange={(value) => {
+                  const num = parseInt(value, 10);
+                  setFieldValue('order_index', isNaN(num) ? 1 : num);
+                }}
+                inputType="number"
+                hint="Порядок отображения в курсе"
+              />
+
+              <FormField
+                type="textarea"
+                label="Предварительные требования"
+                value={formData.prerequisites}
+                onChange={(value) => setFieldValue('prerequisites', value)}
+                rows={2}
+                hint="Опционально"
+              />
+
+              <div className="flex gap-2 pt-4">
+                <Button
+                  onClick={() => setIsCreateDialogOpen(false)}
+                  variant="outline"
+                  className="flex-1 border-gray-700"
                 >
-                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
-                    <SelectValue placeholder="Выберите курс" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-700 text-white shadow-lg">
-                    {courses.map((course) => (
-                      <SelectItem key={course.id} value={course.id} className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">
-                        {course.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  Отмена
+                </Button>
+                <Button
+                  onClick={handleCreate}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  disabled={createMutation.loading}
+                >
+                  {createMutation.loading ? 'Создание...' : 'Создать модуль'}
+                </Button>
               </div>
-              <div>
-                <Label>ID модуля *</Label>
-                <Input
-                  value={formData.id}
-                  onChange={(e) => setFormData({ ...formData, id: e.target.value })}
-                  placeholder="module-react-components"
-                  className="bg-gray-800 border-gray-700"
-                />
-              </div>
-              <div>
-                <Label>Название *</Label>
-                <Input
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="Компоненты React"
-                  className="bg-gray-800 border-gray-700"
-                />
-              </div>
-              <div>
-                <Label>Описание</Label>
-                <Textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Описание модуля..."
-                  className="bg-gray-800 border-gray-700"
-                  rows={4}
-                />
-              </div>
-              <div>
-                <Label>Порядковый номер</Label>
-                <Input
-                  type="number"
-                  value={formData.order_index}
-                  onChange={(e) =>
-                    setFormData({ ...formData, order_index: parseInt(e.target.value) || 0 })
-                  }
-                  className="bg-gray-800 border-gray-700"
-                />
-              </div>
-              <div>
-                <Label>Предварительные требования (JSON массив ID модулей)</Label>
-                <Input
-                  value={formData.prerequisites}
-                  onChange={(e) => setFormData({ ...formData, prerequisites: e.target.value })}
-                  placeholder='["module-1", "module-2"]'
-                  className="bg-gray-800 border-gray-700"
-                />
-              </div>
-
-              {/* Интеграция с графом */}
-              <div className="border-t border-gray-700 pt-4">
-                <div className="flex items-center space-x-2 mb-4">
-                  <input
-                    type="checkbox"
-                    id="createGraphNodeModule"
-                    checked={graphOptions.createGraphNode}
-                    onChange={(e) =>
-                      setGraphOptions({ ...graphOptions, createGraphNode: e.target.checked })
-                    }
-                    className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500"
-                  />
-                  <Label htmlFor="createGraphNodeModule" className="cursor-pointer text-gray-200">
-                    Создать узел графа знаний
-                  </Label>
-                </div>
-                {graphOptions.createGraphNode && (
-                  <div className="bg-gray-800 p-4 rounded-lg grid grid-cols-2 gap-4 border border-gray-700">
-                    <div>
-                      <Label className="text-gray-200">Координата X</Label>
-                      <Input
-                        type="number"
-                        value={graphOptions.x}
-                        onChange={(e) =>
-                          setGraphOptions({ ...graphOptions, x: parseFloat(e.target.value) || 0 })
-                        }
-                        className="bg-gray-800 border-gray-700 text-white mt-1"
-                      />
-                      <p className="text-gray-500 text-xs mt-1">0 = автопозиционирование</p>
-                    </div>
-                    <div>
-                      <Label className="text-gray-200">Координата Y</Label>
-                      <Input
-                        type="number"
-                        value={graphOptions.y}
-                        onChange={(e) =>
-                          setGraphOptions({ ...graphOptions, y: parseFloat(e.target.value) || 0 })
-                        }
-                        className="bg-gray-800 border-gray-700 text-white mt-1"
-                      />
-                      <p className="text-gray-500 text-xs mt-1">0 = автопозиционирование</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <Button onClick={handleCreate} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 mt-2">
-                Создать модуль
-              </Button>
             </div>
           </DialogContent>
         </Dialog>
       </div>
 
-      {/* Фильтр по курсу */}
-      <div className="mb-4">
-        <Label>Фильтр по курсу</Label>
-        <Select value={selectedCourseId || 'all'} onValueChange={(value) => setSelectedCourseId(value === 'all' ? '' : value)}>
-          <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-64">
-            <SelectValue placeholder="Все курсы" />
-          </SelectTrigger>
-          <SelectContent className="bg-gray-800 border-gray-700 text-white shadow-lg">
-            <SelectItem value="all" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Все курсы</SelectItem>
-            {courses.map((course) => (
-              <SelectItem key={course.id} value={course.id} className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">
-                {course.title}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Modules List */}
-      <div className="space-y-4">
-        {modules.length === 0 ? (
-          <Card className="p-12 bg-gray-900 border-gray-800 border-2 border-dashed">
-            <div className="text-center">
-              <p className="text-gray-400 text-lg mb-2">Модули не найдены</p>
-              <p className="text-gray-500 text-sm mb-4">
-                {selectedCourseId 
-                  ? 'В этом курсе пока нет модулей' 
-                  : 'Выберите курс для просмотра модулей или создайте новый модуль'}
-              </p>
-              {selectedCourseId && (
-                <Button 
-                  onClick={() => {
-                    setIsCreateDialogOpen(true);
-                    setFormData(prev => ({ ...prev, course_id: selectedCourseId }));
-                  }}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  <Plus className="mr-2" size={18} />
-                  Создать модуль
-                </Button>
-              )}
-            </div>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {modules.map((module) => {
-              const course = courses.find((c) => c.id === module.course_id);
-              return (
-                <Card key={module.id} className="p-6 bg-gray-900 border-gray-800 hover:border-gray-700 transition-colors">
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <span className="text-gray-500 text-sm font-mono px-2 py-1 bg-gray-800 rounded">
-                              #{module.order_index || 0}
-                            </span>
-                            <h3 className="text-xl font-bold text-white">{module.title}</h3>
-                          </div>
-                          {course && (
-                            <p className="text-sm text-gray-400 mb-2">
-                              Курс: {course.title}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex gap-2 shrink-0 ml-4">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-gray-400 hover:text-blue-400 hover:bg-gray-800"
-                            onClick={() => navigate(`/admin/modules/${module.id}/edit`)}
-                            title="Редактировать"
-                          >
-                            <Edit size={18} />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-gray-400 hover:text-red-400 hover:bg-gray-800"
-                            onClick={() => handleDelete(module.id)}
-                            title="Удалить"
-                          >
-                            <Trash2 size={18} />
-                          </Button>
-                        </div>
-                      </div>
-                      <p className="text-gray-400 mb-4 line-clamp-2">{module.description}</p>
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
+      {/* Фильтры */}
+      <Card className="bg-gray-900 border-gray-800 p-4">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1">
+            <SearchBar
+              placeholder="Поиск по названию или ID..."
+              onSearch={setSearchQuery}
+            />
           </div>
-        )}
-      </div>
+          <select
+            value={selectedCourseId}
+            onChange={(e) => setSelectedCourseId(e.target.value)}
+            className="bg-gray-800 border border-gray-700 text-white px-3 py-2 rounded-md text-sm"
+          >
+            <option value="">Все курсы</option>
+            {courses.map((course: Course) => (
+              <option key={course.id} value={course.id}>
+                {course.title}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="mt-3 text-sm text-gray-300">
+          Найдено модулей: {filteredModules.length} из {modules.length}
+        </div>
+      </Card>
 
-      {/* Edit Module Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      {/* Список модулей */}
+      {filteredModules.length === 0 ? (
+        <EmptyState
+          icon={FolderOpen}
+          title="Модули не найдены"
+          description={
+            searchQuery || selectedCourseId
+              ? 'Попробуйте изменить параметры поиска или фильтры'
+              : 'Создайте первый модуль для курса'
+          }
+          actionLabel="Создать модуль"
+          onAction={() => setIsCreateDialogOpen(true)}
+        />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredModules.map((module: Module) => {
+            const course = courses.find((c: Course) => c.id === module.course_id);
+            return (
+              <Card key={module.id} className="bg-gray-900 border-gray-800 p-6 hover:border-gray-700 transition-colors">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-white mb-1">{module.title}</h3>
+                    <p className="text-gray-300 text-sm font-mono mb-2">ID: {module.id}</p>
+                    {course && (
+                      <Badge variant="outline" className="border-blue-600/30 text-blue-400 mb-2">
+                        {course.title}
+                      </Badge>
+                    )}
+                    <Badge variant="outline" className="border-gray-600/30 text-gray-400">
+                      Порядок: {module.order_index}
+                    </Badge>
+                  </div>
+                </div>
+
+                {module.description && (
+                  <p className="text-gray-300 text-sm mb-4 line-clamp-2">{module.description}</p>
+                )}
+
+                <div className="flex gap-2 pt-4 border-t border-gray-800">
+                  <Button
+                    onClick={() => openEditDialog(module)}
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 border-gray-700 text-gray-300 hover:bg-gray-800"
+                  >
+                    <Edit className="mr-1" size={14} />
+                    Редактировать
+                  </Button>
+                  <Button
+                    onClick={() => setDeleteConfirm({ open: true, moduleId: module.id })}
+                    variant="outline"
+                    size="sm"
+                    className="border-red-700 text-red-400 hover:bg-red-900/20"
+                  >
+                    <Trash2 size={14} />
+                  </Button>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+        setIsEditDialogOpen(open);
+        if (!open) {
+          setEditingModule(null);
+          resetForm();
+        }
+      }}>
         <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Редактировать модуль</DialogTitle>
-            <DialogDescription className="text-gray-400">
-              Измените данные модуля. ID модуля нельзя изменить.
+            <DialogDescription className="text-gray-300">
+              Измените данные модуля. ID и курс нельзя изменить.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-4">
-            <div>
-              <Label className="text-gray-200">ID модуля</Label>
-              <Input value={formData.id} disabled className="bg-gray-800 border-gray-700 text-gray-300 cursor-not-allowed" />
-            </div>
-            <div>
-              <Label className="text-gray-200">Название *</Label>
-              <Input
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
-              />
-            </div>
-            <div>
-              <Label className="text-gray-200">Описание</Label>
-              <Textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
-                rows={4}
-              />
-            </div>
-            <div>
-              <Label className="text-gray-200">Порядковый номер</Label>
-              <Input
-                type="number"
-                min="0"
-                value={formData.order_index}
-                onChange={(e) =>
-                  setFormData({ ...formData, order_index: parseInt(e.target.value) || 0 })
-                }
-                className="bg-gray-800 border-gray-700 text-white"
-              />
-            </div>
-            <div>
-              <Label className="text-gray-200">Предварительные требования</Label>
-              <Input
-                value={formData.prerequisites}
-                onChange={(e) => setFormData({ ...formData, prerequisites: e.target.value })}
-                className="bg-gray-800 border-gray-700 text-white"
-              />
-            </div>
+            <FormField
+              type="input"
+              label="ID модуля"
+              value={formData.id}
+              onChange={() => {}}
+              hint="ID нельзя изменить"
+            />
 
-            {/* Уроки модуля */}
-            <div className="border-t border-gray-700 pt-4">
-              <div className="flex items-center justify-between mb-3">
-                <Label className="text-gray-200 text-base font-semibold">Уроки модуля</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate('/admin/lessons/new')}
-                  className="bg-gray-800 border-gray-700 text-white hover:bg-gray-700"
-                >
-                  <Plus size={14} className="mr-1" />
-                  Создать урок
-                </Button>
-              </div>
-              
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {allLessons.filter((lesson) => !lesson.module_id || lesson.module_id === editingModule?.id).map((lesson) => (
-                  <div
-                    key={lesson.id}
-                    className="flex items-center justify-between p-2 bg-gray-800 rounded border border-gray-700"
-                  >
-                    <div className="flex items-center gap-2 flex-1">
-                      <input
-                        type="checkbox"
-                        checked={selectedLessonIds.includes(lesson.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedLessonIds([...selectedLessonIds, lesson.id]);
-                          } else {
-                            setSelectedLessonIds(selectedLessonIds.filter(id => id !== lesson.id));
-                          }
-                        }}
-                        className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="text-white text-sm">{lesson.title}</span>
-                    </div>
-                    <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-gray-400 hover:text-blue-400"
-                        onClick={() => navigate(`/admin/lessons/${lesson.id}/edit`)}
-                      >
-                        <Edit size={12} />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-                {allLessons.filter((lesson) => !lesson.module_id || lesson.module_id === editingModule?.id).length === 0 && (
-                  <p className="text-gray-500 text-sm text-center py-4">Нет доступных уроков</p>
-                )}
-              </div>
-            </div>
+            <FormField
+              type="input"
+              label="Название модуля"
+              value={formData.title}
+              onChange={(value) => setFieldValue('title', value)}
+              onBlur={() => handleBlur('title')}
+              error={errors.title}
+              required
+            />
 
-            {/* Хендбук и задания для уроков */}
-            <div className="border-t border-gray-700 pt-4">
-              <Label className="text-gray-200 text-base font-semibold mb-3 block">Хендбук и задания</Label>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {moduleLessons.map((lesson) => (
-                  <div
-                    key={lesson.id}
-                    className="p-3 bg-gray-800 rounded border border-gray-700"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-white text-sm font-medium">{lesson.title}</span>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => navigate(`/admin/handbook?lesson_id=${lesson.id}`)}
-                          className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600 text-xs"
-                        >
-                          <BookOpen size={12} className="mr-1" />
-                          Хендбук
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => navigate(`/admin/assignments?lesson_id=${lesson.id}`)}
-                          className="bg-gray-700 border-gray-600 text-white hover:bg-gray-600 text-xs"
-                        >
-                          <ClipboardList size={12} className="mr-1" />
-                          Задание
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {moduleLessons.length === 0 && (
-                  <p className="text-gray-500 text-sm text-center py-4">Добавьте уроки в модуль для управления хендбуком и заданиями</p>
-                )}
-              </div>
-            </div>
+            <FormField
+              type="textarea"
+              label="Описание"
+              value={formData.description}
+              onChange={(value) => setFieldValue('description', value)}
+              rows={3}
+            />
 
-            <Button onClick={handleUpdate} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 mt-2">
-              Сохранить изменения
-            </Button>
+            <FormField
+              type="input"
+              label="Порядковый номер"
+              value={String(formData.order_index || 0)}
+              onChange={(value) => {
+                const num = parseInt(value, 10);
+                setFieldValue('order_index', isNaN(num) ? 0 : num);
+              }}
+              inputType="number"
+            />
+
+            <FormField
+              type="textarea"
+              label="Предварительные требования"
+              value={formData.prerequisites}
+              onChange={(value) => setFieldValue('prerequisites', value)}
+              rows={2}
+            />
+
+            <div className="flex gap-2 pt-4">
+              <Button
+                onClick={() => setIsEditDialogOpen(false)}
+                variant="outline"
+                className="flex-1 border-gray-700"
+              >
+                Отмена
+              </Button>
+              <Button
+                onClick={handleUpdate}
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+                disabled={updateMutation.loading}
+              >
+                {updateMutation.loading ? 'Сохранение...' : 'Сохранить изменения'}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation */}
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        onOpenChange={(open) => setDeleteConfirm({ open, moduleId: deleteConfirm.moduleId })}
+        title="Удалить модуль?"
+        description="Это действие нельзя отменить. Все связанные уроки будут отвязаны от модуля."
+        confirmLabel="Удалить"
+        cancelLabel="Отмена"
+        variant="destructive"
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }
-

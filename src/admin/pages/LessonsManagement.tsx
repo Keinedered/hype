@@ -300,22 +300,24 @@ export function LessonsManagement() {
   // Автоматически определить следующий порядковый номер
   const getNextOrderIndex = () => {
     if (selectedModuleId) {
-      const moduleLessons = lessons.filter((l) => l.module_id === selectedModuleId);
+      const moduleLessons = Array.isArray(lessons) ? lessons.filter((l) => l.module_id === selectedModuleId) : [];
       if (moduleLessons.length > 0) {
         const indices = moduleLessons.map((l) => l.order_index || 0);
-        return Math.max(...indices) + 1;
+        const maxIndex = indices.length > 0 ? Math.max(...indices) : 0;
+        return maxIndex + 1;
       }
     }
-    if (lessons.length > 0) {
+    if (Array.isArray(lessons) && lessons.length > 0) {
       const indices = lessons.map((l) => l.order_index || 0);
-      return Math.max(...indices) + 1;
+      const maxIndex = indices.length > 0 ? Math.max(...indices) : 0;
+      return maxIndex + 1;
     }
     return 1;
   };
 
   // Получить модули для выбранного курса
   const getModulesForCourse = (courseId: string) => {
-    return modules.filter((m) => m.course_id === courseId);
+    return Array.isArray(modules) ? modules.filter((m) => m.course_id === courseId) : [];
   };
 
   // Получить модуль по ID
@@ -334,7 +336,7 @@ export function LessonsManagement() {
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">Управление уроками</h1>
-          <p className="text-gray-400 text-sm">Создание и редактирование уроков для модулей курсов</p>
+          <p className="text-gray-300 text-sm">Создание и редактирование уроков для модулей курсов</p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
@@ -352,7 +354,7 @@ export function LessonsManagement() {
           <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Создать новый урок</DialogTitle>
-              <DialogDescription className="text-gray-400">
+              <DialogDescription className="text-gray-300">
                 Заполните форму для создания нового урока. Урок будет добавлен в выбранный модуль.
               </DialogDescription>
             </DialogHeader>
@@ -388,14 +390,15 @@ export function LessonsManagement() {
                     onValueChange={(value) => {
                       setSelectedModuleId(value);
                       // Вычисляем order_index на основе выбранного модуля
-                      const moduleLessons = lessons.filter((l) => l.module_id === value);
+                      const lessonsArray = Array.isArray(lessons) ? lessons : [];
+                      const moduleLessons = lessonsArray.filter((l) => l.module_id === value);
                       let nextIndex = 1;
                       if (moduleLessons.length > 0) {
                         const indices = moduleLessons.map((l) => l.order_index || 0);
-                        nextIndex = Math.max(...indices) + 1;
-                      } else if (lessons.length > 0) {
-                        const indices = lessons.map((l) => l.order_index || 0);
-                        nextIndex = Math.max(...indices) + 1;
+                        nextIndex = indices.length > 0 ? Math.max(...indices) + 1 : 1;
+                      } else if (lessonsArray.length > 0) {
+                        const indices = lessonsArray.map((l) => l.order_index || 0);
+                        nextIndex = indices.length > 0 ? Math.max(...indices) + 1 : 1;
                       }
                       setFormData({ 
                         ...formData, 
@@ -436,9 +439,9 @@ export function LessonsManagement() {
                   value={formData.id}
                   onChange={(e) => setFormData({ ...formData, id: e.target.value })}
                   placeholder="lesson-react-jsx"
-                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-300"
                 />
-                <p className="text-gray-500 text-xs mt-1">Уникальный идентификатор урока (латиница, дефисы)</p>
+                <p className="text-gray-300 text-xs mt-1">Уникальный идентификатор урока (латиница, дефисы)</p>
               </div>
 
               <div>
@@ -447,7 +450,7 @@ export function LessonsManagement() {
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   placeholder="JSX в React"
-                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-300"
                 />
               </div>
 
@@ -457,7 +460,7 @@ export function LessonsManagement() {
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Краткое описание урока..."
-                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-300"
                   rows={2}
                 />
               </div>
@@ -468,10 +471,10 @@ export function LessonsManagement() {
                   value={formData.content}
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                   placeholder="Полный контент урока в формате Markdown..."
-                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 font-mono text-sm"
+                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-300 font-mono text-sm"
                   rows={8}
                 />
-                <p className="text-gray-500 text-xs mt-1">Поддерживается Markdown форматирование</p>
+                <p className="text-gray-300 text-xs mt-1">Поддерживается Markdown форматирование</p>
               </div>
 
               <div>
@@ -500,7 +503,7 @@ export function LessonsManagement() {
                       value={formData.video_url}
                       onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
                       placeholder="https://youtube.com/watch?v=... или ссылка на видеофайл"
-                      className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                      className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-300"
                     />
                   </div>
                   <div>
@@ -511,7 +514,7 @@ export function LessonsManagement() {
                         setFormData({ ...formData, video_duration: e.target.value })
                       }
                       placeholder="15:30"
-                      className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                      className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-300"
                     />
                   </div>
                 </div>
@@ -524,12 +527,13 @@ export function LessonsManagement() {
                     type="number"
                     min="0"
                     value={formData.order_index}
-                    onChange={(e) =>
-                      setFormData({ ...formData, order_index: parseInt(e.target.value) || 0 })
-                    }
+                    onChange={(e) => {
+                      const num = parseInt(e.target.value, 10);
+                      setFormData({ ...formData, order_index: isNaN(num) ? 0 : num });
+                    }}
                     className="bg-gray-800 border-gray-700 text-white"
                   />
-                  <p className="text-gray-500 text-xs mt-1">Определяет порядок урока в модуле</p>
+                  <p className="text-gray-300 text-xs mt-1">Определяет порядок урока в модуле</p>
                 </div>
                 <div>
                   <Label className="text-gray-200">Оценка времени (минуты)</Label>
@@ -537,9 +541,10 @@ export function LessonsManagement() {
                     type="number"
                     min="0"
                     value={formData.estimated_time}
-                    onChange={(e) =>
-                      setFormData({ ...formData, estimated_time: parseInt(e.target.value) || 0 })
-                    }
+                    onChange={(e) => {
+                      const num = parseInt(e.target.value, 10);
+                      setFormData({ ...formData, estimated_time: isNaN(num) ? 0 : num });
+                    }}
                     className="bg-gray-800 border-gray-700 text-white"
                   />
                 </div>
@@ -551,9 +556,9 @@ export function LessonsManagement() {
                   value={formData.tags}
                   onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
                   placeholder='["react", "jsx", "basics"] или просто через запятую'
-                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-300"
                 />
-                <p className="text-gray-500 text-xs mt-1">Теги для поиска и категоризации</p>
+                <p className="text-gray-300 text-xs mt-1">Теги для поиска и категоризации</p>
               </div>
 
               {/* Интеграция с графом */}
@@ -584,7 +589,7 @@ export function LessonsManagement() {
                         }
                         className="bg-gray-800 border-gray-700 text-white mt-1"
                       />
-                      <p className="text-gray-500 text-xs mt-1">0 = автопозиционирование</p>
+                      <p className="text-gray-300 text-xs mt-1">0 = автопозиционирование</p>
                     </div>
                     <div>
                       <Label className="text-gray-200">Координата Y</Label>
@@ -596,7 +601,7 @@ export function LessonsManagement() {
                         }
                         className="bg-gray-800 border-gray-700 text-white mt-1"
                       />
-                      <p className="text-gray-500 text-xs mt-1">0 = автопозиционирование</p>
+                      <p className="text-gray-300 text-xs mt-1">0 = автопозиционирование</p>
                     </div>
                   </div>
                 )}
@@ -656,7 +661,7 @@ export function LessonsManagement() {
           )}
         </div>
         {selectedCourseId && (
-          <div className="mt-3 flex items-center gap-2 text-sm text-gray-400">
+          <div className="mt-3 flex items-center gap-2 text-sm text-gray-300">
             <BookOpen size={16} />
             <span>Курс: {getCourseById(selectedCourseId)?.title}</span>
             {selectedModuleId && (
@@ -675,8 +680,8 @@ export function LessonsManagement() {
         {lessons.length === 0 ? (
           <Card className="p-12 bg-gray-900 border-gray-800 border-2 border-dashed">
             <div className="text-center">
-              <p className="text-gray-400 text-lg mb-2">Уроки не найдены</p>
-              <p className="text-gray-500 text-sm mb-4">
+              <p className="text-gray-300 text-lg mb-2">Уроки не найдены</p>
+              <p className="text-gray-300 text-sm mb-4">
                 {selectedCourseId 
                   ? selectedModuleId 
                     ? 'В этом модуле пока нет уроков' 
@@ -706,13 +711,13 @@ export function LessonsManagement() {
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
-                            <span className="text-gray-500 text-sm font-mono px-2 py-1 bg-gray-800 rounded">
+                            <span className="text-gray-300 text-sm font-mono px-2 py-1 bg-gray-800 rounded">
                               #{lesson.order_index || index + 1}
                             </span>
                             <h3 className="text-xl font-bold text-white">{lesson.title}</h3>
                           </div>
                           {course && module && (
-                            <div className="flex items-center gap-2 text-sm text-gray-400 mb-2">
+                            <div className="flex items-center gap-2 text-sm text-gray-300 mb-2">
                               <BookOpen size={14} />
                               <span>{course.title}</span>
                               <span>/</span>
@@ -725,7 +730,7 @@ export function LessonsManagement() {
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="text-gray-400 hover:text-blue-400 hover:bg-gray-800"
+                            className="text-gray-300 hover:text-blue-400 hover:bg-gray-800"
                             onClick={() => openEditDialog(lesson)}
                             title="Редактировать"
                           >
@@ -734,7 +739,7 @@ export function LessonsManagement() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="text-gray-400 hover:text-red-400 hover:bg-gray-800"
+                            className="text-gray-300 hover:text-red-400 hover:bg-gray-800"
                             onClick={() => handleDelete(lesson.id)}
                             title="Удалить"
                           >
@@ -742,7 +747,7 @@ export function LessonsManagement() {
                           </Button>
                         </div>
                       </div>
-                      <p className="text-gray-400 mb-4 line-clamp-2">{lesson.description}</p>
+                      <p className="text-gray-300 mb-4 line-clamp-2">{lesson.description}</p>
                       <div className="flex flex-wrap gap-2">
                         <span className="px-3 py-1 bg-blue-600/20 text-blue-400 text-xs font-medium rounded-full border border-blue-600/30">
                           {lesson.content_type}
@@ -772,7 +777,7 @@ export function LessonsManagement() {
         <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Редактировать урок</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogDescription className="text-gray-300">
               Измените данные урока. ID урока нельзя изменить.
             </DialogDescription>
           </DialogHeader>
@@ -786,7 +791,7 @@ export function LessonsManagement() {
               <Input
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-300"
               />
             </div>
             <div>
@@ -794,7 +799,7 @@ export function LessonsManagement() {
               <Textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-300"
                 rows={2}
               />
             </div>
@@ -803,7 +808,7 @@ export function LessonsManagement() {
               <Textarea
                 value={formData.content}
                 onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 font-mono text-sm"
+                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-300 font-mono text-sm"
                 rows={8}
               />
             </div>

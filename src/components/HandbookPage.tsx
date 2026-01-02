@@ -218,7 +218,7 @@ const getCourseHandbookSections = (courseId?: string) => {
         ]
       }
     ],
-    'graphic-design': [
+    'design': [
       {
         id: 'design-principles',
         title: 'Принципы дизайна',
@@ -622,7 +622,7 @@ const getCourseTemplates = (courseId?: string) => {
       { id: '1', title: 'Шаблон пресс-релиза', description: 'Структура для написания пресс-релизов' },
       { id: '2', title: 'Шаблон медиа-кита', description: 'Структура для создания медиа-кита компании' }
     ],
-    'graphic-design': [
+    'design': [
       { id: '1', title: 'Шаблон брендбука', description: 'Структура для создания руководства по стилю' },
       { id: '2', title: 'Чек-лист дизайн-проекта', description: 'Список задач для завершения дизайн-проекта' }
     ],

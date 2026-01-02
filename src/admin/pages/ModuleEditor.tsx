@@ -208,7 +208,7 @@ export function ModuleEditor() {
                 <h1 className="text-2xl font-bold text-black">
                   {isEditMode ? 'Редактировать модуль' : 'Создать модуль'}
                 </h1>
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-sm text-gray-700 mt-1">
                   Заполните форму и сохраните модуль
                 </p>
               </div>
@@ -241,7 +241,7 @@ export function ModuleEditor() {
                   onValueChange={(value) => setFormData(prev => ({ ...prev, course_id: value }))}
                   required
                 >
-                  <SelectTrigger className="bg-white border-gray-300 text-black placeholder:text-gray-500 mt-2">
+                  <SelectTrigger className="bg-white border-gray-300 text-black placeholder:text-gray-600 mt-2">
                     <SelectValue placeholder="Выберите курс" />
                   </SelectTrigger>
                   <SelectContent className="bg-white border-gray-300 text-black shadow-lg">
@@ -281,7 +281,10 @@ export function ModuleEditor() {
                 <Input
                   type="number"
                   value={formData.order_index}
-                  onChange={(e) => setFormData(prev => ({ ...prev, order_index: parseInt(e.target.value) || 0 }))}
+                  onChange={(e) => {
+                    const num = parseInt(e.target.value, 10);
+                    setFormData(prev => ({ ...prev, order_index: isNaN(num) ? 0 : num }));
+                  }}
                   className="bg-white border-gray-300 text-black mt-2"
                   placeholder="0"
                   min="0"

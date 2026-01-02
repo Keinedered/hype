@@ -22,6 +22,14 @@ echo "📦 Инициализация базы данных..."
 python init_db.py
 
 echo ""
+echo "📚 Добавление дополнительных модулей и уроков..."
+python add_lessons_modules.py
+
+echo ""
+echo "🔧 Исправление структуры графа..."
+python fix_graph_nodes.py
+
+echo ""
 echo "🔧 Применение миграций..."
 python add_lesson_columns.py
 python add_lesson_status_columns.py

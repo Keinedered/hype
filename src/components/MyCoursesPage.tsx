@@ -71,21 +71,21 @@ export function MyCoursesPage({ onCourseSelect }: MyCoursesPageProps) {
         </div>
         
         <div className="border-l-4 border-black pl-6">
-          <p className="text-muted-foreground font-mono leading-relaxed">
+          <p className="text-gray-700 font-mono leading-relaxed">
             Отслеживайте свой прогресс и продолжайте обучение
           </p>
         </div>
 
         {loading ? (
           <div className="text-center py-20">
-            <p className="text-muted-foreground font-mono">Загрузка курсов...</p>
+            <p className="text-gray-700 font-mono">Загрузка курсов...</p>
           </div>
         ) : error ? (
           <div className="text-center py-20 border-2 border-black">
             <div className="bg-black text-white px-6 py-3 inline-block font-mono tracking-wide mb-4">
               ОШИБКА
             </div>
-            <p className="text-muted-foreground font-mono">{error}</p>
+            <p className="text-gray-700 font-mono">{error}</p>
           </div>
         ) : (
           <Tabs defaultValue="all" className="space-y-8">
@@ -126,7 +126,7 @@ export function MyCoursesPage({ onCourseSelect }: MyCoursesPageProps) {
                 <div className="bg-black text-white px-6 py-3 inline-block font-mono tracking-wide mb-4">
                   НЕТ КУРСОВ
                 </div>
-                <p className="text-muted-foreground font-mono">
+                <p className="text-gray-700 font-mono">
                   Вы пока не записаны ни на один курс
                 </p>
               </div>
@@ -149,7 +149,7 @@ export function MyCoursesPage({ onCourseSelect }: MyCoursesPageProps) {
                 <div className="bg-black text-white px-6 py-3 inline-block font-mono tracking-wide mb-4">
                   НЕТ КУРСОВ
                 </div>
-                <p className="text-muted-foreground font-mono">
+                <p className="text-gray-700 font-mono">
                   Нет курсов в процессе обучения
                 </p>
               </div>
@@ -172,7 +172,7 @@ export function MyCoursesPage({ onCourseSelect }: MyCoursesPageProps) {
                 <div className="bg-black text-white px-6 py-3 inline-block font-mono tracking-wide mb-4">
                   НЕТ КУРСОВ
                 </div>
-                <p className="text-muted-foreground font-mono">
+                <p className="text-gray-700 font-mono">
                   Нет завершённых курсов
                 </p>
               </div>

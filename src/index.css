@@ -2022,6 +2022,7 @@
     color: var(--color-white);
   }
 
+
   .uppercase {
     text-transform: uppercase;
   }
@@ -3540,4 +3541,138 @@ html {
   to {
     height: 0;
   }
+}
+
+/* Admin panel: ALL text color classes must be black, regardless of hover/active/focus */
+.admin-panel [class*="text-white"],
+.admin-panel [class*="text-gray"],
+.admin-panel [class*="text-slate"],
+.admin-panel [class*="text-zinc"],
+.admin-panel p,
+.admin-panel span,
+.admin-panel div,
+.admin-panel h1,
+.admin-panel h2,
+.admin-panel h3,
+.admin-panel h4,
+.admin-panel h5,
+.admin-panel h6,
+.admin-panel label,
+.admin-panel button,
+.admin-panel a,
+.admin-panel input,
+.admin-panel textarea,
+.admin-panel select {
+  color: #000000 !important;
+}
+
+.admin-panel [class*="text-white"]:hover,
+.admin-panel [class*="text-gray"]:hover,
+.admin-panel [class*="text-slate"]:hover,
+.admin-panel [class*="text-zinc"]:hover,
+.admin-panel p:hover,
+.admin-panel span:hover,
+.admin-panel div:hover,
+.admin-panel h1:hover,
+.admin-panel h2:hover,
+.admin-panel h3:hover,
+.admin-panel h4:hover,
+.admin-panel h5:hover,
+.admin-panel h6:hover,
+.admin-panel label:hover,
+.admin-panel button:hover,
+.admin-panel a:hover,
+.admin-panel input:hover,
+.admin-panel textarea:hover,
+.admin-panel select:hover {
+  color: #000000 !important;
+}
+
+.admin-panel [class*="text-white"]:active,
+.admin-panel [class*="text-gray"]:active,
+.admin-panel [class*="text-slate"]:active,
+.admin-panel [class*="text-zinc"]:active,
+.admin-panel button:active,
+.admin-panel a:active {
+  color: #000000 !important;
+}
+
+.admin-panel [class*="text-white"]:focus,
+.admin-panel [class*="text-gray"]:focus,
+.admin-panel [class*="text-slate"]:focus,
+.admin-panel [class*="text-zinc"]:focus,
+.admin-panel input:focus,
+.admin-panel textarea:focus,
+.admin-panel select:focus,
+.admin-panel button:focus,
+.admin-panel a:focus {
+  color: #000000 !important;
+}
+
+/* Dropdown menus, dialogs, popovers: white background, black text, NOT transparent */
+.admin-panel [class*="SelectContent"],
+.admin-panel [class*="DropdownMenuContent"],
+.admin-panel [class*="DialogContent"],
+.admin-panel [class*="PopoverContent"],
+.admin-panel [class*="CommandList"],
+.admin-panel [class*="CommandItem"],
+.admin-panel [data-radix-select-content],
+.admin-panel [data-radix-dropdown-menu-content],
+.admin-panel [data-radix-dialog-content],
+.admin-panel [data-radix-popover-content] {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  opacity: 1 !important;
+  --tw-bg-opacity: 1 !important;
+}
+
+.admin-panel [class*="SelectContent"] *,
+.admin-panel [class*="DropdownMenuContent"] *,
+.admin-panel [class*="DialogContent"] *,
+.admin-panel [class*="PopoverContent"] *,
+.admin-panel [class*="CommandList"] *,
+.admin-panel [class*="CommandItem"] *,
+.admin-panel [data-radix-select-content] *,
+.admin-panel [data-radix-dropdown-menu-content] *,
+.admin-panel [data-radix-dialog-content] *,
+.admin-panel [data-radix-popover-content] * {
+  color: #000000 !important;
+}
+
+.admin-panel [class*="SelectContent"] [class*="text-"],
+.admin-panel [class*="DropdownMenuContent"] [class*="text-"],
+.admin-panel [class*="DialogContent"] [class*="text-"],
+.admin-panel [class*="PopoverContent"] [class*="text-"],
+.admin-panel [class*="CommandItem"] [class*="text-"] {
+  color: #000000 !important;
+}
+
+.admin-panel [class*="SelectContent"] [class*="text-"]:hover,
+.admin-panel [class*="DropdownMenuContent"] [class*="text-"]:hover,
+.admin-panel [class*="DialogContent"] [class*="text-"]:hover,
+.admin-panel [class*="PopoverContent"] [class*="text-"]:hover,
+.admin-panel [class*="CommandItem"]:hover,
+.admin-panel [class*="CommandItem"]:hover [class*="text-"],
+.admin-panel [class*="SelectItem"]:hover,
+.admin-panel [class*="SelectItem"]:hover [class*="text-"] {
+  color: #000000 !important;
+  background-color: #f5f5f5 !important;
+}
+
+/* Force white background for all dropdown/dialog containers */
+.admin-panel [class*="SelectContent"],
+.admin-panel [class*="SelectViewport"],
+.admin-panel [class*="SelectItem"],
+.admin-panel [class*="DropdownMenuContent"],
+.admin-panel [class*="DropdownMenuItem"],
+.admin-panel [class*="DialogContent"],
+.admin-panel [class*="DialogOverlay"],
+.admin-panel [class*="PopoverContent"],
+.admin-panel [class*="CommandList"],
+.admin-panel [class*="CommandItem"] {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  --tw-bg-opacity: 1 !important;
+  opacity: 1 !important;
 }

@@ -166,13 +166,58 @@ def get_lesson(db: Session, lesson_id: str, published_only: bool = True) -> Opti
 
 # Graph
 def get_graph_nodes(db: Session, user_id: Optional[str] = None) -> List[models.GraphNode]:
-    """Получить все узлы графа"""
-    return db.query(models.GraphNode).all()
+    """Получить все узлы графа, фильтруя те, которых нет в БД"""
+    all_nodes = db.query(models.GraphNode).all()
+    valid_nodes = []
+    
+    for node in all_nodes:
+        # Проверяем существование entity в БД в зависимости от типа узла
+        if node.type == models.NodeType.course:
+            course = db.query(models.Course).filter(models.Course.id == node.entity_id).first()
+            if course:
+                valid_nodes.append(node)
+        elif node.type == models.NodeType.module:
+            module = db.query(models.Module).filter(models.Module.id == node.entity_id).first()
+            if module:
+                valid_nodes.append(node)
+        elif node.type == models.NodeType.lesson:
+            lesson = db.query(models.Lesson).filter(models.Lesson.id == node.entity_id).first()
+            if lesson:
+                valid_nodes.append(node)
+        elif node.type == models.NodeType.concept:
+            # Концепты (например, root) всегда валидны
+            valid_nodes.append(node)
+        elif node.type == models.NodeType.track:
+            track = db.query(models.Track).filter(models.Track.id == node.entity_id).first()
+            if track:
+                valid_nodes.append(node)
+        else:
+            # Для неизвестных типов оставляем узел
+            valid_nodes.append(node)
+    
+    return valid_nodes
 
 
 def get_graph_edges(db: Session) -> List[models.GraphEdge]:
-    """Получить все ребра графа"""
-    return db.query(models.GraphEdge).all()
+    """Получить все ребра графа, фильтруя те, которые ссылаются на несуществующие узлы"""
+    all_edges = db.query(models.GraphEdge).all()
+    valid_edges = []
+    
+    for edge in all_edges:
+        # Проверяем существование обоих узлов
+        source_node = db.query(models.GraphNode).filter(models.GraphNode.id == edge.source_id).first()
+        target_node = db.query(models.GraphNode).filter(models.GraphNode.id == edge.target_id).first()
+        
+        if source_node and target_node:
+            valid_edges.append(edge)
+        else:
+            # Удаляем ребро, если один из узлов не существует
+            db.delete(edge)
+    
+    if len(all_edges) != len(valid_edges):
+        db.commit()
+    
+    return valid_edges
 
 
 def get_graph_node_by_entity(db: Session, entity_id: str, node_type: models.NodeType) -> Optional[models.GraphNode]:
@@ -279,6 +324,27 @@ def delete_graph_node_for_lesson(db: Session, lesson_id: str) -> bool:
     if graph_node:
         db.delete(graph_node)
         # Не делаем commit здесь - он будет сделан в роутере вместе с удалением урока
+        return True
+    return False
+
+
+def delete_graph_node_for_course(db: Session, course_id: str) -> bool:
+    """Удалить узел графа для курса и все связанные узлы модулей/уроков"""
+    graph_node = get_graph_node_by_entity(db, course_id, models.NodeType.course)
+    if graph_node:
+        # Удаляем все входящие и исходящие связи
+        incoming_edges = db.query(models.GraphEdge).filter(
+            models.GraphEdge.target_id == graph_node.id
+        ).all()
+        outgoing_edges = db.query(models.GraphEdge).filter(
+            models.GraphEdge.source_id == graph_node.id
+        ).all()
+        
+        for edge in incoming_edges + outgoing_edges:
+            db.delete(edge)
+        
+        # Удаляем сам узел курса
+        db.delete(graph_node)
         return True
     return False
 
@@ -470,10 +536,10 @@ def create_graph_node_for_course(
         # Центр графа: (0, 0)
         # Расстояние от центра: 500
         course_positions = {
-            'event-basics': (0, -500),      # Север
-            'product-intro': (500, 0),      # Восток
-            'business-comm': (0, 500),       # Юг
-            'graphic-design': (-500, 0),    # Запад
+            'design': (0, -500),      # Север
+            'event-basics': (500, 0),      # Восток
+            'product-intro': (0, 500),       # Юг
+            'business-comm': (-500, 0),    # Запад
         }
         
         if course.id in course_positions:

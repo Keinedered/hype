@@ -15,7 +15,7 @@
   --secondary: #f5f5f5;
   --secondary-foreground: #000000;
   --muted: #f5f5f5;
-  --muted-foreground: #666666;
+  --muted-foreground: #4a4a4a;
   --accent: #f5f5f5;
   --accent-foreground: #000000;
   --destructive: #000000;
@@ -42,11 +42,10 @@
   --sidebar-border: #000000;
   --sidebar-ring: #000000;
   
-  /* Track colors - Pastel colors based on Itten's tetrad starting from purple */
-  --track-event: #E2B6C8;        /* Pastel pink-red (0°) */
-  --track-digital: #B6E2C8;      /* Pastel mint-green (90°) */
-  --track-communication: #B6C8E2; /* Pastel blue (180°) */
-  --track-design: #C8B6E2;       /* Pastel purple (270°) */
+  --track-event: #D4A5B8;
+  --track-digital: #A8D4B8;
+  --track-communication: #A8B8D4;
+  --track-design: #B8A5D4;
 }
 
 .dark {
@@ -61,7 +60,7 @@
   --secondary: #1a1a1a;
   --secondary-foreground: #ffffff;
   --muted: #1a1a1a;
-  --muted-foreground: #999999;
+  --muted-foreground: #cccccc;
   --accent: #1a1a1a;
   --accent-foreground: #ffffff;
   --destructive: #ffffff;
@@ -148,9 +147,6 @@
   }
 }
 
-/**
- * Base typography. This is not applied to elements which have an ancestor with a Tailwind text class.
- */
 @layer base {
   :where(:not(:has([class*=' text-']), :not(:has([class^='text-'])))) {
     h1 {

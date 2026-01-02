@@ -1,137 +1,17 @@
 """
-Скрипт инициализации БД с данными из mockData.ts
+Скрипт для добавления дополнительных уроков и модулей в БД
+Запуск: python backend/add_lessons_modules.py
 """
 from sqlalchemy.orm import Session
-from sqlalchemy import text
-from database import SessionLocal, engine, Base
+from database import SessionLocal
 import models
-from auth import get_password_hash
-import uuid
-
-# Создаем таблицы
-Base.metadata.create_all(bind=engine)
+import sys
+import traceback
 
 
-def init_tracks(db: Session):
-    """Инициализация треков"""
-    tracks_data = [
-        {
-            "id": models.TrackIdEnum.event,
-            "name": "Ивент",
-            "description": "Организация мероприятий и управление событиями",
-            "color": "#E2B6C8"
-        },
-        {
-            "id": models.TrackIdEnum.digital,
-            "name": "Цифровые продукты",
-            "description": "Product management и продуктовая аналитика",
-            "color": "#B6E2C8"
-        },
-        {
-            "id": models.TrackIdEnum.communication,
-            "name": "Внешние коммуникации",
-            "description": "Деловая коммуникация и внешние связи",
-            "color": "#B6C8E2"
-        },
-        {
-            "id": models.TrackIdEnum.design,
-            "name": "Дизайн",
-            "description": "Графический и продуктовый дизайн",
-            "color": "#C8B6E2"
-        }
-    ]
+def add_modules_and_lessons(db: Session):
+    """Добавление модулей и уроков в БД (только тех, которых еще нет)"""
     
-    for track_data in tracks_data:
-        track = models.Track(**track_data)
-        db.add(track)
-    
-    db.commit()
-    print("✓ Треки созданы")
-
-
-def init_courses(db: Session):
-    """Инициализация курсов"""
-    courses_data = [
-        {
-            "id": "design",
-            "track_id": models.TrackIdEnum.design,
-            "title": "Дизайн",
-            "version": "v1.0",
-            "description": "Фундаментальные принципы визуального дизайна",
-            "short_description": "Композиция, цвет и типографика",
-            "level": models.CourseLevel.beginner,
-            "module_count": 3,
-            "lesson_count": 15,
-            "task_count": 18,
-            "status": "published",
-            "authors": ["Артём Соколов"]
-        },
-        {
-            "id": "event-basics",
-            "track_id": models.TrackIdEnum.event,
-            "title": "Ивент",
-            "version": "v1.0",
-            "description": "Погружение в мир организации мероприятий: от концепции до пост-анализа",
-            "short_description": "Научитесь планировать и проводить успешные мероприятия",
-            "level": models.CourseLevel.beginner,
-            "module_count": 3,
-            "lesson_count": 12,
-            "task_count": 15,
-            "enrollment_deadline": "31 декабря 2025",
-            "status": "published",
-            "authors": ["Анна Смирнова", "Дмитрий Петров"]
-        },
-        {
-            "id": "product-intro",
-            "track_id": models.TrackIdEnum.digital,
-            "title": "Цифровые продукты",
-            "version": "v1.0",
-            "description": "Основы работы продакт-менеджера: от идеи до запуска",
-            "short_description": "Станьте продакт-менеджером цифрового продукта",
-            "level": models.CourseLevel.beginner,
-            "module_count": 4,
-            "lesson_count": 18,
-            "task_count": 22,
-            "enrollment_deadline": "15 января 2026",
-            "status": "published",
-            "authors": ["Алексей Кузнецов", "Ольга Волкова"]
-        },
-        {
-            "id": "business-comm",
-            "track_id": models.TrackIdEnum.communication,
-            "title": "Внешние коммуникации",
-            "version": "v1.0",
-            "description": "Эффективная деловая коммуникация в письменной форме",
-            "short_description": "Email, мессенджеры и официальные письма",
-            "level": models.CourseLevel.beginner,
-            "module_count": 3,
-            "lesson_count": 9,
-            "task_count": 12,
-            "status": "published",
-            "authors": ["Наталья Морозова"]
-        }
-    ]
-    
-    for course_data in courses_data:
-        authors_list = course_data.pop("authors")
-        course = models.Course(**course_data)
-        db.add(course)
-        db.flush()
-        
-        # Добавляем авторов
-        for author_name in authors_list:
-            author = models.CourseAuthor(
-                course_id=course.id,
-                author_name=author_name
-            )
-            db.add(author)
-    
-    db.commit()
-    print(f"✓ Курсов создано: {len(courses_data)}")
-
-
-def init_modules_and_lessons(db: Session):
-    """Инициализация модулей и уроков для курсов"""
     modules_data = [
         # Дизайн
         {
@@ -799,340 +679,35 @@ def init_modules_and_lessons(db: Session):
     else:
         print(f"✓ Уроки уже существуют: {lessons_existing} (новых не создано)")
     
-    # Создаем узлы графа для модулей (только если их еще нет)
-    module_nodes_created = 0
-    for module_data in modules_data:
-        module = db.query(models.Module).filter(models.Module.id == module_data["id"]).first()
-        if module:
-            existing_node = db.query(models.GraphNode).filter(
-                models.GraphNode.entity_id == module.id,
-                models.GraphNode.type == models.NodeType.module
-            ).first()
-            if not existing_node:
-                module_nodes_created += 1
-                # Получаем курс для позиционирования
-                course_node = db.query(models.GraphNode).filter(
-                    models.GraphNode.entity_id == module.course_id,
-                    models.GraphNode.type == models.NodeType.course
-                ).first()
-                
-                if course_node:
-                    # Позиционируем модули вокруг курса
-                    import math
-                    module_index = module.order_index - 1
-                    angle = (2 * math.pi * module_index) / max(len([m for m in modules_data if m["course_id"] == module.course_id]), 1)
-                    radius = 120.0
-                    x = course_node.x + radius * math.cos(angle)
-                    y = course_node.y + radius * math.sin(angle)
-                else:
-                    x = 500.0
-                    y = 500.0
-                
-                module_node = models.GraphNode(
-                    id=f"node-{module.id}",
-                    type=models.NodeType.module,
-                    entity_id=module.id,
-                    title=module.title,
-                    x=x,
-                    y=y,
-                    status=models.NodeStatus.open,
-                    size=40
-                )
-                db.add(module_node)
-                
-                # Создаем связь с курсом
-                if course_node:
-                    existing_edge = db.query(models.GraphEdge).filter(
-                        models.GraphEdge.source_id == course_node.id,
-                        models.GraphEdge.target_id == module_node.id
-                    ).first()
-                    if not existing_edge:
-                        edge = models.GraphEdge(
-                            id=f"edge-{course_node.id}-{module_node.id}",
-                            source_id=course_node.id,
-                            target_id=module_node.id,
-                            type=models.EdgeType.required
-                        )
-                        db.add(edge)
-    
-    # Создаем узлы графа для уроков (только если их еще нет)
-    lesson_nodes_created = 0
-    for lesson_data in lessons_data:
-        lesson = db.query(models.Lesson).filter(models.Lesson.id == lesson_data["id"]).first()
-        if lesson and lesson.module_id:
-            existing_node = db.query(models.GraphNode).filter(
-                models.GraphNode.entity_id == lesson.id,
-                models.GraphNode.type == models.NodeType.lesson
-            ).first()
-            if not existing_node:
-                lesson_nodes_created += 1
-                # Получаем модуль для позиционирования
-                module_node = db.query(models.GraphNode).filter(
-                    models.GraphNode.entity_id == lesson.module_id,
-                    models.GraphNode.type == models.NodeType.module
-                ).first()
-                
-                if module_node:
-                    # Позиционируем уроки вокруг модуля
-                    import math
-                    module_lessons = [l for l in lessons_data if l["module_id"] == lesson.module_id]
-                    lesson_index = next((i for i, l in enumerate(module_lessons) if l["id"] == lesson.id), 0)
-                    angle = (2 * math.pi * lesson_index) / max(len(module_lessons), 1)
-                    radius = 100.0
-                    x = module_node.x + radius * math.cos(angle)
-                    y = module_node.y + radius * math.sin(angle)
-                else:
-                    x = 500.0
-                    y = 500.0
-                
-                lesson_node = models.GraphNode(
-                    id=f"node-{lesson.id}",
-                    type=models.NodeType.lesson,
-                    entity_id=lesson.id,
-                    title=lesson.title,
-                    x=x,
-                    y=y,
-                    status=models.NodeStatus.open,
-                    size=35
-                )
-                db.add(lesson_node)
-                
-                # Создаем связь с модулем
-                if module_node:
-                    existing_edge = db.query(models.GraphEdge).filter(
-                        models.GraphEdge.source_id == module_node.id,
-                        models.GraphEdge.target_id == lesson_node.id
-                    ).first()
-                    if not existing_edge:
-                        edge = models.GraphEdge(
-                            id=f"edge-{module_node.id}-{lesson_node.id}",
-                            source_id=module_node.id,
-                            target_id=lesson_node.id,
-                            type=models.EdgeType.required
-                        )
-                        db.add(edge)
-    
-    db.commit()
-    if module_nodes_created > 0 or lesson_nodes_created > 0:
-        print(f"✓ Узлы графа созданы: модулей {module_nodes_created}, уроков {lesson_nodes_created}")
-    else:
-        print(f"✓ Узлы графа уже существуют (новых не создано)")
-
-
-def init_graph(db: Session):
-    """Инициализация графа знаний"""
-    # Узлы графа
-    nodes_data = [
-        {
-            "id": "root",
-            "type": models.NodeType.concept,
-            "entity_id": "root",
-            "title": "GRAPH",
-            "x": 800.0,
-            "y": 500.0,
-            "status": models.NodeStatus.completed,
-            "size": 80
-        },
-        {
-            "id": "node-design",
-            "type": models.NodeType.course,
-            "entity_id": "design",
-            "title": "Дизайн",
-            "x": 550.0,
-            "y": 300.0,
-            "status": models.NodeStatus.completed,
-            "size": 45
-        },
-        {
-            "id": "node-event-basics",
-            "type": models.NodeType.course,
-            "entity_id": "event-basics",
-            "title": "Ивент",
-            "x": 1050.0,
-            "y": 300.0,
-            "status": models.NodeStatus.current,
-            "size": 45
-        },
-        {
-            "id": "node-product-intro",
-            "type": models.NodeType.course,
-            "entity_id": "product-intro",
-            "title": "Цифровые\\nпродукты",
-            "x": 550.0,
-            "y": 700.0,
-            "status": models.NodeStatus.open,
-            "size": 45
-        },
-        {
-            "id": "node-business-comm",
-            "type": models.NodeType.course,
-            "entity_id": "business-comm",
-            "title": "Внешние\\nкоммуникации",
-            "x": 1050.0,
-            "y": 700.0,
-            "status": models.NodeStatus.open,
-            "size": 45
-        }
-    ]
-    
-    # Создаем узлы графа только если их еще нет
-    nodes_created = 0
-    nodes_existing = 0
-    for node_data in nodes_data:
-        existing = db.query(models.GraphNode).filter(models.GraphNode.id == node_data["id"]).first()
-        if not existing:
-            node = models.GraphNode(**node_data)
-            db.add(node)
-            nodes_created += 1
-        else:
-            nodes_existing += 1
-    
-    # Ребра графа (от root к курсам)
-    edges_data = [
-        {"id": "e1", "source_id": "root", "target_id": "node-design", "type": models.EdgeType.required},
-        {"id": "e2", "source_id": "root", "target_id": "node-event-basics", "type": models.EdgeType.required},
-        {"id": "e3", "source_id": "root", "target_id": "node-product-intro", "type": models.EdgeType.required},
-        {"id": "e4", "source_id": "root", "target_id": "node-business-comm", "type": models.EdgeType.required},
-    ]
-    
-    # Создаем edges только если их еще нет
-    edges_created = 0
-    edges_existing = 0
-    for edge_data in edges_data:
-        existing = db.query(models.GraphEdge).filter(
-            models.GraphEdge.source_id == edge_data["source_id"],
-            models.GraphEdge.target_id == edge_data["target_id"]
-        ).first()
-        if not existing:
-            edge = models.GraphEdge(**edge_data)
-            db.add(edge)
-            edges_created += 1
-        else:
-            edges_existing += 1
-    
-    db.commit()
-    if nodes_created > 0 or edges_created > 0:
-        print(f"✓ Граф обновлен: создано {nodes_created} узлов, {edges_created} ребер (существовало: {nodes_existing} узлов, {edges_existing} ребер)")
-    else:
-        print(f"✓ Граф уже существует: {nodes_existing} узлов, {edges_existing} ребер")
-
-
-def init_demo_user(db: Session):
-    """Создание демо-пользователя и админа"""
-    # Проверяем существование пользователей
-    existing_demo = db.query(models.User).filter(models.User.username == "demo").first()
-    existing_admin = db.query(models.User).filter(models.User.username == "admin").first()
-    
-    if not existing_demo:
-        demo_user = models.User(
-            id=str(uuid.uuid4()),
-            email="demo@graph.com",
-            username="demo",
-            full_name="Demo User",
-            hashed_password=get_password_hash("demo123"),
-            role=models.UserRole.student
-        )
-        db.add(demo_user)
-        
-        # Добавляем прогресс по курсам
-        user_course_1 = models.UserCourse(
-            user_id=demo_user.id,
-            course_id="product-intro",
-            status=models.CourseStatus.in_progress,
-            progress=35.0
-        )
-        db.add(user_course_1)
-        print(f"✓ Демо-пользователь создан (username: demo, password: demo123)")
-    else:
-        print(f"✓ Демо-пользователь уже существует")
-    
-    if not existing_admin:
-        admin_user = models.User(
-            id=str(uuid.uuid4()),
-            email="admin@graph.com",
-            username="admin",
-            full_name="Admin User",
-            hashed_password=get_password_hash("admin123"),
-            role=models.UserRole.admin
-        )
-        db.add(admin_user)
-        print(f"✓ Админ пользователь создан (username: admin, password: admin123)")
-    else:
-        print(f"✓ Админ пользователь уже существует")
-    
-    db.commit()
+    return {
+        "modules_created": modules_created,
+        "modules_existing": modules_existing,
+        "lessons_created": lessons_created,
+        "lessons_existing": lessons_existing
+    }
 
 
 def main():
-    """Основная функция инициализации"""
-    import time
-    import sys
-    
+    """Основная функция"""
     print("=" * 60)
-    print("🚀 Инициализация базы данных GRAPH Educational Platform")
+    print("📚 Добавление модулей и уроков в базу данных")
     print("=" * 60)
-    
-    # Небольшая задержка для гарантии готовности БД
-    time.sleep(2)
     
     db = SessionLocal()
     
     try:
-        # Проверяем подключение к БД
-        db.execute(text("SELECT 1"))
-        print("✅ Подключение к базе данных установлено")
-        
-        # Проверяем, есть ли уже данные
-        existing_tracks = db.query(models.Track).count()
-        if existing_tracks > 0:
-            print("⚠ БД уже содержит данные. Пропускаем инициализацию.")
-            print("Для переинициализации удалите volume и запустите снова:")
-            print("  docker-compose down -v")
-            print("  docker-compose up -d")
-            return
-        
-        print("\n📦 Создание таблиц...")
-        # Таблицы уже созданы в main.py, но убедимся
-        Base.metadata.create_all(bind=engine)
-        print("✅ Таблицы готовы")
-        
-        print("\n📚 Инициализация данных...")
-        init_tracks(db)
-        init_courses(db)
-        # Сначала создаем узлы графа для курсов, если их еще нет
-        courses = db.query(models.Course).all()
-        for course in courses:
-            existing_node = db.query(models.GraphNode).filter(
-                models.GraphNode.entity_id == course.id,
-                models.GraphNode.type == models.NodeType.course
-            ).first()
-            if not existing_node:
-                # Используем функцию из crud для создания узла курса
-                from crud import create_graph_node_for_course
-                create_graph_node_for_course(db, course)
-        db.commit()
-        
-        init_modules_and_lessons(db)
-        init_graph(db)  # init_graph создает root и edges от root к курсам
-        init_demo_user(db)
+        result = add_modules_and_lessons(db)
         
         print("\n" + "=" * 60)
-        print("✅ Инициализация БД завершена успешно!")
+        print("✅ Операция завершена успешно!")
         print("=" * 60)
-        print("\n👤 Учетные записи для входа:")
-        print("\n  📘 Демо пользователь (студент):")
-        print("     Username: demo")
-        print("     Password: demo123")
-        print("     Email: demo@graph.com")
-        print("\n  🔐 Админ пользователь:")
-        print("     Username: admin")
-        print("     Password: admin123")
-        print("     Email: admin@graph.com")
+        print(f"\n📊 Итоги:")
+        print(f"   Модулей: создано {result['modules_created']}, уже было {result['modules_existing']}")
+        print(f"   Уроков: создано {result['lessons_created']}, уже было {result['lessons_existing']}")
         print("\n" + "=" * 60)
         
     except Exception as e:
-        print(f"\n❌ Ошибка при инициализации: {e}")
-        import traceback
+        print(f"\n❌ Ошибка при добавлении данных: {e}")
         traceback.print_exc()
         db.rollback()
         sys.exit(1)

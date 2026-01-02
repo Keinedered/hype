@@ -330,7 +330,7 @@ export function LessonEditor() {
                 <h1 className="text-2xl font-bold text-black">
                   {isEditMode ? 'Редактировать урок' : 'Создать урок'}
                 </h1>
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-sm text-gray-700 mt-1">
                   Заполните форму и опубликуйте урок на платформе
                 </p>
               </div>
@@ -373,7 +373,7 @@ export function LessonEditor() {
                   value={formData.module_id || '__none__'}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, module_id: value === '__none__' ? null : value }))}
                 >
-                    <SelectTrigger className="bg-white border-gray-300 text-black placeholder:text-gray-500 mt-2">
+                    <SelectTrigger className="bg-white border-gray-300 text-black placeholder:text-gray-600 mt-2">
                       <SelectValue placeholder="Выберите модуль" />
                     </SelectTrigger>
                     <SelectContent className="bg-white border-gray-300 text-black shadow-lg">

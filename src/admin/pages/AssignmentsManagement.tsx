@@ -1,15 +1,14 @@
-﻿import { useState, useEffect } from 'react';
+﻿import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import {
   Tabs,
@@ -24,9 +23,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, CheckCircle, XCircle, Clock, Edit, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { Plus, CheckCircle, XCircle, Clock, Edit, Trash2, FileText, Link as LinkIcon, Upload } from 'lucide-react';
 import { adminAPI } from '@/api/adminClient';
+import { useApiQuery, useApiMutation } from '../hooks';
+import { LoadingState, ErrorState, EmptyState, ConfirmDialog, SearchBar, FormField } from '../components';
+import { useFormValidation } from '../hooks';
+import { toast } from 'sonner';
 
 interface Assignment {
   id: string;
@@ -45,157 +47,65 @@ interface Submission {
   status: string;
   text_answer?: string;
   link_url?: string;
+  file_urls?: string[];
   submitted_at?: string;
   curator_comment?: string;
   reviewed_at?: string;
+  user?: {
+    username: string;
+    email: string;
+  };
+  assignment?: {
+    description: string;
+  };
 }
 
 export function AssignmentsManagement() {
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [activeTab, setActiveTab] = useState<'assignments' | 'submissions'>('assignments');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null);
-  const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [isGradeDialogOpen, setIsGradeDialogOpen] = useState(false);
+  const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null);
   const [gradingSubmission, setGradingSubmission] = useState<Submission | null>(null);
-  const [gradeComment, setGradeComment] = useState('');
-  const [gradeStatus, setGradeStatus] = useState<'accepted' | 'needs_revision'>('accepted');
-  const [formData, setFormData] = useState({
-    id: '',
-    lesson_id: '',
-    description: '',
-    criteria: '',
-    requires_text: false,
-    requires_file: false,
-    requires_link: false,
+  const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; assignmentId: string | null }>({
+    open: false,
+    assignmentId: null,
   });
 
-  useEffect(() => {
-    fetchAssignments();
-    fetchSubmissions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Загрузка данных
+  const { data: assignmentsData, loading: assignmentsLoading, error: assignmentsError, refetch: refetchAssignments } = useApiQuery(
+    () => adminAPI.assignments.getAll(),
+    { cacheTime: 2 * 60 * 1000 }
+  );
 
-  const fetchAssignments = async () => {
-    try {
-      const data = await adminAPI.assignments.getAll();
-      setAssignments(Array.isArray(data) ? data : []);
-    } catch (error: any) {
-      console.error('Failed to fetch assignments:', error);
-      toast.error(error.message || 'Ошибка загрузки заданий');
-      setAssignments([]);
-    }
-  };
+  const { data: submissionsData, loading: submissionsLoading, error: submissionsError, refetch: refetchSubmissions } = useApiQuery(
+    () => adminAPI.submissions.getAll(),
+    { cacheTime: 1 * 60 * 1000 }
+  );
 
-  const fetchSubmissions = async () => {
-    try {
-      const data = await adminAPI.submissions.getAll();
-      setSubmissions(Array.isArray(data) ? data : []);
-    } catch (error: any) {
-      console.error('Failed to fetch submissions:', error);
-      toast.error(error.message || 'Ошибка загрузки работ');
-      setSubmissions([]);
-    }
-  };
+  const assignments = Array.isArray(assignmentsData) ? assignmentsData : [];
+  const submissions = Array.isArray(submissionsData) ? submissionsData : [];
 
-  const handleCreate = async () => {
-    // Валидация
-    if (!formData.id || !formData.id.trim()) {
-      toast.error('Введите ID задания');
-      return;
-    }
-    if (!formData.lesson_id || !formData.lesson_id.trim()) {
-      toast.error('Введите ID урока');
-      return;
-    }
-    if (!formData.description || !formData.description.trim()) {
-      toast.error('Введите описание задания');
-      return;
-    }
-    if (!formData.criteria || !formData.criteria.trim()) {
-      toast.error('Введите критерии оценки');
-      return;
-    }
+  // Фильтрация submissions
+  const filteredSubmissions = useMemo(() => {
+    return submissions.filter((submission: Submission) => {
+      const matchesSearch = !searchQuery || 
+        submission.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        submission.user_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (submission.user?.username && submission.user.username.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (submission.user?.email && submission.user.email.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      const matchesStatus = statusFilter === 'all' || submission.status === statusFilter;
 
-    try {
-      const createData = {
-        id: formData.id.trim(),
-        lesson_id: formData.lesson_id.trim(),
-        description: formData.description.trim(),
-        criteria: formData.criteria.trim(),
-        requires_text: formData.requires_text,
-        requires_file: formData.requires_file,
-        requires_link: formData.requires_link,
-      };
+      return matchesSearch && matchesStatus;
+    });
+  }, [submissions, searchQuery, statusFilter]);
 
-      await adminAPI.assignments.create(createData);
-      toast.success('Задание успешно создано');
-      fetchAssignments();
-      setIsCreateDialogOpen(false);
-      resetForm();
-    } catch (error: any) {
-      toast.error(error.message || 'Ошибка при создании задания');
-    }
-  };
-
-  const handleGrade = async () => {
-    if (!gradingSubmission) return;
-    
-    try {
-      await adminAPI.submissions.grade(
-        gradingSubmission.id, 
-        gradeStatus, 
-        gradeComment?.trim() || undefined
-      );
-      toast.success('Работа оценена');
-      fetchSubmissions();
-      setIsGradeDialogOpen(false);
-      setGradingSubmission(null);
-      setGradeComment('');
-      setGradeStatus('accepted');
-    } catch (error: any) {
-      console.error('Failed to grade submission:', error);
-      toast.error(error.message || 'Ошибка при оценке работы');
-    }
-  };
-
-  const openGradeDialog = (submission: Submission) => {
-    setGradingSubmission(submission);
-    setGradeComment(submission.curator_comment || '');
-    setGradeStatus(submission.status === 'needs_revision' ? 'needs_revision' : 'accepted');
-    setIsGradeDialogOpen(true);
-  };
-
-  const handleUpdate = async () => {
-    if (!editingAssignment) return;
-
-    try {
-      await adminAPI.assignments.update(editingAssignment.id, formData);
-      toast.success('Задание успешно обновлено');
-      fetchAssignments();
-      setEditingAssignment(null);
-      setIsEditDialogOpen(false);
-      resetForm();
-    } catch (error: any) {
-      toast.error(error.message || 'Ошибка при обновлении задания');
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Вы уверены, что хотите удалить задание?')) return;
-
-    try {
-      await adminAPI.assignments.delete(id);
-      toast.success('Задание успешно удалено');
-      fetchAssignments();
-    } catch (error: any) {
-      toast.error(error.message || 'Ошибка при удалении задания');
-    }
-  };
-
-  const resetForm = () => {
-    setFormData({
+  // Форма для задания
+  const formValidation = useFormValidation(
+    {
       id: '',
       lesson_id: '',
       description: '',
@@ -203,12 +113,153 @@ export function AssignmentsManagement() {
       requires_text: false,
       requires_file: false,
       requires_link: false,
+    },
+    {
+      rules: {
+        id: {
+          required: true,
+          minLength: 3,
+          pattern: /^[a-z0-9_-]+$/,
+        },
+        lesson_id: {
+          required: true,
+          minLength: 3,
+        },
+        description: {
+          required: true,
+          minLength: 10,
+        },
+        criteria: {
+          required: true,
+          minLength: 5,
+        },
+      },
+      validateOnChange: true,
+      validateOnBlur: true,
+    }
+  );
+
+  const formData = formValidation.data;
+  const { setFieldValue, handleBlur, validate, errors, reset: resetForm } = formValidation;
+
+  // Форма для оценки
+  const [gradeComment, setGradeComment] = useState('');
+  const [gradeStatus, setGradeStatus] = useState<'accepted' | 'needs_revision'>('accepted');
+
+  // Мутации
+  const createMutation = useApiMutation(
+    (data: any) => adminAPI.assignments.create(data),
+    {
+      invalidateQueries: ['assignments'],
+      successMessage: 'Задание успешно создано',
+      onSuccess: () => {
+        refetchAssignments();
+      },
+    }
+  );
+
+  const updateMutation = useApiMutation(
+    (data: { id: string; data: any }) => adminAPI.assignments.update(data.id, data.data),
+    {
+      invalidateQueries: ['assignments'],
+      successMessage: 'Задание успешно обновлено',
+      onSuccess: () => {
+        refetchAssignments();
+      },
+    }
+  );
+
+  const deleteMutation = useApiMutation(
+    (id: string) => adminAPI.assignments.delete(id),
+    {
+      invalidateQueries: ['assignments'],
+      successMessage: 'Задание успешно удалено',
+      onSuccess: () => {
+        refetchAssignments();
+      },
+    }
+  );
+
+  const gradeMutation = useApiMutation(
+    (data: { id: string; status: string; comment?: string }) => 
+      adminAPI.submissions.grade(data.id, data.status, data.comment),
+    {
+      invalidateQueries: ['submissions'],
+      successMessage: 'Работа оценена',
+      onSuccess: () => {
+        refetchSubmissions();
+      },
+    }
+  );
+
+  // Обработчики
+  const handleCreate = async () => {
+    if (!validate()) {
+      toast.error('Исправьте ошибки в форме');
+      return;
+    }
+
+    const createData = {
+      id: formData.id.trim(),
+      lesson_id: formData.lesson_id.trim(),
+      description: formData.description.trim(),
+      criteria: formData.criteria.trim(),
+      requires_text: formData.requires_text,
+      requires_file: formData.requires_file,
+      requires_link: formData.requires_link,
+    };
+
+    await createMutation.mutate(createData);
+    setIsCreateDialogOpen(false);
+    resetForm();
+  };
+
+  const handleUpdate = async () => {
+    if (!editingAssignment) return;
+    if (!validate()) {
+      toast.error('Исправьте ошибки в форме');
+      return;
+    }
+
+    const updateData = {
+      lesson_id: formData.lesson_id.trim(),
+      description: formData.description.trim(),
+      criteria: formData.criteria.trim(),
+      requires_text: formData.requires_text,
+      requires_file: formData.requires_file,
+      requires_link: formData.requires_link,
+    };
+
+    await updateMutation.mutate({ id: editingAssignment.id, data: updateData });
+    setIsEditDialogOpen(false);
+    setEditingAssignment(null);
+    resetForm();
+  };
+
+  const handleDelete = async () => {
+    if (!deleteConfirm.assignmentId) return;
+    await deleteMutation.mutate(deleteConfirm.assignmentId);
+    setDeleteConfirm({ open: false, assignmentId: null });
+  };
+
+  const handleGrade = async () => {
+    if (!gradingSubmission) return;
+    
+    await gradeMutation.mutate({
+      id: gradingSubmission.id,
+      status: gradeStatus,
+      comment: gradeComment.trim() || undefined,
     });
+    
+    setIsGradeDialogOpen(false);
+    setGradingSubmission(null);
+    setGradeComment('');
+    setGradeStatus('accepted');
   };
 
   const openEditDialog = (assignment: Assignment) => {
     setEditingAssignment(assignment);
-    setFormData({
+    resetForm({
       id: assignment.id,
       lesson_id: assignment.lesson_id,
       description: assignment.description,
@@ -220,319 +271,514 @@ export function AssignmentsManagement() {
     setIsEditDialogOpen(true);
   };
 
+  const openGradeDialog = (submission: Submission) => {
+    setGradingSubmission(submission);
+    setGradeComment(submission.curator_comment || '');
+    setGradeStatus(submission.status === 'needs_revision' ? 'needs_revision' : 'accepted');
+    setIsGradeDialogOpen(true);
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'accepted':
+        return <Badge className="bg-green-600/20 text-green-400 border-green-600/30">Принято</Badge>;
+      case 'needs_revision':
+        return <Badge className="bg-yellow-600/20 text-yellow-400 border-yellow-600/30">Требует доработки</Badge>;
+      case 'pending':
+        return <Badge className="bg-blue-600/20 text-blue-400 border-blue-600/30">На проверке</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'accepted':
         return <CheckCircle className="text-green-500" size={20} />;
       case 'needs_revision':
-        return <XCircle className="text-red-500" size={20} />;
+        return <XCircle className="text-yellow-500" size={20} />;
       case 'pending':
-        return <Clock className="text-yellow-500" size={20} />;
+        return <Clock className="text-blue-500" size={20} />;
       default:
         return null;
     }
   };
 
-  return (
-    <div>
-      <Tabs defaultValue="assignments" className="space-y-4">
-        <div className="flex justify-between items-center">
-          <TabsList className="bg-gray-900 border-gray-800">
-            <TabsTrigger value="assignments" className="data-[state=active]:bg-gray-800">
-              Задания
-            </TabsTrigger>
-            <TabsTrigger value="submissions" className="data-[state=active]:bg-gray-800">
-              Проверка работ
-            </TabsTrigger>
-          </TabsList>
-          <Button onClick={() => setIsCreateDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="mr-2" size={20} />
-            Создать задание
-          </Button>
-        </div>
+  if (assignmentsLoading || submissionsLoading) {
+    return <LoadingState message="Загрузка данных..." />;
+  }
 
+  if (assignmentsError || submissionsError) {
+    return (
+      <ErrorState 
+        error={assignmentsError || submissionsError} 
+        title="Ошибка загрузки данных"
+        onRetry={() => {
+          refetchAssignments();
+          refetchSubmissions();
+        }}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Управление заданиями</h1>
+          <p className="text-gray-300 text-sm">
+            Создание заданий и проверка работ студентов
+          </p>
+        </div>
+        <Button 
+          onClick={() => setIsCreateDialogOpen(true)}
+          className="bg-blue-600 hover:bg-blue-700"
+        >
+          <Plus className="mr-2" size={20} />
+          Создать задание
+        </Button>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'assignments' | 'submissions')} className="space-y-4">
+        <TabsList className="bg-gray-900 border-gray-800">
+          <TabsTrigger value="assignments" className="data-[state=active]:bg-gray-800">
+            Задания ({assignments.length})
+          </TabsTrigger>
+          <TabsTrigger value="submissions" className="data-[state=active]:bg-gray-800">
+            Проверка работ ({submissions.length})
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Assignments Tab */}
         <TabsContent value="assignments" className="space-y-4">
           {assignments.length === 0 ? (
-            <Card className="p-6 bg-gray-900 border-gray-800">
-              <p className="text-gray-400 text-center">Задания не найдены. Создайте первое задание.</p>
-            </Card>
+            <EmptyState
+              icon={FileText}
+              title="Задания не найдены"
+              description="Создайте первое задание для студентов"
+              actionLabel="Создать задание"
+              onAction={() => setIsCreateDialogOpen(true)}
+            />
           ) : (
-            assignments.map((assignment) => (
-            <Card key={assignment.id} className="p-6 bg-gray-900 border-gray-800">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-white mb-2">Задание: {assignment.id}</h3>
-                  <p className="text-gray-400 mb-2">{assignment.description}</p>
-                  <div className="flex gap-2">
-                    {assignment.requires_text && (
-                      <span className="px-2 py-1 bg-blue-600 text-white text-xs rounded">Текст</span>
-                    )}
-                    {assignment.requires_file && (
-                      <span className="px-2 py-1 bg-green-600 text-white text-xs rounded">Файл</span>
-                    )}
-                    {assignment.requires_link && (
-                      <span className="px-2 py-1 bg-purple-600 text-white text-xs rounded">Ссылка</span>
-                    )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {assignments.map((assignment: Assignment) => (
+                <Card key={assignment.id} className="bg-gray-900 border-gray-800 p-6 hover:border-gray-700 transition-colors">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-white mb-2">ID: {assignment.id}</h3>
+                      <p className="text-gray-300 text-sm mb-3 line-clamp-2">{assignment.description}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {assignment.requires_text && (
+                          <Badge variant="outline" className="border-blue-600/30 text-blue-400">
+                            <FileText className="mr-1" size={12} />
+                            Текст
+                          </Badge>
+                        )}
+                        {assignment.requires_file && (
+                          <Badge variant="outline" className="border-green-600/30 text-green-400">
+                            <Upload className="mr-1" size={12} />
+                            Файл
+                          </Badge>
+                        )}
+                        {assignment.requires_link && (
+                          <Badge variant="outline" className="border-purple-600/30 text-purple-400">
+                            <LinkIcon className="mr-1" size={12} />
+                            Ссылка
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-2 ml-4">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-gray-300 hover:text-blue-400"
+                        onClick={() => openEditDialog(assignment)}
+                      >
+                        <Edit size={18} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-gray-300 hover:text-red-400"
+                        onClick={() => setDeleteConfirm({ open: true, assignmentId: assignment.id })}
+                      >
+                        <Trash2 size={18} />
+                      </Button>
+                    </div>
                   </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-gray-400 hover:text-white"
-                    onClick={() => openEditDialog(assignment)}
-                  >
-                    <Edit size={18} />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-gray-400 hover:text-red-500"
-                    onClick={() => handleDelete(assignment.id)}
-                  >
-                    <Trash2 size={18} />
-                  </Button>
-                </div>
-              </div>
-            </Card>
-            ))
+                  <div className="pt-4 border-t border-gray-800">
+                    <p className="text-gray-400 text-xs">Урок: {assignment.lesson_id}</p>
+                  </div>
+                </Card>
+              ))}
+            </div>
           )}
         </TabsContent>
 
+        {/* Submissions Tab */}
         <TabsContent value="submissions" className="space-y-4">
-          {submissions.length === 0 ? (
-            <Card className="p-6 bg-gray-900 border-gray-800">
-              <p className="text-gray-400 text-center">Работы студентов не найдены.</p>
-            </Card>
+          {/* Фильтры */}
+          <Card className="bg-gray-900 border-gray-800 p-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <SearchBar
+                  placeholder="Поиск по ID, пользователю, email..."
+                  onSearch={setSearchQuery}
+                />
+              </div>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="bg-gray-800 border border-gray-700 text-white px-3 py-2 rounded-md text-sm"
+              >
+                <option value="all">Все статусы</option>
+                <option value="pending">На проверке</option>
+                <option value="accepted">Принято</option>
+                <option value="needs_revision">Требует доработки</option>
+              </select>
+            </div>
+            <div className="mt-3 text-sm text-gray-300">
+              Найдено работ: {filteredSubmissions.length} из {submissions.length}
+            </div>
+          </Card>
+
+          {filteredSubmissions.length === 0 ? (
+            <EmptyState
+              icon={Clock}
+              title="Работы не найдены"
+              description={
+                searchQuery || statusFilter !== 'all'
+                  ? 'Попробуйте изменить параметры поиска или фильтры'
+                  : 'Нет работ для проверки'
+              }
+            />
           ) : (
-            submissions.map((submission) => (
-            <Card key={submission.id} className="p-6 bg-gray-900 border-gray-800">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    {getStatusIcon(submission.status)}
-                    <h3 className="text-lg font-bold text-white">
-                      Submission ID: {submission.id}
-                    </h3>
-                  </div>
-                  <p className="text-gray-400">User: {submission.user_id}</p>
-                  <p className="text-gray-400">Assignment: {submission.assignment_id}</p>
-                  {submission.text_answer && (
-                    <p className="text-gray-200 mt-2">{submission.text_answer}</p>
-                  )}
-                  {submission.link_url && (
-                    <a href={submission.link_url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline mt-2 block">
-                      {submission.link_url}
-                    </a>
-                  )}
-                  {submission.submitted_at && (
-                    <p className="text-gray-500 text-xs mt-2">Отправлено: {new Date(submission.submitted_at).toLocaleString('ru-RU')}</p>
-                  )}
-                  {submission.curator_comment && (
-                    <div className="mt-3 p-3 bg-gray-800 rounded border-l-4 border-blue-500">
-                      <p className="text-sm font-semibold text-blue-400 mb-1">Комментарий куратора:</p>
-                      <p className="text-gray-200 text-sm">{submission.curator_comment}</p>
-                      {submission.reviewed_at && (
-                        <p className="text-gray-500 text-xs mt-2">Проверено: {new Date(submission.reviewed_at).toLocaleString('ru-RU')}</p>
+            <div className="space-y-4">
+              {filteredSubmissions.map((submission: Submission) => (
+                <Card key={submission.id} className="bg-gray-900 border-gray-800 p-6">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-3">
+                        {getStatusIcon(submission.status)}
+                        <div>
+                          <h3 className="text-lg font-semibold text-white">Работа #{submission.id}</h3>
+                          <p className="text-gray-300 text-sm">
+                            Пользователь: {submission.user?.username || submission.user_id}
+                            {submission.user?.email && ` (${submission.user.email})`}
+                          </p>
+                        </div>
+                        {getStatusBadge(submission.status)}
+                      </div>
+
+                      {submission.assignment && (
+                        <div className="mb-3 p-3 bg-gray-800 rounded border-l-4 border-blue-500">
+                          <p className="text-sm font-semibold text-blue-400 mb-1">Задание:</p>
+                          <p className="text-gray-200 text-sm">{submission.assignment.description}</p>
+                        </div>
+                      )}
+
+                      {submission.text_answer && (
+                        <div className="mb-3 p-3 bg-gray-800 rounded">
+                          <p className="text-sm font-semibold text-gray-300 mb-1">Текстовый ответ:</p>
+                          <p className="text-gray-200 text-sm whitespace-pre-wrap">{submission.text_answer}</p>
+                        </div>
+                      )}
+
+                      {submission.link_url && (
+                        <div className="mb-3">
+                          <a
+                            href={submission.link_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-2"
+                          >
+                            <LinkIcon size={16} />
+                            {submission.link_url}
+                          </a>
+                        </div>
+                      )}
+
+                      {submission.file_urls && submission.file_urls.length > 0 && (
+                        <div className="mb-3">
+                          <p className="text-sm font-semibold text-gray-300 mb-2">Файлы:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {submission.file_urls.map((url, idx) => (
+                              <a
+                                key={idx}
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-1"
+                              >
+                                <Upload size={14} />
+                                Файл {idx + 1}
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {submission.submitted_at && (
+                        <p className="text-gray-400 text-xs mb-2">
+                          Отправлено: {new Date(submission.submitted_at).toLocaleString('ru-RU')}
+                        </p>
+                      )}
+
+                      {submission.curator_comment && (
+                        <div className="mt-3 p-3 bg-yellow-900/20 rounded border-l-4 border-yellow-500">
+                          <p className="text-sm font-semibold text-yellow-400 mb-1">Комментарий куратора:</p>
+                          <p className="text-gray-200 text-sm">{submission.curator_comment}</p>
+                          {submission.reviewed_at && (
+                            <p className="text-gray-400 text-xs mt-2">
+                              Проверено: {new Date(submission.reviewed_at).toLocaleString('ru-RU')}
+                            </p>
+                          )}
+                        </div>
                       )}
                     </div>
-                  )}
-                </div>
-                {submission.status === 'pending' && (
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => openGradeDialog(submission)}
-                      className="bg-blue-600 hover:bg-blue-700"
-                      size="sm"
-                    >
-                      Оценить
-                    </Button>
+
+                    {submission.status === 'pending' && (
+                      <div className="ml-4">
+                        <Button
+                          onClick={() => openGradeDialog(submission)}
+                          className="bg-blue-600 hover:bg-blue-700"
+                          size="sm"
+                        >
+                          Оценить
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </Card>
-            ))
+                </Card>
+              ))}
+            </div>
           )}
         </TabsContent>
       </Tabs>
 
       {/* Create Assignment Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl max-h-[80vh] overflow-y-auto">
+      <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
+        setIsCreateDialogOpen(open);
+        if (!open) resetForm();
+      }}>
+        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Создать задание</DialogTitle>
+            <DialogDescription className="text-gray-300">
+              Заполните форму для создания нового задания
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-4">
-            <div>
-              <Label>ID задания</Label>
-              <Input
-                value={formData.id}
-                onChange={(e) => setFormData({ ...formData, id: e.target.value })}
-                placeholder="assignment-1"
-                className="bg-gray-800 border-gray-700"
-              />
-            </div>
-            <div>
-              <Label>ID урока</Label>
-              <Input
-                value={formData.lesson_id}
-                onChange={(e) => setFormData({ ...formData, lesson_id: e.target.value })}
-                placeholder="lesson-1"
-                className="bg-gray-800 border-gray-700"
-              />
-            </div>
-            <div>
-              <Label>Описание</Label>
-              <Textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Создайте приложение..."
-                className="bg-gray-800 border-gray-700"
-                rows={3}
-              />
-            </div>
-            <div>
-              <Label>Критерии оценки</Label>
-              <Textarea
-                value={formData.criteria}
-                onChange={(e) => setFormData({ ...formData, criteria: e.target.value })}
-                placeholder="1. Корректная работа\n2. Чистый код..."
-                className="bg-gray-800 border-gray-700"
-                rows={3}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Тип ответа</Label>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="text"
-                  checked={formData.requires_text}
-                  onCheckedChange={(checked) =>
-                    setFormData({ ...formData, requires_text: checked as boolean })
-                  }
-                />
-                <label htmlFor="text" className="text-sm text-gray-200">
-                  Текстовый ответ
-                </label>
+            <FormField
+              type="input"
+              label="ID задания"
+              value={formData.id}
+              onChange={(value) => setFieldValue('id', value)}
+              onBlur={() => handleBlur('id')}
+              error={errors.id}
+              required
+              hint="Уникальный идентификатор (латиница, дефисы, подчеркивания)"
+            />
+
+            <FormField
+              type="input"
+              label="ID урока"
+              value={formData.lesson_id}
+              onChange={(value) => setFieldValue('lesson_id', value)}
+              onBlur={() => handleBlur('lesson_id')}
+              error={errors.lesson_id}
+              required
+            />
+
+            <FormField
+              type="textarea"
+              label="Описание задания"
+              value={formData.description}
+              onChange={(value) => setFieldValue('description', value)}
+              onBlur={() => handleBlur('description')}
+              error={errors.description}
+              required
+              rows={4}
+            />
+
+            <FormField
+              type="textarea"
+              label="Критерии оценки"
+              value={formData.criteria}
+              onChange={(value) => setFieldValue('criteria', value)}
+              onBlur={() => handleBlur('criteria')}
+              error={errors.criteria}
+              required
+              rows={4}
+              hint="Опишите критерии оценки работы"
+            />
+
+            <div className="space-y-3">
+              <label className="text-gray-200 text-sm font-medium">Тип ответа</label>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="text"
+                    checked={formData.requires_text}
+                    onCheckedChange={(checked) => setFieldValue('requires_text', checked as boolean)}
+                  />
+                  <label htmlFor="text" className="text-sm text-gray-200 cursor-pointer">
+                    Текстовый ответ
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="file"
+                    checked={formData.requires_file}
+                    onCheckedChange={(checked) => setFieldValue('requires_file', checked as boolean)}
+                  />
+                  <label htmlFor="file" className="text-sm text-gray-200 cursor-pointer">
+                    Файл
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="link"
+                    checked={formData.requires_link}
+                    onCheckedChange={(checked) => setFieldValue('requires_link', checked as boolean)}
+                  />
+                  <label htmlFor="link" className="text-sm text-gray-200 cursor-pointer">
+                    Ссылка
+                  </label>
+                </div>
               </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="file"
-                  checked={formData.requires_file}
-                  onCheckedChange={(checked) =>
-                    setFormData({ ...formData, requires_file: checked as boolean })
-                  }
-                />
-                <label htmlFor="file" className="text-sm text-gray-200">
-                  Файл
-                </label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="link"
-                  checked={formData.requires_link}
-                  onCheckedChange={(checked) =>
-                    setFormData({ ...formData, requires_link: checked as boolean })
-                  }
-                />
-                <label htmlFor="link" className="text-sm text-gray-200">
-                  Ссылка
-                </label>
-              </div>
             </div>
-            <Button onClick={handleCreate} className="w-full bg-blue-600 hover:bg-blue-700">
-              Создать задание
-            </Button>
+
+            <div className="flex gap-2 pt-4">
+              <Button
+                onClick={() => setIsCreateDialogOpen(false)}
+                variant="outline"
+                className="flex-1 border-gray-700"
+              >
+                Отмена
+              </Button>
+              <Button
+                onClick={handleCreate}
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+                disabled={createMutation.loading}
+              >
+                {createMutation.loading ? 'Создание...' : 'Создать задание'}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
 
       {/* Edit Assignment Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl max-h-[80vh] overflow-y-auto">
+      <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+        setIsEditDialogOpen(open);
+        if (!open) {
+          setEditingAssignment(null);
+          resetForm();
+        }
+      }}>
+        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Редактировать задание</DialogTitle>
+            <DialogDescription className="text-gray-300">
+              Измените данные задания. ID нельзя изменить.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-4">
-            <div>
-              <Label>ID задания</Label>
-              <Input
-                value={formData.id}
-                disabled
-                className="bg-gray-800 border-gray-700"
-              />
-            </div>
-            <div>
-              <Label>ID урока</Label>
-              <Input
-                value={formData.lesson_id}
-                onChange={(e) => setFormData({ ...formData, lesson_id: e.target.value })}
-                placeholder="lesson-1"
-                className="bg-gray-800 border-gray-700"
-              />
-            </div>
-            <div>
-              <Label>Описание</Label>
-              <Textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Создайте приложение..."
-                className="bg-gray-800 border-gray-700"
-                rows={3}
-              />
-            </div>
-            <div>
-              <Label>Критерии оценки</Label>
-              <Textarea
-                value={formData.criteria}
-                onChange={(e) => setFormData({ ...formData, criteria: e.target.value })}
-                placeholder="1. Корректная работа\n2. Чистый код..."
-                className="bg-gray-800 border-gray-700"
-                rows={3}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Тип ответа</Label>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="edit-text"
-                  checked={formData.requires_text}
-                  onCheckedChange={(checked) =>
-                    setFormData({ ...formData, requires_text: checked as boolean })
-                  }
-                />
-                <label htmlFor="edit-text" className="text-sm text-gray-200">
-                  Текстовый ответ
-                </label>
+            <FormField
+              type="input"
+              label="ID задания"
+              value={formData.id}
+              onChange={() => {}}
+              hint="ID нельзя изменить"
+            />
+
+            <FormField
+              type="input"
+              label="ID урока"
+              value={formData.lesson_id}
+              onChange={(value) => setFieldValue('lesson_id', value)}
+              onBlur={() => handleBlur('lesson_id')}
+              error={errors.lesson_id}
+              required
+            />
+
+            <FormField
+              type="textarea"
+              label="Описание задания"
+              value={formData.description}
+              onChange={(value) => setFieldValue('description', value)}
+              onBlur={() => handleBlur('description')}
+              error={errors.description}
+              required
+              rows={4}
+            />
+
+            <FormField
+              type="textarea"
+              label="Критерии оценки"
+              value={formData.criteria}
+              onChange={(value) => setFieldValue('criteria', value)}
+              onBlur={() => handleBlur('criteria')}
+              error={errors.criteria}
+              required
+              rows={4}
+            />
+
+            <div className="space-y-3">
+              <label className="text-gray-200 text-sm font-medium">Тип ответа</label>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="edit-text"
+                    checked={formData.requires_text}
+                    onCheckedChange={(checked) => setFieldValue('requires_text', checked as boolean)}
+                  />
+                  <label htmlFor="edit-text" className="text-sm text-gray-200 cursor-pointer">
+                    Текстовый ответ
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="edit-file"
+                    checked={formData.requires_file}
+                    onCheckedChange={(checked) => setFieldValue('requires_file', checked as boolean)}
+                  />
+                  <label htmlFor="edit-file" className="text-sm text-gray-200 cursor-pointer">
+                    Файл
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="edit-link"
+                    checked={formData.requires_link}
+                    onCheckedChange={(checked) => setFieldValue('requires_link', checked as boolean)}
+                  />
+                  <label htmlFor="edit-link" className="text-sm text-gray-200 cursor-pointer">
+                    Ссылка
+                  </label>
+                </div>
               </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="edit-file"
-                  checked={formData.requires_file}
-                  onCheckedChange={(checked) =>
-                    setFormData({ ...formData, requires_file: checked as boolean })
-                  }
-                />
-                <label htmlFor="edit-file" className="text-sm text-gray-200">
-                  Файл
-                </label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="edit-link"
-                  checked={formData.requires_link}
-                  onCheckedChange={(checked) =>
-                    setFormData({ ...formData, requires_link: checked as boolean })
-                  }
-                />
-                <label htmlFor="edit-link" className="text-sm text-gray-200">
-                  Ссылка
-                </label>
-              </div>
             </div>
-            <Button onClick={handleUpdate} className="w-full bg-blue-600 hover:bg-blue-700">
-              Сохранить изменения
-            </Button>
+
+            <div className="flex gap-2 pt-4">
+              <Button
+                onClick={() => setIsEditDialogOpen(false)}
+                variant="outline"
+                className="flex-1 border-gray-700"
+              >
+                Отмена
+              </Button>
+              <Button
+                onClick={handleUpdate}
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+                disabled={updateMutation.loading}
+              >
+                {updateMutation.loading ? 'Сохранение...' : 'Сохранить изменения'}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -542,40 +788,67 @@ export function AssignmentsManagement() {
         <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl">
           <DialogHeader>
             <DialogTitle>Оценить работу</DialogTitle>
+            <DialogDescription className="text-gray-300">
+              Выберите статус и оставьте комментарий для студента
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-4">
             {gradingSubmission && (
               <>
-                <div>
-                  <Label>Статус</Label>
-                  <Select value={gradeStatus} onValueChange={(value: 'accepted' | 'needs_revision') => setGradeStatus(value)}>
-                    <SelectTrigger className="bg-gray-800 border-gray-700">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-700 text-white shadow-lg">
-                      <SelectItem value="accepted" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Принято</SelectItem>
-                      <SelectItem value="needs_revision" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Требует доработки</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <FormField
+                  type="select"
+                  label="Статус"
+                  value={gradeStatus}
+                  onChange={(value) => setGradeStatus(value as 'accepted' | 'needs_revision')}
+                  options={[
+                    { value: 'accepted', label: 'Принято' },
+                    { value: 'needs_revision', label: 'Требует доработки' },
+                  ]}
+                  required
+                />
+
+                <FormField
+                  type="textarea"
+                  label="Комментарий куратора"
+                  value={gradeComment}
+                  onChange={setGradeComment}
+                  rows={6}
+                  hint="Оставьте комментарий для студента с рекомендациями"
+                />
+
+                <div className="flex gap-2 pt-4">
+                  <Button
+                    onClick={() => setIsGradeDialogOpen(false)}
+                    variant="outline"
+                    className="flex-1 border-gray-700"
+                  >
+                    Отмена
+                  </Button>
+                  <Button
+                    onClick={handleGrade}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                    disabled={gradeMutation.loading}
+                  >
+                    {gradeMutation.loading ? 'Сохранение...' : 'Сохранить оценку'}
+                  </Button>
                 </div>
-                <div>
-                  <Label>Комментарий куратора</Label>
-                  <Textarea
-                    value={gradeComment}
-                    onChange={(e) => setGradeComment(e.target.value)}
-                    placeholder="Введите комментарий..."
-                    className="bg-gray-800 border-gray-700"
-                    rows={4}
-                  />
-                </div>
-                <Button onClick={handleGrade} className="w-full bg-blue-600 hover:bg-blue-700">
-                  Сохранить оценку
-                </Button>
               </>
             )}
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteConfirm.open}
+        onOpenChange={(open) => setDeleteConfirm({ open, assignmentId: deleteConfirm.assignmentId })}
+        title="Удалить задание?"
+        description="Это действие нельзя отменить. Все связанные работы студентов также будут удалены."
+        confirmLabel="Удалить"
+        cancelLabel="Отмена"
+        variant="destructive"
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

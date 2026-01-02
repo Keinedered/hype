@@ -35,10 +35,10 @@ interface Track {
 
 // 4 фиксированных курса
 const FIXED_COURSES = [
-  { id: 'event-basics', title: 'Ивент индустрия', track: 'event' },
+  { id: 'design', title: 'Дизайн', track: 'design' },
+  { id: 'event-basics', title: 'Ивент', track: 'event' },
   { id: 'product-intro', title: 'Цифровые продукты', track: 'digital' },
   { id: 'business-comm', title: 'Внешние коммуникации', track: 'communication' },
-  { id: 'graphic-design', title: 'Дизайн', track: 'design' },
 ];
 
 export function CourseEditor() {
@@ -183,7 +183,7 @@ export function CourseEditor() {
                 <h1 className="text-2xl font-bold text-black">
                   {isEditMode ? 'Редактировать курс' : 'Создать курс'}
                 </h1>
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-sm text-gray-700 mt-1">
                   Заполните форму и опубликуйте курс на платформе
                 </p>
               </div>
@@ -207,7 +207,7 @@ export function CourseEditor() {
                   required
                   disabled={true}
                 />
-                <p className="text-gray-500 text-xs mt-1">ID курса нельзя изменить</p>
+                <p className="text-gray-700 text-xs mt-1">ID курса нельзя изменить</p>
               </div>
 
               <div>
@@ -218,7 +218,7 @@ export function CourseEditor() {
                   required
                   disabled={true}
                 >
-                  <SelectTrigger className="bg-white border-gray-300 text-black placeholder:text-gray-500 mt-2">
+                  <SelectTrigger className="bg-white border-gray-300 text-black placeholder:text-gray-600 mt-2">
                     <SelectValue placeholder="Выберите трек" />
                   </SelectTrigger>
                   <SelectContent className="bg-white border-gray-300 text-black shadow-lg">
@@ -229,7 +229,7 @@ export function CourseEditor() {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-gray-500 text-xs mt-1">Трек курса нельзя изменить</p>
+                <p className="text-gray-700 text-xs mt-1">Трек курса нельзя изменить</p>
               </div>
 
               <div className="md:col-span-2">
@@ -270,7 +270,7 @@ export function CourseEditor() {
                   value={formData.level}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, level: value }))}
                 >
-                  <SelectTrigger className="bg-white border-gray-300 text-black placeholder:text-gray-500 mt-2">
+                  <SelectTrigger className="bg-white border-gray-300 text-black placeholder:text-gray-600 mt-2">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-white border-gray-300 text-black shadow-lg">

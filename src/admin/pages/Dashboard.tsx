@@ -1,141 +1,190 @@
-﻿import { useState, useEffect } from 'react';
-import { Card } from '@/components/ui/card';
-import { BookOpen, Users, ClipboardCheck, TrendingUp } from 'lucide-react';
-import { adminAPI, checkServerHealth } from '@/api/adminClient';
-import { toast } from 'sonner';
+﻿import { Card } from '@/components/ui/card';
+import { BookOpen, Users, ClipboardCheck, TrendingUp, ArrowRight } from 'lucide-react';
+import { adminAPI } from '@/api/adminClient';
+import { useApiQuery } from '../hooks';
+import { LoadingState, ErrorState } from '../components';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 
 export function Dashboard() {
-  const [stats, setStats] = useState({
-    courses: 0,
-    students: 0,
-    pendingSubmissions: 0,
-    avgCompletion: 0,
-  });
+  // Загружаем данные параллельно
+  const { data: courses, loading: coursesLoading, error: coursesError, refetch: refetchCourses } = useApiQuery(
+    () => adminAPI.courses.getAll(),
+    { cacheTime: 2 * 60 * 1000 } // 2 минуты
+  );
 
-  useEffect(() => {
-    fetchStats();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const { data: submissions, loading: submissionsLoading } = useApiQuery(
+    () => adminAPI.submissions.getAll('pending'),
+    { cacheTime: 1 * 60 * 1000 } // 1 минута
+  );
 
-  const fetchStats = async () => {
-    try {
-      // Проверяем доступность сервера
-      const isHealthy = await checkServerHealth();
-      if (!isHealthy) {
-        toast.error('Сервер недоступен. Проверьте, что backend запущен на http://localhost:8000');
-        return;
-      }
+  const { data: users, loading: usersLoading } = useApiQuery(
+    () => adminAPI.users.getAll(),
+    { cacheTime: 5 * 60 * 1000 } // 5 минут
+  );
 
-      // Загружаем курсы и submissions параллельно
-      const [courses, submissions] = await Promise.all([
-        adminAPI.courses.getAll().catch(() => []),
-        adminAPI.submissions.getAll('pending').catch(() => []),
-      ]);
-      
-      // Подсчитываем статистику
-      const coursesCount = Array.isArray(courses) ? courses.length : 0;
-      const pendingCount = Array.isArray(submissions) ? submissions.length : 0;
-      
-      // Получаем статистику пользователей и аналитику
-      try {
-        const [users, analytics] = await Promise.all([
-          adminAPI.users.getAll().catch(() => []),
-          adminAPI.analytics.get('all').catch(() => null),
-        ]);
-        
-        const usersCount = Array.isArray(users) ? users.length : 0;
-        const activeUsersCount = Array.isArray(users) 
-          ? users.filter((u: any) => u.is_active).length 
-          : 0;
-        
-        const avgCompletion = analytics?.averageCompletionRate || 0;
-        
-        setStats({
-          courses: coursesCount,
-          students: activeUsersCount || usersCount,
-          pendingSubmissions: pendingCount,
-          avgCompletion: avgCompletion,
-        });
-      } catch (error) {
-        // Fallback если не удалось получить данные
-        setStats({
-          courses: coursesCount,
-          students: 0,
-          pendingSubmissions: pendingCount,
-          avgCompletion: 0,
-        });
-      }
-    } catch (error: any) {
-      console.error('Failed to fetch stats:', error);
-      toast.error(error.message || 'Ошибка загрузки статистики');
-    }
+  const { data: analytics, loading: analyticsLoading } = useApiQuery(
+    () => adminAPI.analytics.get('all'),
+    { cacheTime: 5 * 60 * 1000 } // 5 минут
+  );
+
+  const loading = coursesLoading || submissionsLoading || usersLoading || analyticsLoading;
+
+  // Вычисляем статистику
+  const stats = {
+    courses: Array.isArray(courses) ? courses.length : 0,
+    students: Array.isArray(users) 
+      ? users.filter((u) => u && typeof u === 'object' && 'is_active' in u && u.is_active).length 
+      : 0,
+    pendingSubmissions: Array.isArray(submissions) ? submissions.length : 0,
+    avgCompletion: analytics?.averageCompletionRate || 0,
   };
 
+  if (loading) {
+    return <LoadingState message="Загрузка статистики..." />;
+  }
+
+  if (coursesError) {
+    return (
+      <ErrorState 
+        error={coursesError} 
+        title="Ошибка загрузки данных"
+        onRetry={refetchCourses}
+      />
+    );
+  }
+
   return (
-    <div>
-      <h1 className="text-3xl font-bold text-white mb-6">Dashboard</h1>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Dashboard</h1>
+          <p className="text-gray-300 text-sm">
+            Обзор системы и статистика платформы
+          </p>
+        </div>
+      </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card className="p-6 bg-gray-900 border-gray-800">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="p-6 bg-gray-900 border-gray-800 hover:border-gray-700 transition-colors">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Курсы</p>
-              <p className="text-3xl font-bold text-white mt-2">{stats.courses}</p>
+              <p className="text-gray-300 text-sm mb-1">Курсы</p>
+              <p className="text-3xl font-bold text-white">{stats.courses}</p>
+              <p className="text-gray-400 text-xs mt-1">Всего в системе</p>
             </div>
-            <BookOpen className="text-blue-500" size={32} />
+            <div className="p-3 bg-blue-500/20 rounded-lg">
+              <BookOpen className="text-blue-500" size={32} />
+            </div>
           </div>
+          <Link to="/admin/courses" className="mt-4 inline-flex items-center text-blue-400 hover:text-blue-300 text-sm">
+            Управление курсами <ArrowRight className="ml-1" size={14} />
+          </Link>
         </Card>
 
-        <Card className="p-6 bg-gray-900 border-gray-800">
+        <Card className="p-6 bg-gray-900 border-gray-800 hover:border-gray-700 transition-colors">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Студенты</p>
-              <p className="text-3xl font-bold text-white mt-2">{stats.students || '—'}</p>
+              <p className="text-gray-300 text-sm mb-1">Студенты</p>
+              <p className="text-3xl font-bold text-white">{stats.students || '—'}</p>
+              <p className="text-gray-400 text-xs mt-1">Активных пользователей</p>
             </div>
-            <Users className="text-green-500" size={32} />
+            <div className="p-3 bg-green-500/20 rounded-lg">
+              <Users className="text-green-500" size={32} />
+            </div>
           </div>
+          <Link to="/admin/users" className="mt-4 inline-flex items-center text-green-400 hover:text-green-300 text-sm">
+            Управление пользователями <ArrowRight className="ml-1" size={14} />
+          </Link>
         </Card>
 
-        <Card className="p-6 bg-gray-900 border-gray-800">
+        <Card className="p-6 bg-gray-900 border-gray-800 hover:border-gray-700 transition-colors">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Задания на проверке</p>
-              <p className="text-3xl font-bold text-white mt-2">{stats.pendingSubmissions}</p>
+              <p className="text-gray-300 text-sm mb-1">Задания на проверке</p>
+              <p className="text-3xl font-bold text-white">{stats.pendingSubmissions}</p>
+              <p className="text-gray-400 text-xs mt-1">Требуют внимания</p>
             </div>
-            <ClipboardCheck className="text-orange-500" size={32} />
+            <div className="p-3 bg-orange-500/20 rounded-lg">
+              <ClipboardCheck className="text-orange-500" size={32} />
+            </div>
           </div>
+          <Link to="/admin/assignments" className="mt-4 inline-flex items-center text-orange-400 hover:text-orange-300 text-sm">
+            Проверить задания <ArrowRight className="ml-1" size={14} />
+          </Link>
         </Card>
 
-        <Card className="p-6 bg-gray-900 border-gray-800">
+        <Card className="p-6 bg-gray-900 border-gray-800 hover:border-gray-700 transition-colors">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Ср. завершение</p>
-              <p className="text-3xl font-bold text-white mt-2">{stats.avgCompletion ? `${stats.avgCompletion}%` : '—'}</p>
+              <p className="text-gray-300 text-sm mb-1">Среднее завершение</p>
+              <p className="text-3xl font-bold text-white">
+                {stats.avgCompletion ? `${Math.round(stats.avgCompletion)}%` : '—'}
+              </p>
+              <p className="text-gray-400 text-xs mt-1">Процент завершения</p>
             </div>
-            <TrendingUp className="text-purple-500" size={32} />
+            <div className="p-3 bg-purple-500/20 rounded-lg">
+              <TrendingUp className="text-purple-500" size={32} />
+            </div>
           </div>
+          <Link to="/admin/analytics" className="mt-4 inline-flex items-center text-purple-400 hover:text-purple-300 text-sm">
+            Подробная аналитика <ArrowRight className="ml-1" size={14} />
+          </Link>
         </Card>
       </div>
+
+      {/* Quick Actions */}
+      <Card className="p-6 bg-gray-900 border-gray-800">
+        <h2 className="text-xl font-bold text-white mb-4">Быстрые действия</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Link to="/admin/courses?action=create">
+            <Button className="w-full bg-blue-600 hover:bg-blue-700 justify-start">
+              <BookOpen className="mr-2" size={18} />
+              Создать новый курс
+            </Button>
+          </Link>
+          <Link to="/admin/assignments">
+            <Button className="w-full bg-orange-600 hover:bg-orange-700 justify-start">
+              <ClipboardCheck className="mr-2" size={18} />
+              Проверить задания
+            </Button>
+          </Link>
+          <Link to="/admin/graph">
+            <Button className="w-full bg-green-600 hover:bg-green-700 justify-start">
+              <TrendingUp className="mr-2" size={18} />
+              Редактировать граф
+            </Button>
+          </Link>
+        </div>
+      </Card>
 
       {/* Recent Activity */}
       <Card className="p-6 bg-gray-900 border-gray-800">
         <h2 className="text-xl font-bold text-white mb-4">Недавняя активность</h2>
         <div className="space-y-4">
-          <div className="flex items-center justify-between py-3 border-b border-gray-800">
-            <div>
-              <p className="text-white font-medium">Новый курс создан</p>
-              <p className="text-gray-400 text-sm">«React Advanced» добавлен в систему</p>
+          {Array.isArray(courses) && courses.length > 0 ? (
+            courses.slice(0, 5).map((course: any) => (
+              <div key={course.id} className="flex items-center justify-between py-3 border-b border-gray-800 last:border-0">
+                <div>
+                  <p className="text-white font-medium">Курс: {course.title}</p>
+                  <p className="text-gray-300 text-sm">
+                    {course.status === 'published' ? 'Опубликован' : 'Черновик'} • 
+                    {course.created_at && ` Создан ${new Date(course.created_at).toLocaleDateString('ru-RU')}`}
+                  </p>
+                </div>
+                <Link to={`/admin/courses/${course.id}`}>
+                  <Button variant="ghost" size="sm" className="text-gray-300 hover:text-white">
+                    Открыть
+                  </Button>
+                </Link>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-300">Нет недавней активности</p>
             </div>
-            <span className="text-gray-400 text-sm">2 часа назад</span>
-          </div>
-          <div className="flex items-center justify-between py-3 border-b border-gray-800">
-            <div>
-              <p className="text-white font-medium">Задание проверено</p>
-              <p className="text-gray-400 text-sm">15 submissions проверено</p>
-            </div>
-            <span className="text-gray-400 text-sm">4 часа назад</span>
-          </div>
+          )}
         </div>
       </Card>
     </div>

@@ -5,33 +5,47 @@ export const tracks: Track[] = [
     id: 'event',
     name: 'Ивент',
     description: 'Организация мероприятий и управление событиями',
-    color: '#E2B6C8'
+    color: '#D4A5B8' // Улучшена контрастность для черного текста
   },
   {
     id: 'digital',
     name: 'Цифровые продукты',
     description: 'Product management и продуктовая аналитика',
-    color: '#B6E2C8'
+    color: '#A8D4B8' // Улучшена контрастность для черного текста
   },
   {
     id: 'communication',
     name: 'Внешние коммуникации',
     description: 'Деловая коммуникация и внешние связи',
-    color: '#B6C8E2'
+    color: '#A8B8D4' // Улучшена контрастность для черного текста
   },
   {
     id: 'design',
     name: 'Дизайн',
     description: 'Графический и продуктовый дизайн',
-    color: '#C8B6E2'
+    color: '#B8A5D4' // Улучшена контрастность для черного текста
   }
 ];
 
 export const courses: Course[] = [
   {
+    id: 'design',
+    trackId: 'design',
+    title: 'Дизайн',
+    version: 'v1.0',
+    description: 'Фундаментальные принципы визуального дизайна',
+    shortDescription: 'Композиция, цвет и типографика',
+    level: 'beginner',
+    moduleCount: 3,
+    lessonCount: 15,
+    taskCount: 18,
+    authors: ['Артём Соколов'],
+    status: 'not_started'
+  },
+  {
     id: 'event-basics',
     trackId: 'event',
-    title: 'Основы ивент-менеджмента',
+    title: 'Ивент',
     version: 'v1.0',
     description: 'Погружение в мир организации мероприятий: от концепции до пост-анализа',
     shortDescription: 'Научитесь планировать и проводить успешные мероприятия',
@@ -44,23 +58,9 @@ export const courses: Course[] = [
     status: 'not_started'
   },
   {
-    id: 'event-offline',
-    trackId: 'event',
-    title: 'Организация офлайн-мероприятий',
-    version: 'v1.1',
-    description: 'Практические навыки организации офлайн-событий любого масштаба',
-    shortDescription: 'От камерных встреч до крупных конференций',
-    level: 'intermediate',
-    moduleCount: 4,
-    lessonCount: 16,
-    taskCount: 20,
-    authors: ['Мария Иванова'],
-    status: 'not_started' // Not started because basics not started
-  },
-  {
     id: 'product-intro',
     trackId: 'digital',
-    title: 'Введение в продуктовый менеджмент',
+    title: 'Цифровые продукты',
     version: 'v1.0',
     description: 'Основы работы продакт-менеджера: от идеи до запуска',
     shortDescription: 'Станьте продакт-менеджером цифрового продукта',
@@ -74,23 +74,9 @@ export const courses: Course[] = [
     status: 'in_progress'
   },
   {
-    id: 'cjm-course',
-    trackId: 'digital',
-    title: 'Карта пользовательского пути и CJM',
-    version: 'v1.2',
-    description: 'Глубокое погружение в построение Customer Journey Map',
-    shortDescription: 'Научитесь понимать путь вашего пользователя',
-    level: 'intermediate',
-    moduleCount: 3,
-    lessonCount: 10,
-    taskCount: 12,
-    authors: ['Екатерина Сидорова'],
-    status: 'not_started' // Not started yet, available after intro completion
-  },
-  {
     id: 'business-comm',
     trackId: 'communication',
-    title: 'Основы деловой переписки',
+    title: 'Внешние коммуникации',
     version: 'v1.0',
     description: 'Эффективная деловая коммуникация в письменной форме',
     shortDescription: 'Email, мессенджеры и официальные письма',
@@ -99,36 +85,6 @@ export const courses: Course[] = [
     lessonCount: 9,
     taskCount: 12,
     authors: ['Наталья Морозова'],
-    status: 'not_started'
-  },
-  {
-    id: 'external-comm',
-    trackId: 'communication',
-    title: 'Внешние коммуникации компании',
-    version: 'v1.1',
-    description: 'Построение эффективной системы внешних коммуникаций',
-    shortDescription: 'PR, медиа и работа с общественностью',
-    level: 'intermediate',
-    moduleCount: 5,
-    lessonCount: 20,
-    taskCount: 25,
-    authors: ['Игорь Белов', 'Светлана Новикова'],
-    enrollmentDeadline: '20 января 2026',
-    progress: 100,
-    status: 'completed'
-  },
-  {
-    id: 'graphic-design',
-    trackId: 'design',
-    title: 'Основы графического дизайна',
-    version: 'v1.0',
-    description: 'Фундаментальные принципы визуального дизайна',
-    shortDescription: 'Композиция, цвет и типографика',
-    level: 'beginner',
-    moduleCount: 3,
-    lessonCount: 15,
-    taskCount: 18,
-    authors: ['Артём Соколов'],
     status: 'not_started'
   },
   {
@@ -355,45 +311,45 @@ export const graphNodes: GraphNode[] = [
   },
 
   // ПЕРВЫЙ КРУГ - основные курсы каждого трека (радиус ~350px от центра, с учетом текста)
-  // EVENT - верх-лево (315°)
+  // DESIGN - верх-лево (315°)
   {
-    id: 'event-basics',
+    id: 'design',
     type: 'course',
-    entityId: 'event-basics',
-    title: 'Основы\nИвентов',
+    entityId: 'design',
+    title: 'Дизайн',
     x: 550,
     y: 300,
     status: 'completed',
     size: 45
   },
-  // DIGITAL - верх-право (45°)
+  // EVENT - верх-право (45°)
   {
-    id: 'product-intro',
+    id: 'event-basics',
     type: 'course',
-    entityId: 'product-intro',
-    title: 'Введение\nв Продукт',
+    entityId: 'event-basics',
+    title: 'Ивент',
     x: 1050,
     y: 300,
     status: 'current',
     size: 45
   },
-  // COMMUNICATION - низ-лево (225°)
+  // DIGITAL - низ-лево (225°)
   {
-    id: 'business-comm',
+    id: 'product-intro',
     type: 'course',
-    entityId: 'business-comm',
-    title: 'Деловая\nПереписка',
+    entityId: 'product-intro',
+    title: 'Цифровые\nпродукты',
     x: 550,
     y: 700,
     status: 'open',
     size: 45
   },
-  // DESIGN - низ-право (135°)
+  // COMMUNICATION - низ-право (135°)
   {
-    id: 'graphic-design',
+    id: 'business-comm',
     type: 'course',
-    entityId: 'graphic-design',
-    title: 'Графический\nДизайн',
+    entityId: 'business-comm',
+    title: 'Внешние\nкоммуникации',
     x: 1050,
     y: 700,
     status: 'open',
@@ -566,25 +522,25 @@ export const graphEdges: GraphEdge[] = [
   {
     id: 'center-1',
     sourceId: 'root',
-    targetId: 'event-basics',
+    targetId: 'design',
     type: 'required'
   },
   {
     id: 'center-2',
     sourceId: 'root',
-    targetId: 'product-intro',
+    targetId: 'event-basics',
     type: 'required'
   },
   {
     id: 'center-3',
     sourceId: 'root',
-    targetId: 'business-comm',
+    targetId: 'product-intro',
     type: 'required'
   },
   {
     id: 'center-4',
     sourceId: 'root',
-    targetId: 'graphic-design',
+    targetId: 'business-comm',
     type: 'required'
   },
 
@@ -699,13 +655,13 @@ export const graphEdges: GraphEdge[] = [
   // DESIGN CONSTELLATION - созвездие дизайна
   {
     id: 'des1',
-    sourceId: 'graphic-design',
+    sourceId: 'design',
     targetId: 'ui-fundamentals',
     type: 'required'
   },
   {
     id: 'des2',
-    sourceId: 'graphic-design',
+    sourceId: 'design',
     targetId: 'product-design',
     type: 'required'
   },

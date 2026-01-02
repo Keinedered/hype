@@ -123,7 +123,7 @@ export function Header({ currentPage = 'home', onNavigate }: HeaderProps) {
               <div className="font-mono tracking-[0.15em] uppercase text-lg font-bold group-hover:underline">
                 GRAPH
               </div>
-              <div className="text-[10px] text-muted-foreground font-mono tracking-wide uppercase">
+              <div className="text-[10px] text-gray-700 font-mono tracking-wide uppercase">
                 Выстрой свой путь
               </div>
             </div>
@@ -205,43 +205,43 @@ export function Header({ currentPage = 'home', onNavigate }: HeaderProps) {
 
             {/* Notifications Dropdown */}
             {showNotifications && (
-              <div className="fixed left-4 right-4 top-20 mt-2 w-auto max-h-[calc(100vh-7rem)] overflow-y-auto bg-white border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96 sm:max-h-[500px]">
-                <div className="bg-black text-white px-4 py-3 font-mono text-sm tracking-wide uppercase flex justify-between items-center sticky top-0">
+              <div className="absolute right-0 top-full mt-2 w-96 max-h-[500px] overflow-y-auto bg-white border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] z-50">
+                <div className="bg-black text-white px-3 py-2 font-mono text-xs tracking-wide uppercase flex justify-between items-center sticky top-0 z-10">
                   <span>Уведомления</span>
                   <button 
                     onClick={() => setShowNotifications(false)}
-                    className="hover:opacity-70"
+                    className="hover:opacity-70 text-sm"
                   >
                     ✕
                   </button>
                 </div>
-                <div className="divide-y-2 divide-black">
+                <div className="divide-y divide-black">
                   {mockNotifications.map((notification) => (
                     <div 
                       key={notification.id}
                       onClick={() => handleNotificationClick(notification.relatedUrl)}
-                      className={`p-4 hover:bg-gray-50 transition-colors cursor-pointer ${!notification.isRead ? 'bg-gray-50/50' : ''}`}
+                      className={`p-3 hover:bg-gray-50 transition-colors cursor-pointer ${!notification.isRead ? 'bg-gray-50/50' : ''}`}
                     >
-                      <div className="flex items-start gap-3">
+                      <div className="flex items-start gap-2">
                         <div 
-                          className="w-1 h-full mt-1"
+                          className="w-1 h-full mt-1 shrink-0"
                           style={{ backgroundColor: notification.color }}
                         />
-                        <div className="flex-1 space-y-1">
+                        <div className="flex-1 space-y-1 min-w-0">
                           <div className="flex justify-between items-start gap-2">
-                            <h4 className="font-mono font-bold text-xs uppercase tracking-wide">{notification.title}</h4>
+                            <h4 className="font-mono font-bold text-xs uppercase tracking-wide leading-tight">{notification.title}</h4>
                             {!notification.isRead && (
                               <div className="w-2 h-2 bg-black rounded-full shrink-0 mt-1" />
                             )}
                           </div>
-                          <p className="text-sm font-mono text-gray-600 leading-relaxed">{notification.message}</p>
-                          <span className="text-xs font-mono text-gray-400">{notification.time}</span>
+                          <p className="text-xs font-mono text-gray-700 leading-relaxed line-clamp-2">{notification.message}</p>
+                          <span className="text-xs font-mono text-gray-600">{notification.time}</span>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
-                <div className="border-t-2 border-black p-3 bg-gray-50">
+                <div className="border-t-2 border-black p-2 bg-gray-50">
                   <button 
                     onClick={() => {
                       setShowNotifications(false);
@@ -282,7 +282,10 @@ export function Header({ currentPage = 'home', onNavigate }: HeaderProps) {
                 <Button 
                   variant="ghost" 
                   className="border-2 border-black hover:bg-black hover:text-white transition-all font-mono text-xs px-3"
-                  onClick={() => navigate('/admin')}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.location.href = '/admin';
+                  }}
                 >
                   АДМИН
                 </Button>

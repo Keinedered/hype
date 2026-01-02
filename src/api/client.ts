@@ -152,6 +152,10 @@ export const modulesAPI = {
   async getById(moduleId: string) {
     return apiFetch(`/modules/${moduleId}`);
   },
+
+  async getProgress(moduleId: string) {
+    return apiFetch(`/modules/${moduleId}/progress`);
+  },
 };
 
 // Lessons API

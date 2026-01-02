@@ -210,6 +210,15 @@ def update_course(
             )
             db.add(author)
     
+    # Синхронизируем название с узлом графа
+    if 'title' in update_data:
+        try:
+            graph_node = crud.get_graph_node_by_entity(db, course_id, models.NodeType.course)
+            if graph_node:
+                graph_node.title = db_course.title
+        except Exception as e:
+            logger.warning(f"Failed to update graph node for course {course_id}: {e}", exc_info=True)
+    
     db_course.updated_at = datetime.now()
     safe_commit(db, "update_course")
     # Перезагружаем курс с авторами
@@ -245,6 +254,13 @@ def delete_course(
     if not course:
         raise HTTPException(status_code=404, detail='Course not found')
     
+    # Удаляем узел графа курса (каскадно удалятся связи через CASCADE)
+    try:
+        crud.delete_graph_node_for_course(db, course_id)
+    except Exception as e:
+        logger.warning(f"Failed to delete graph node for course {course_id}: {e}", exc_info=True)
+    
+    # Удаляем курс (модули и уроки удалятся каскадно через CASCADE)
     db.delete(course)
     safe_commit(db, "delete_course")
     return None
@@ -361,6 +377,15 @@ def update_module(
     update_data = module.dict(exclude_unset=True)
     for key, value in update_data.items():
         setattr(db_module, key, value)
+    
+    # Синхронизируем название с узлом графа
+    if 'title' in update_data:
+        try:
+            graph_node = crud.get_graph_node_by_entity(db, module_id, models.NodeType.module)
+            if graph_node:
+                graph_node.title = db_module.title
+        except Exception as e:
+            logger.warning(f"Failed to update graph node for module {module_id}: {e}", exc_info=True)
     
     safe_commit(db, "update_module")
     db.refresh(db_module)

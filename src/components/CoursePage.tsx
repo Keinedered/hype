@@ -273,7 +273,7 @@ export function CoursePage({
             
             {loading ? (
               <div className="text-center py-12">
-                <p className="text-muted-foreground font-mono">Загрузка модулей...</p>
+                <p className="text-gray-700 font-mono">Загрузка модулей...</p>
               </div>
             ) : (
               <Accordion type="single" collapsible className="space-y-4">
@@ -293,7 +293,7 @@ export function CoursePage({
                       </div>
                       <div className="flex-1">
                         <div className="font-mono tracking-wide mb-2">{module.title.toUpperCase()}</div>
-                        <div className="text-sm text-muted-foreground font-mono">
+                        <div className="text-sm text-gray-700 font-mono">
                           {module.description}
                         </div>
                         {module.progress !== undefined && (
@@ -335,7 +335,7 @@ export function CoursePage({
                           </button>
                         ))
                       ) : (
-                        <p className="text-muted-foreground font-mono text-sm py-2">
+                        <p className="text-gray-700 font-mono text-sm py-2">
                           В этом модуле пока нет уроков
                         </p>
                       )}
@@ -360,13 +360,13 @@ export function CoursePage({
                 </p>
                 <div className="border-l-2 border-black pl-3">
                   <div className="font-bold text-foreground mb-2 tracking-wide">ДЛЯ КОГО ЭТОТ КУРС</div>
-                  <p className="text-muted-foreground">
+                  <p className="text-gray-700">
                     Начинающие продакт-менеджеры, стажёры, специалисты смежных областей
                   </p>
                 </div>
                 <div className="border-l-2 border-black pl-3">
                   <div className="font-bold text-foreground mb-2 tracking-wide">ЧТО ВЫ ПОЛУЧИТЕ</div>
-                  <ul className="space-y-1 text-muted-foreground">
+                  <ul className="space-y-1 text-gray-700">
                     <li>→ Понимание роли продакта</li>
                     <li>→ Навыки проведения исследований</li>
                     <li>→ Умение ставить метрики</li>
@@ -375,7 +375,7 @@ export function CoursePage({
                 </div>
                 <div className="border-l-2 border-black pl-3">
                   <div className="font-bold text-foreground mb-2 tracking-wide">УРОВЕНЬ</div>
-                  <p className="text-muted-foreground">Начальный</p>
+                  <p className="text-gray-700">Начальный</p>
                 </div>
               </div>
             </Card>
@@ -384,7 +384,7 @@ export function CoursePage({
               <div className="bg-black text-white px-3 py-1 inline-block font-mono text-sm tracking-wide">
                 ХЕНДБУК КУРСА
               </div>
-              <p className="text-sm text-muted-foreground font-mono leading-relaxed">
+              <p className="text-sm text-gray-700 font-mono leading-relaxed">
                 Дополнительные материалы, шаблоны и чек-листы по темам курса
               </p>
               <Button 

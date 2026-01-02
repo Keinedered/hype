@@ -62,14 +62,14 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
         );
       case 'accepted':
         return (
-          <div className="flex items-center gap-2 px-3 py-1 bg-[#B6E2C8] border border-black">
+          <div className="flex items-center gap-2 px-3 py-1 bg-[#A8D4B8] border border-black">
             <Check className="w-4 h-4" />
             <span className="font-mono text-xs uppercase">Принято</span>
           </div>
         );
       case 'needs_revision':
         return (
-          <div className="flex items-center gap-2 px-3 py-1 bg-[#E2B6C8] border border-black">
+          <div className="flex items-center gap-2 px-3 py-1 bg-[#D4A5B8] border border-black">
             <X className="w-4 h-4" />
             <span className="font-mono text-xs uppercase">Нужна доработка</span>
           </div>
@@ -104,27 +104,27 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
                  <button
                    type="button"
                    onClick={() => onGoToCatalog?.('all')}
-                   className="text-gray-400 hover:text-black transition-colors cursor-pointer"
+                   className="text-gray-600 hover:text-black transition-colors cursor-pointer"
                  >
                    КУРСЫ
                  </button>
-                 <span className="mx-2 text-gray-300">/</span>
+                 <span className="mx-2 text-gray-500">/</span>
                  <button
                    type="button"
                    onClick={() => onGoToCatalog?.(trackId)}
-                   className="text-gray-400 hover:text-black transition-colors cursor-pointer"
+                   className="text-gray-600 hover:text-black transition-colors cursor-pointer"
                  >
                    {trackName ? trackName.toUpperCase() : 'ТРЕК'}
                  </button>
-                 <span className="mx-2 text-gray-300">/</span>
+                 <span className="mx-2 text-gray-500">/</span>
                  <button
                    type="button"
                    onClick={onBack}
-                   className="text-gray-400 hover:text-black transition-colors cursor-pointer"
+                   className="text-gray-600 hover:text-black transition-colors cursor-pointer"
                  >
                    МОДУЛЬ 1
                  </button>
-                 <span className="mx-2 text-gray-300">/</span>
+                 <span className="mx-2 text-gray-500">/</span>
                  <span className="border-b-2 border-black pb-0.5 text-black">ЧТО ТАКОЕ ПРОДУКТ</span>
               </nav>
            </div>
@@ -145,12 +145,12 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
             <div className="space-y-4">
                <div className="flex items-center gap-3">
                   <span className="px-2 py-1 bg-black text-white font-mono text-xs uppercase tracking-wider">Урок 1</span>
-                  <span className="flex items-center gap-1 text-xs font-mono text-gray-500 uppercase">
+                  <span className="flex items-center gap-1 text-xs font-mono text-gray-700 uppercase">
                      <Clock className="w-3 h-3" /> 15 минут
                   </span>
                </div>
                <h1 className="text-4xl md:text-5xl font-bold leading-tight tracking-tight">ЧТО ТАКОЕ ПРОДУКТ</h1>
-               <p className="text-xl text-gray-600 font-light leading-relaxed max-w-2xl">
+               <p className="text-xl text-gray-700 font-light leading-relaxed max-w-2xl">
                   Разберем определение продукта, его ключевые характеристики и отличия от проекта.
                </p>
             </div>
@@ -174,7 +174,7 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
             <div className="prose prose-lg max-w-none font-light prose-headings:font-bold prose-headings:font-mono prose-headings:uppercase prose-p:text-gray-800 prose-strong:text-black prose-li:marker:text-black">
                <h3>Конспект урока</h3>
                <p>
-                  <strong className="bg-[#B6E2C8] px-1">Продукт</strong> — это средство решения проблемы пользователя, 
+                  <strong className="bg-[#A8D4B8] px-1">Продукт</strong> — это средство решения проблемы пользователя, 
                   которое приносит ценность как пользователю, так и бизнесу. В отличие от проекта, продукт не имеет фиксированной даты завершения, он живет, пока нужен пользователям.
                </p>
                <p>
@@ -197,8 +197,8 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
             </div>
 
             {/* Handbook Reference */}
-            <div className="border-2 border-black p-6 bg-[#B6C8E2]/20 relative overflow-hidden">
-               <div className="absolute -right-10 -top-10 w-32 h-32 bg-[#B6C8E2] rounded-full blur-2xl opacity-50"></div>
+            <div className="border-2 border-black p-6 bg-[#A8B8D4]/20 relative overflow-hidden">
+               <div className="absolute -right-10 -top-10 w-32 h-32 bg-[#A8B8D4] rounded-full blur-2xl opacity-50"></div>
                <div className="relative z-10 flex items-start gap-4">
                   <div className="p-3 bg-white border border-black shrink-0">
                      <FileText className="w-6 h-6" />
@@ -234,7 +234,7 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
 
                   <div className="space-y-6">
                      <div>
-                        <label className="block font-mono text-xs uppercase text-gray-500 mb-2">Ваш ответ</label>
+                        <label className="block font-mono text-xs uppercase text-gray-700 mb-2">Ваш ответ</label>
                         <Textarea
                            placeholder="Начните вводить текст..."
                            rows={8}
@@ -247,9 +247,9 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
 
                      <div className="grid md:grid-cols-2 gap-6">
                         <div>
-                           <label className="block font-mono text-xs uppercase text-gray-500 mb-2">Ссылка на материалы</label>
+                           <label className="block font-mono text-xs uppercase text-gray-700 mb-2">Ссылка на материалы</label>
                            <div className="relative">
-                              <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                              <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
                               <Input
                                  type="url"
                                  placeholder="https://figma.com/..."
@@ -262,10 +262,10 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
                         </div>
 
                         <div>
-                           <label className="block font-mono text-xs uppercase text-gray-500 mb-2">Файл</label>
+                           <label className="block font-mono text-xs uppercase text-gray-700 mb-2">Файл</label>
                            <div className="border-2 border-dashed border-gray-300 p-3 flex items-center justify-center gap-2 cursor-pointer hover:border-black hover:bg-gray-50 transition-colors h-12">
-                              <Upload className="w-4 h-4 text-gray-500" />
-                              <span className="text-sm text-gray-500">Загрузить файл</span>
+                              <Upload className="w-4 h-4 text-gray-700" />
+                              <span className="text-sm text-gray-700">Загрузить файл</span>
                            </div>
                         </div>
                      </div>
@@ -284,10 +284,10 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
                   </div>
                   
                   {submissionStatus === 'needs_revision' && (
-                     <div className="mt-6 p-6 bg-[#E2B6C8]/20 border border-[#E2B6C8] flex gap-4">
+                     <div className="mt-6 p-6 bg-[#D4A5B8]/20 border border-[#D4A5B8] flex gap-4">
                         <div className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center shrink-0 font-mono text-xs">A</div>
                         <div>
-                           <div className="font-mono text-xs uppercase text-gray-500 mb-1">Куратор Анна • 2 часа назад</div>
+                           <div className="font-mono text-xs uppercase text-gray-700 mb-1">Куратор Анна • 2 часа назад</div>
                            <p>Хороший анализ, но попробуйте добавить больше деталей о том, какую конкретно ценность продукт приносит бизнесу.</p>
                         </div>
                      </div>
@@ -330,25 +330,25 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
                    <div className="relative pl-10 py-2">
                       <div className="absolute left-[11px] top-1/2 -translate-y-1/2 w-[9px] h-[9px] rounded-full bg-black border-2 border-white ring-1 ring-black"></div>
                       <div className="font-bold text-sm">Урок 1: Что такое продукт</div>
-                      <div className="text-xs text-gray-500 font-mono mt-1">Текущий урок</div>
+                      <div className="text-xs text-gray-600 font-mono mt-1">Текущий урок</div>
                    </div>
 
                    <div className="relative pl-10 py-3 group cursor-pointer hover:bg-black/5 transition-colors -ml-4 px-4 rounded-r">
                       <div className="absolute left-[12px] top-1/2 -translate-y-1/2 w-[7px] h-[7px] rounded-full bg-white border border-gray-400 group-hover:border-black transition-colors"></div>
-                      <div className="text-sm text-gray-600 group-hover:text-black transition-colors">Урок 2: Виды продуктов</div>
-                      <div className="text-xs text-gray-400 font-mono mt-1">12 минут</div>
+                      <div className="text-sm text-gray-700 group-hover:text-black transition-colors">Урок 2: Виды продуктов</div>
+                      <div className="text-xs text-gray-600 font-mono mt-1">12 минут</div>
                    </div>
 
                    <div className="relative pl-10 py-3 group cursor-pointer hover:bg-black/5 transition-colors -ml-4 px-4 rounded-r">
-                      <div className="absolute left-[12px] top-1/2 -translate-y-1/2 w-[7px] h-[7px] rounded-full bg-white border border-gray-400 group-hover:border-black transition-colors"></div>
-                      <div className="text-sm text-gray-600 group-hover:text-black transition-colors">Урок 3: Роль PM в команде</div>
-                      <div className="text-xs text-gray-400 font-mono mt-1">20 минут</div>
+                      <div className="absolute left-[12px] top-1/2 -translate-y-1/2 w-[7px] h-[7px] rounded-full bg-white border border-gray-600 group-hover:border-black transition-colors"></div>
+                      <div className="text-sm text-gray-700 group-hover:text-black transition-colors">Урок 3: Роль PM в команде</div>
+                      <div className="text-xs text-gray-600 font-mono mt-1">20 минут</div>
                    </div>
 
                    <div className="relative pl-10 py-3 group cursor-pointer hover:bg-black/5 transition-colors -ml-4 px-4 rounded-r opacity-50">
-                      <div className="absolute left-[12px] top-1/2 -translate-y-1/2 w-[7px] h-[7px] rounded-full bg-white border border-gray-300"></div>
-                      <div className="text-sm text-gray-500">Урок 4: Циклы разработки</div>
-                      <div className="text-xs text-gray-400 font-mono mt-1 flex items-center gap-1">
+                      <div className="absolute left-[12px] top-1/2 -translate-y-1/2 w-[7px] h-[7px] rounded-full bg-white border border-gray-500"></div>
+                      <div className="text-sm text-gray-600">Урок 4: Циклы разработки</div>
+                      <div className="text-xs text-gray-600 font-mono mt-1 flex items-center gap-1">
                          <PlayCircle className="w-3 h-3" /> 18 минут
                       </div>
                    </div>
@@ -356,7 +356,7 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
 
                 <div className="mt-8 pt-6 border-t border-gray-200">
                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-mono text-xs uppercase text-gray-500">Прогресс модуля</span>
+                      <span className="font-mono text-xs uppercase text-gray-700">Прогресс модуля</span>
                       <span className="font-mono text-xs font-bold">25%</span>
                    </div>
                    <div className="h-2 bg-gray-200 w-full overflow-hidden">
