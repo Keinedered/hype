@@ -235,7 +235,7 @@ export function ModulesManagement() {
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Управление модулями</h1>
+          <h1 className="text-3xl font-bold mb-2">Управление модулями</h1>
           <p className="text-gray-300 text-sm">
             Создание и редактирование модулей курсов
           </p>
@@ -250,7 +250,7 @@ export function ModulesManagement() {
               Создать модуль
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="bg-gray-900 border-gray-800 max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Создать новый модуль</DialogTitle>
               <DialogDescription className="text-gray-300">
@@ -353,7 +353,7 @@ export function ModulesManagement() {
           <select
             value={selectedCourseId}
             onChange={(e) => setSelectedCourseId(e.target.value)}
-            className="bg-gray-800 border border-gray-700 text-white px-3 py-2 rounded-md text-sm"
+            className="bg-gray-800 border border-gray-700 px-3 py-2 rounded-md text-sm"
           >
             <option value="">Все курсы</option>
             {courses.map((course: Course) => (
@@ -389,7 +389,7 @@ export function ModulesManagement() {
               <Card key={module.id} className="bg-gray-900 border-gray-800 p-6 hover:border-gray-700 transition-colors">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-white mb-1">{module.title}</h3>
+                    <h3 className="text-lg font-semibold mb-1">{module.title}</h3>
                     <p className="text-gray-300 text-sm font-mono mb-2">ID: {module.id}</p>
                     {course && (
                       <Badge variant="outline" className="border-blue-600/30 text-blue-400 mb-2">
@@ -439,7 +439,7 @@ export function ModulesManagement() {
           resetForm();
         }
       }}>
-        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-gray-900 border-gray-800 max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Редактировать модуль</DialogTitle>
             <DialogDescription className="text-gray-300">

@@ -818,7 +818,7 @@ function GraphFlowContent({
           }}
         />
         <Panel position="top-right" className="bg-gray-900/90 border border-gray-800 rounded-lg p-3">
-          <div className="text-white text-sm space-y-2">
+          <div className="text-sm space-y-2">
             <div className="font-semibold mb-2">Легенда:</div>
             <div className="space-y-1 text-xs">
               {Object.entries(NODE_TYPE_INFO).map(([key, info]) => (
@@ -1023,7 +1023,7 @@ export function GraphEditor() {
       {/* Боковая панель конструктора */}
       <div className="w-96 bg-gray-900 border-r border-gray-800 overflow-y-auto flex-shrink-0">
         <div className="p-4 border-b border-gray-800">
-          <h2 className="text-xl font-bold text-white mb-2">Конструктор связей</h2>
+          <h2 className="text-xl font-bold mb-2">Конструктор связей</h2>
           <p className="text-sm text-gray-400">
             Управляйте обязательными связями между курсами, модулями и уроками
           </p>
@@ -1045,7 +1045,7 @@ export function GraphEditor() {
                       {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                     </button>
                     <GraduationCap size={16} className="text-blue-400" />
-                    <span className="text-white font-medium text-sm">{course.title}</span>
+                    <span className="font-medium text-sm">{course.title}</span>
                   </div>
                 </div>
 

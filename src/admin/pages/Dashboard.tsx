@@ -58,7 +58,7 @@ export function Dashboard() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Dashboard</h1>
+          <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
           <p className="text-gray-300 text-sm">
             Обзор системы и статистика платформы
           </p>
@@ -136,7 +136,7 @@ export function Dashboard() {
 
       {/* Quick Actions */}
       <Card className="p-6 bg-gray-900 border-gray-800">
-        <h2 className="text-xl font-bold text-white mb-4">Быстрые действия</h2>
+        <h2 className="text-xl font-bold mb-4">Быстрые действия</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Link to="/admin/courses?action=create">
             <Button className="w-full bg-blue-600 hover:bg-blue-700 justify-start">
@@ -161,13 +161,13 @@ export function Dashboard() {
 
       {/* Recent Activity */}
       <Card className="p-6 bg-gray-900 border-gray-800">
-        <h2 className="text-xl font-bold text-white mb-4">Недавняя активность</h2>
+        <h2 className="text-xl font-bold mb-4">Недавняя активность</h2>
         <div className="space-y-4">
           {Array.isArray(courses) && courses.length > 0 ? (
             courses.slice(0, 5).map((course: any) => (
               <div key={course.id} className="flex items-center justify-between py-3 border-b border-gray-800 last:border-0">
                 <div>
-                  <p className="text-white font-medium">Курс: {course.title}</p>
+                  <p className="font-medium">Курс: {course.title}</p>
                   <p className="text-gray-300 text-sm">
                     {course.status === 'published' ? 'Опубликован' : 'Черновик'} • 
                     {course.created_at && ` Создан ${new Date(course.created_at).toLocaleDateString('ru-RU')}`}

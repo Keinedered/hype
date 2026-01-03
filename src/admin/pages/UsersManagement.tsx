@@ -169,7 +169,7 @@ export function UsersManagement() {
       {/* Header */}
       <div className="flex justify-between items-start">
     <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Управление пользователями</h1>
+          <h1 className="text-3xl font-bold mb-2">Управление пользователями</h1>
           <p className="text-gray-300 text-sm">
             Управление пользователями платформы
           </p>
@@ -189,7 +189,7 @@ export function UsersManagement() {
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="bg-gray-800 border border-gray-700 text-white px-3 py-2 rounded-md text-sm"
+              className="bg-gray-800 border border-gray-700 px-3 py-2 rounded-md text-sm"
             >
               <option value="all">Все роли</option>
               <option value="student">Студент</option>
@@ -199,7 +199,7 @@ export function UsersManagement() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-gray-800 border border-gray-700 text-white px-3 py-2 rounded-md text-sm"
+              className="bg-gray-800 border border-gray-700 px-3 py-2 rounded-md text-sm"
             >
               <option value="all">Все статусы</option>
               <option value="active">Активные</option>
@@ -229,7 +229,7 @@ export function UsersManagement() {
             <Card key={user.id} className="bg-gray-900 border-gray-800 p-6 hover:border-gray-700 transition-colors">
               <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-white mb-1">{user.username}</h3>
+                  <h3 className="text-lg font-semibold mb-1">{user.username}</h3>
                   <p className="text-gray-300 text-sm mb-2">{user.email}</p>
                   <div className="flex gap-2 mb-2">
                     <Badge
@@ -295,7 +295,7 @@ export function UsersManagement() {
           resetForm();
         }
       }}>
-        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl">
+        <DialogContent className="bg-gray-900 border-gray-800 max-w-2xl">
           <DialogHeader>
             <DialogTitle>Редактировать пользователя</DialogTitle>
             <DialogDescription className="text-gray-300">

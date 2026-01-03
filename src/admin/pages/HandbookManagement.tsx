@@ -249,7 +249,7 @@ export function HandbookManagement() {
 
       {/* Create Article Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-gray-900 border-gray-800 max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Создать новую статью</DialogTitle>
             <DialogDescription className="text-gray-300">
@@ -263,7 +263,7 @@ export function HandbookManagement() {
                 value={formData.id}
                 onChange={(e) => setFormData({ ...formData, id: e.target.value })}
                 placeholder="article-react-hooks"
-                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-300"
+                className="bg-gray-800 border-gray-700 placeholder:text-gray-300"
               />
               <p className="text-gray-300 text-xs mt-1">Уникальный идентификатор статьи</p>
             </div>
@@ -273,7 +273,7 @@ export function HandbookManagement() {
                 value={formData.section_id}
                 onChange={(e) => setFormData({ ...formData, section_id: e.target.value })}
                 placeholder="section-1"
-                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-300"
+                className="bg-gray-800 border-gray-700 placeholder:text-gray-300"
               />
             </div>
             <div>
@@ -282,7 +282,7 @@ export function HandbookManagement() {
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 placeholder="React Hooks"
-                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-300"
+                className="bg-gray-800 border-gray-700 placeholder:text-gray-300"
               />
             </div>
             <div>
@@ -291,7 +291,7 @@ export function HandbookManagement() {
                 value={formData.content}
                 onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                 placeholder="# React Hooks\n\nHooks позволяют использовать состояние и другие возможности React..."
-                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-300 font-mono text-sm"
+                className="bg-gray-800 border-gray-700 placeholder:text-gray-300 font-mono text-sm"
                 rows={10}
               />
               <p className="text-gray-300 text-xs mt-1">Поддерживается Markdown форматирование</p>
@@ -302,11 +302,11 @@ export function HandbookManagement() {
                 value={formData.tags}
                 onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
                 placeholder='["react", "hooks", "frontend"] или через запятую'
-                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-300"
+                className="bg-gray-800 border-gray-700 placeholder:text-gray-300"
               />
               <p className="text-gray-300 text-xs mt-1">JSON массив или список через запятую</p>
             </div>
-            <Button onClick={handleCreate} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 mt-2">
+            <Button onClick={handleCreate} className="w-full bg-blue-600 hover:bg-blue-700 font-medium py-2.5 mt-2">
               Создать статью
             </Button>
           </div>
@@ -315,7 +315,7 @@ export function HandbookManagement() {
 
       {/* Edit Article Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-gray-900 border-gray-800 max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Редактировать статью</DialogTitle>
             <DialogDescription className="text-gray-300">
@@ -337,7 +337,7 @@ export function HandbookManagement() {
                 value={formData.section_id}
                 onChange={(e) => setFormData({ ...formData, section_id: e.target.value })}
                 placeholder="section-1"
-                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-300"
+                className="bg-gray-800 border-gray-700 placeholder:text-gray-300"
               />
             </div>
             <div>
@@ -346,7 +346,7 @@ export function HandbookManagement() {
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 placeholder="React Hooks"
-                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-300"
+                className="bg-gray-800 border-gray-700 placeholder:text-gray-300"
               />
             </div>
             <div>
@@ -355,7 +355,7 @@ export function HandbookManagement() {
                 value={formData.content}
                 onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                 placeholder="# React Hooks\n\nHooks позволяют использовать состояние и другие возможности React..."
-                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-300 font-mono text-sm"
+                className="bg-gray-800 border-gray-700 placeholder:text-gray-300 font-mono text-sm"
                 rows={10}
               />
             </div>
@@ -365,10 +365,10 @@ export function HandbookManagement() {
                 value={formData.tags}
                 onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
                 placeholder='["react", "hooks", "frontend"]'
-                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-300"
+                className="bg-gray-800 border-gray-700 placeholder:text-gray-300"
               />
             </div>
-            <Button onClick={handleUpdate} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 mt-2">
+            <Button onClick={handleUpdate} className="w-full bg-blue-600 hover:bg-blue-700 font-medium py-2.5 mt-2">
               Сохранить изменения
             </Button>
           </div>

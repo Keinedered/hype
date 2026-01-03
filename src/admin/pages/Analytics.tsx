@@ -83,16 +83,16 @@ export function Analytics() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-white">Аналитика</h1>
+        <h1 className="text-3xl font-bold  ">Аналитика</h1>
         <Select value={timeRange} onValueChange={setTimeRange}>
-          <SelectTrigger className="bg-gray-900 border-gray-800 text-white w-48">
+          <SelectTrigger className="bg-gray-900 border-gray-800   w-48">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="bg-gray-800 border-gray-700 text-white shadow-lg">
-            <SelectItem value="all" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Все время</SelectItem>
-            <SelectItem value="month" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Последний месяц</SelectItem>
-            <SelectItem value="week" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Последняя неделя</SelectItem>
-            <SelectItem value="day" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Сегодня</SelectItem>
+          <SelectContent className="bg-gray-800 border-gray-700   shadow-lg">
+            <SelectItem value="all" className="bg-gray-800   hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Все время</SelectItem>
+            <SelectItem value="month" className="bg-gray-800   hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Последний месяц</SelectItem>
+            <SelectItem value="week" className="bg-gray-800   hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Последняя неделя</SelectItem>
+            <SelectItem value="day" className="bg-gray-800   hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Сегодня</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -103,7 +103,7 @@ export function Analytics() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-300 text-sm">Всего пользователей</p>
-              <p className="text-3xl font-bold text-white mt-2">{analytics.totalUsers}</p>
+              <p className="text-3xl font-bold   mt-2">{analytics.totalUsers}</p>
               <p className="text-gray-300 text-xs mt-1">
                 Активных: {analytics.activeUsers}
               </p>
@@ -116,7 +116,7 @@ export function Analytics() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-300 text-sm">Курсы</p>
-              <p className="text-3xl font-bold text-white mt-2">{analytics.totalCourses}</p>
+              <p className="text-3xl font-bold   mt-2">{analytics.totalCourses}</p>
               <p className="text-gray-300 text-xs mt-1">
                 Опубликовано: {analytics.publishedCourses}
               </p>
@@ -129,7 +129,7 @@ export function Analytics() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-300 text-sm">Задания</p>
-              <p className="text-3xl font-bold text-white mt-2">{analytics.totalSubmissions}</p>
+              <p className="text-3xl font-bold   mt-2">{analytics.totalSubmissions}</p>
               <p className="text-gray-300 text-xs mt-1">
                 На проверке: {analytics.pendingSubmissions}
               </p>
@@ -142,7 +142,7 @@ export function Analytics() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-300 text-sm">Средний прогресс</p>
-              <p className="text-3xl font-bold text-white mt-2">
+              <p className="text-3xl font-bold   mt-2">
                 {analytics.averageCompletionRate.toFixed(1)}%
               </p>
               <p className="text-gray-300 text-xs mt-1">
@@ -156,7 +156,7 @@ export function Analytics() {
 
       {/* Course Progress */}
       <Card className="p-6 bg-gray-900 border-gray-800">
-        <h2 className="text-xl font-bold text-white mb-4">Прогресс по курсам</h2>
+        <h2 className="text-xl font-bold   mb-4">Прогресс по курсам</h2>
         {analytics.courseProgress.length === 0 ? (
           <p className="text-gray-300 text-center py-8">Нет данных о прогрессе</p>
         ) : (
@@ -165,13 +165,13 @@ export function Analytics() {
               <div key={course.courseId} className="border-b border-gray-800 pb-4 last:border-0">
                 <div className="flex justify-between items-start mb-2">
                   <div>
-                    <h3 className="text-lg font-semibold text-white">{course.courseTitle}</h3>
+                    <h3 className="text-lg font-semibold  ">{course.courseTitle}</h3>
                     <p className="text-gray-300 text-sm">
                       Записано: {course.enrolledUsers} | Завершено: {course.completedUsers}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-white">
+                    <p className="text-2xl font-bold  ">
                       {course.averageProgress.toFixed(1)}%
                     </p>
                     <p className="text-gray-300 text-xs">Средний прогресс</p>

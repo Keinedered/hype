@@ -165,7 +165,7 @@ export function LessonsBuilder() {
           <button
             type="button"
             onClick={() => navigate('/admin/lessons/new')}
-            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold transition-all bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 shadow-md cursor-pointer"
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold transition-all bg-blue-600 hover:bg-blue-700 px-6 py-2.5 shadow-md cursor-pointer"
             style={{ backgroundColor: '#2563eb', color: '#ffffff' }}
           >
             <Plus size={20} />
@@ -181,7 +181,7 @@ export function LessonsBuilder() {
               }
             }}
             disabled={freeLessons.length === 0}
-            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold transition-all bg-green-600 hover:bg-green-700 text-white px-6 py-2.5 shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold transition-all bg-green-600 hover:bg-green-700 px-6 py-2.5 shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ 
               backgroundColor: freeLessons.length > 0 ? '#16a34a' : '#6b7280',
               color: '#ffffff'
@@ -194,7 +194,7 @@ export function LessonsBuilder() {
           <button
             type="button"
             onClick={() => navigate('/admin/courses/new')}
-            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold transition-all bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 shadow-md cursor-pointer"
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold transition-all bg-purple-600 hover:bg-purple-700 px-6 py-2.5 shadow-md cursor-pointer"
             style={{ backgroundColor: '#9333ea', color: '#ffffff' }}
           >
             <BookOpen size={20} />
@@ -334,7 +334,7 @@ export function LessonsBuilder() {
         }}
       >
         <DialogContent 
-          className="bg-gray-900 border-gray-800 text-white max-w-2xl max-h-[90vh] overflow-y-auto !z-[9999]"
+          className="bg-gray-900 border-gray-800 max-w-2xl max-h-[90vh] overflow-y-auto !z-[9999]"
           style={{ zIndex: 9999, position: 'fixed', opacity: '1', animation: 'none', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
           onPointerDownOutside={(e) => {
             // Prevent closing on outside click - let user use close button
@@ -398,10 +398,10 @@ export function LessonsBuilder() {
                   <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-700 text-white shadow-lg">
-                    <SelectItem value="text" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Текст</SelectItem>
-                    <SelectItem value="video" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Видео</SelectItem>
-                    <SelectItem value="interactive" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Интерактивный</SelectItem>
+                  <SelectContent className="bg-gray-800 border-gray-700 shadow-lg">
+                    <SelectItem value="text" className="bg-gray-800 hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Текст</SelectItem>
+                    <SelectItem value="video" className="bg-gray-800 hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Видео</SelectItem>
+                    <SelectItem value="interactive" className="bg-gray-800 hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Интерактивный</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -465,7 +465,7 @@ export function LessonsBuilder() {
               <button
                 type="button"
                 onClick={handleCreateLesson}
-                className="flex-1 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold transition-all bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 shadow-md cursor-pointer"
+                className="flex-1 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold transition-all bg-blue-600 hover:bg-blue-700 px-4 py-2 shadow-md cursor-pointer"
                 style={{ backgroundColor: '#2563eb', color: '#ffffff' }}
               >
                 <Plus size={18} />

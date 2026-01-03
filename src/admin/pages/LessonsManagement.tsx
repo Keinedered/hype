@@ -335,13 +335,13 @@ export function LessonsManagement() {
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Управление уроками</h1>
+          <h1 className="text-3xl font-bold mb-2">Управление уроками</h1>
           <p className="text-gray-300 text-sm">Создание и редактирование уроков для модулей курсов</p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button 
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 h-auto"
+              className="bg-blue-600 hover:bg-blue-700 font-medium px-6 py-2 h-auto"
               onClick={() => {
                 // Сбрасываем форму при открытии диалога
                 resetForm();
@@ -351,7 +351,7 @@ export function LessonsManagement() {
               Добавить новый урок
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="bg-gray-900 border-gray-800 max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Создать новый урок</DialogTitle>
               <DialogDescription className="text-gray-300">
@@ -439,7 +439,7 @@ export function LessonsManagement() {
                   value={formData.id}
                   onChange={(e) => setFormData({ ...formData, id: e.target.value })}
                   placeholder="lesson-react-jsx"
-                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-300"
+                  className="bg-gray-800 border-gray-700 placeholder:text-gray-300"
                 />
                 <p className="text-gray-300 text-xs mt-1">Уникальный идентификатор урока (латиница, дефисы)</p>
               </div>
@@ -450,7 +450,7 @@ export function LessonsManagement() {
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   placeholder="JSX в React"
-                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-300"
+                  className="bg-gray-800 border-gray-700 placeholder:text-gray-300"
                 />
               </div>
 
@@ -460,7 +460,7 @@ export function LessonsManagement() {
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Краткое описание урока..."
-                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-300"
+                  className="bg-gray-800 border-gray-700 placeholder:text-gray-300"
                   rows={2}
                 />
               </div>
@@ -471,7 +471,7 @@ export function LessonsManagement() {
                   value={formData.content}
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                   placeholder="Полный контент урока в формате Markdown..."
-                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-300 font-mono text-sm"
+                  className="bg-gray-800 border-gray-700 placeholder:text-gray-300 font-mono text-sm"
                   rows={8}
                 />
                 <p className="text-gray-300 text-xs mt-1">Поддерживается Markdown форматирование</p>
@@ -503,7 +503,7 @@ export function LessonsManagement() {
                       value={formData.video_url}
                       onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
                       placeholder="https://youtube.com/watch?v=... или ссылка на видеофайл"
-                      className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-300"
+                      className="bg-gray-800 border-gray-700 placeholder:text-gray-300"
                     />
                   </div>
                   <div>
@@ -514,7 +514,7 @@ export function LessonsManagement() {
                         setFormData({ ...formData, video_duration: e.target.value })
                       }
                       placeholder="15:30"
-                      className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-300"
+                      className="bg-gray-800 border-gray-700 placeholder:text-gray-300"
                     />
                   </div>
                 </div>
@@ -556,7 +556,7 @@ export function LessonsManagement() {
                   value={formData.tags}
                   onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
                   placeholder='["react", "jsx", "basics"] или просто через запятую'
-                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-300"
+                  className="bg-gray-800 border-gray-700 placeholder:text-gray-300"
                 />
                 <p className="text-gray-300 text-xs mt-1">Теги для поиска и категоризации</p>
               </div>
@@ -587,7 +587,7 @@ export function LessonsManagement() {
                         onChange={(e) =>
                           setGraphOptions({ ...graphOptions, x: parseFloat(e.target.value) || 0 })
                         }
-                        className="bg-gray-800 border-gray-700 text-white mt-1"
+                        className="bg-gray-800 border-gray-700 mt-1"
                       />
                       <p className="text-gray-300 text-xs mt-1">0 = автопозиционирование</p>
                     </div>
@@ -599,7 +599,7 @@ export function LessonsManagement() {
                         onChange={(e) =>
                           setGraphOptions({ ...graphOptions, y: parseFloat(e.target.value) || 0 })
                         }
-                        className="bg-gray-800 border-gray-700 text-white mt-1"
+                        className="bg-gray-800 border-gray-700 mt-1"
                       />
                       <p className="text-gray-300 text-xs mt-1">0 = автопозиционирование</p>
                     </div>
@@ -607,7 +607,7 @@ export function LessonsManagement() {
                 )}
               </div>
 
-              <Button onClick={handleCreate} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 mt-2">
+              <Button onClick={handleCreate} className="w-full bg-blue-600 hover:bg-blue-700 font-medium py-2.5 mt-2">
                 Создать урок
               </Button>
             </div>
@@ -627,10 +627,10 @@ export function LessonsManagement() {
               <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                 <SelectValue placeholder="Все курсы" />
               </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-700 text-white shadow-lg">
-                <SelectItem value="all" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Все курсы</SelectItem>
+              <SelectContent className="bg-gray-800 border-gray-700 shadow-lg">
+                <SelectItem value="all" className="bg-gray-800 hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Все курсы</SelectItem>
                 {courses.map((course) => (
-                  <SelectItem key={course.id} value={course.id} className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">
+                  <SelectItem key={course.id} value={course.id} className="bg-gray-800 hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">
                     {course.title}
                   </SelectItem>
                 ))}
@@ -646,12 +646,12 @@ export function LessonsManagement() {
                 <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                   <SelectValue placeholder="Все модули" />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-700 text-white shadow-lg">
-                  <SelectItem value="all" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Все модули курса</SelectItem>
+                <SelectContent className="bg-gray-800 border-gray-700 shadow-lg">
+                  <SelectItem value="all" className="bg-gray-800 hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Все модули курса</SelectItem>
                   {getModulesForCourse(selectedCourseId)
                     .sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
                     .map((module) => (
-                    <SelectItem key={module.id} value={module.id} className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">
+                    <SelectItem key={module.id} value={module.id} className="bg-gray-800 hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">
                       {module.title}
                     </SelectItem>
                   ))}
@@ -774,7 +774,7 @@ export function LessonsManagement() {
 
       {/* Edit Lesson Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-gray-900 border-gray-800 max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Редактировать урок</DialogTitle>
             <DialogDescription className="text-gray-300">
@@ -791,7 +791,7 @@ export function LessonsManagement() {
               <Input
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-300"
+                className="bg-gray-800 border-gray-700 placeholder:text-gray-300"
               />
             </div>
             <div>
@@ -799,7 +799,7 @@ export function LessonsManagement() {
               <Textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-300"
+                className="bg-gray-800 border-gray-700 placeholder:text-gray-300"
                 rows={2}
               />
             </div>
@@ -808,7 +808,7 @@ export function LessonsManagement() {
               <Textarea
                 value={formData.content}
                 onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-300 font-mono text-sm"
+                className="bg-gray-800 border-gray-700 placeholder:text-gray-300 font-mono text-sm"
                 rows={8}
               />
             </div>
@@ -821,11 +821,11 @@ export function LessonsManagement() {
                 <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-gray-800 border-gray-700 text-white shadow-lg">
-                  <SelectItem value="text" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Текст</SelectItem>
-                  <SelectItem value="video" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Видео</SelectItem>
-                  <SelectItem value="interactive" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Интерактивный</SelectItem>
-                  <SelectItem value="assignment" className="bg-gray-800 text-white hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Задание</SelectItem>
+                <SelectContent className="bg-gray-800 border-gray-700 shadow-lg">
+                  <SelectItem value="text" className="bg-gray-800 hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Текст</SelectItem>
+                  <SelectItem value="video" className="bg-gray-800 hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Видео</SelectItem>
+                  <SelectItem value="interactive" className="bg-gray-800 hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Интерактивный</SelectItem>
+                  <SelectItem value="assignment" className="bg-gray-800 hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Задание</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -885,7 +885,7 @@ export function LessonsManagement() {
                 className="bg-gray-800 border-gray-700 text-white"
               />
             </div>
-            <Button onClick={handleUpdate} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 mt-2">
+            <Button onClick={handleUpdate} className="w-full bg-blue-600 hover:bg-blue-700 font-medium py-2.5 mt-2">
               Сохранить изменения
             </Button>
           </div>

@@ -226,7 +226,7 @@ export function CoursesManagement() {
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Управление курсами</h1>
+          <h1 className="text-3xl font-bold mb-2">Управление курсами</h1>
           <p className="text-gray-300 text-sm">
             Создание и управление курсами платформы. Доступно 4 фиксированных курса для редактирования.
           </p>
@@ -241,7 +241,7 @@ export function CoursesManagement() {
               Создать курс
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="bg-gray-900 border-gray-800 max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Создать новый курс</DialogTitle>
               <DialogDescription className="text-gray-300">
@@ -355,7 +355,7 @@ export function CoursesManagement() {
                       }
                     }}
                     placeholder="Введите имя автора"
-                    className="flex-1 bg-gray-800 border border-gray-700 text-white px-3 py-2 rounded-md placeholder:text-gray-400"
+                    className="flex-1 bg-gray-800 border border-gray-700 px-3 py-2 rounded-md placeholder:text-gray-400"
                   />
                   <Button type="button" onClick={addAuthor} variant="outline" className="border-gray-700">
                     Добавить
@@ -413,7 +413,7 @@ export function CoursesManagement() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-gray-800 border border-gray-700 text-white px-3 py-2 rounded-md text-sm"
+              className="bg-gray-800 border border-gray-700 px-3 py-2 rounded-md text-sm"
             >
               <option value="all">Все статусы</option>
               <option value="draft">Черновик</option>
@@ -423,7 +423,7 @@ export function CoursesManagement() {
             <select
               value={trackFilter}
               onChange={(e) => setTrackFilter(e.target.value)}
-              className="bg-gray-800 border border-gray-700 text-white px-3 py-2 rounded-md text-sm"
+              className="bg-gray-800 border border-gray-700 px-3 py-2 rounded-md text-sm"
             >
               <option value="all">Все треки</option>
               <option value="design">Дизайн</option>
@@ -455,7 +455,7 @@ export function CoursesManagement() {
             <Card key={course.id} className="bg-gray-900 border-gray-800 p-6 hover:border-gray-700 transition-colors">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-white mb-1">{course.title}</h3>
+                  <h3 className="text-lg font-semibold mb-1">{course.title}</h3>
                   <p className="text-gray-300 text-sm font-mono mb-2">ID: {course.id}</p>
                   <div className="flex gap-2 mb-2">
                     <Badge

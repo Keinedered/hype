@@ -603,7 +603,7 @@ export function LessonEditor() {
               <Button
                 type="submit"
                 disabled={loading || uploadingVideo}
-                className="bg-green-600 hover:bg-green-700 text-white px-10 py-6 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
+                className="bg-green-600 hover:bg-green-700 px-10 py-6 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
               >
                 <Globe size={20} className="mr-2" />
                 {loading ? 'Публикация...' : 'Опубликовать урок'}
