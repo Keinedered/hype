@@ -11,30 +11,42 @@ interface KnowledgeGraphProps {
   nodes: GraphNode[];
   edges: GraphEdge[];
   filter?: 'all' | 'completed' | 'uncompleted';
-  onNodeClick?: (nodeId: string) => void;
+  onNodeClick?: (nodeId: string, nodeType?: string) => void;
 }
 
 export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: KnowledgeGraphProps) {
-  const [zoom, setZoom] = useState(1.0); // Начальный zoom = 1.0 для нормального отображения
+  const [zoom, setZoom] = useState(0.5); // Начальный zoom = 0.5 для более широкого обзора
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0, panX: 0, panY: 0 });
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [moduleProgress, setModuleProgress] = useState<{ completed: number; total: number; progress: number } | null>(null);
   const [isLoadingProgress, setIsLoadingProgress] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  // Generate unique pattern ID once per component instance
+  const patternId = useMemo(() => `dot-pattern-${Math.random().toString(36).slice(2, 11)}`, []);
 
-  // Алгоритм вычисления границ графа (мемоизирован для производительности)
+  // Фиксированные размеры поля для фона (территория за графом)
+  const GRAPH_FIELD_WIDTH = 6000;
+  const GRAPH_FIELD_HEIGHT = 4000;
+  
+  // Фиксированные границы для фона
+  const backgroundBounds = useMemo(() => {
+    return {
+      minX: 0,
+      minY: 0,
+      width: GRAPH_FIELD_WIDTH,
+      height: GRAPH_FIELD_HEIGHT,
+    };
+  }, []);
+
+  // Алгоритм вычисления границ графа на основе позиций узлов (мемоизирован для производительности)
   const graphBounds = useMemo(() => {
     if (nodes.length === 0) {
       return {
-        minX: 0,
-        maxX: 2000,
-        minY: 0,
-        maxY: 1200,
-        centerX: 1000,
-        centerY: 600,
+        minX: -1000,
+        minY: -1000,
         width: 2000,
         height: 1200,
       };
@@ -53,11 +65,7 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
     if (validNodes.length === 0) {
       return {
         minX: 0,
-        maxX: 2000,
         minY: 0,
-        maxY: 1200,
-        centerX: 1000,
-        centerY: 600,
         width: 2000,
         height: 1200,
       };
@@ -68,21 +76,15 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
 
     const textPadding = 400; // Увеличенный отступ для меток
     const minX = Math.min(...xs) - textPadding;
-    const maxX = Math.max(...xs) + textPadding;
     const minY = Math.min(...ys) - textPadding;
+    const maxX = Math.max(...xs) + textPadding;
     const maxY = Math.max(...ys) + textPadding;
     const width = Math.max(maxX - minX, 2000);
     const height = Math.max(maxY - minY, 1200);
-    const centerX = (minX + maxX) / 2;
-    const centerY = (minY + maxY) / 2;
 
     return {
       minX,
-      maxX,
       minY,
-      maxY,
-      centerX,
-      centerY,
       width,
       height,
     };
@@ -107,7 +109,8 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
       e.preventDefault();
       e.stopPropagation();
       setIsDragging(true);
-      setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+      // Сохраняем начальную позицию мыши и текущий pan для расчета с коэффициентом скорости
+      setDragStart({ x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y });
     }
   };
 
@@ -115,9 +118,12 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
     if (isDragging) {
       e.preventDefault();
       e.stopPropagation();
+      // Вычисляем разницу от начальной позиции и умножаем на 4 для увеличения скорости в 4 раза
+      const deltaX = (e.clientX - dragStart.x) * 4;
+      const deltaY = (e.clientY - dragStart.y) * 4;
       setPan({
-        x: e.clientX - dragStart.x,
-        y: e.clientY - dragStart.y
+        x: dragStart.panX + deltaX,
+        y: dragStart.panY + deltaY
       });
     }
   };
@@ -170,6 +176,13 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
     setSelectedNode(node);
     setModuleProgress(null);
     
+    // Вызываем onNodeClick с типом узла для правильной навигации
+    // Используем entityId для модулей и уроков, так как node.id может быть в формате "node-{id}"
+    if (onNodeClick) {
+      const nodeId = node.entityId || node.id.replace(/^node-/, '');
+      onNodeClick(nodeId, node.type);
+    }
+    
     // Если это модуль, загружаем прогресс
     if (node.type === 'module') {
       const moduleId = node.entityId || node.id.replace('node-', '');
@@ -183,7 +196,9 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
             progress: progress.progress || 0
           });
         } catch (error) {
-          console.error('Failed to load module progress:', error);
+          if (import.meta.env.DEV) {
+            console.error('Failed to load module progress:', error);
+          }
           setModuleProgress(null);
         } finally {
           setIsLoadingProgress(false);
@@ -252,13 +267,13 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
   const getEdgeStyle = (type: GraphEdge['type']) => {
     switch (type) {
       case 'required':
-        return { stroke: '#000000', strokeDasharray: '0', strokeWidth: 2 };
+        return { stroke: '#000000', strokeDasharray: '0', strokeWidth: 4 };
       case 'alternative':
-        return { stroke: '#000000', strokeDasharray: '8,4', strokeWidth: 1.5 };
+        return { stroke: '#000000', strokeDasharray: '8,4', strokeWidth: 3 };
       case 'recommended':
-        return { stroke: '#4a4a4a', strokeDasharray: '4,4', strokeWidth: 1 }; /* Улучшена контрастность */
+        return { stroke: '#333333', strokeDasharray: '4,4', strokeWidth: 2.5 };
       default:
-        return { stroke: '#000000', strokeDasharray: '0', strokeWidth: 2 };
+        return { stroke: '#000000', strokeDasharray: '0', strokeWidth: 4 };
     }
   };
 
@@ -303,10 +318,10 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
           
           setZoom(newZoom);
         } else {
-          // Regular scroll - pan the graph
+          // Regular scroll - pan the graph with increased speed
           setPan({
-            x: pan.x - e.deltaX * 0.5,
-            y: pan.y - e.deltaY * 0.5
+            x: pan.x - e.deltaX * 1.0,
+            y: pan.y - e.deltaY * 1.0
           });
         }
       }
@@ -403,19 +418,12 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
       style={{ 
         touchAction: 'none',
         overscrollBehavior: 'none',
-        WebkitOverflowScrolling: 'auto'
+        WebkitOverflowScrolling: 'auto',
+        backgroundColor: '#fafafa'
       }}
     >
-      {/* Decorative grid background */}
-      <div className="absolute inset-0 pointer-events-none" style={{
-        backgroundImage: `
-          linear-gradient(to right, rgba(0,0,0,0.03) 1px, transparent 1px),
-          linear-gradient(to bottom, rgba(0,0,0,0.03) 1px, transparent 1px)
-        `,
-        backgroundSize: '40px 40px'
-      }} />
 
-      {/* Controls */}
+      {/* Controls - improved design */}
       <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
         <Button
           variant="secondary"
@@ -425,7 +433,7 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
             e.stopPropagation();
             handleZoomIn();
           }}
-          className="bg-white border-2 border-black hover:bg-black hover:text-white transition-all font-mono"
+          className="bg-white border-2 border-black hover:bg-black hover:text-white transition-all font-mono shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
           title="Увеличить"
         >
           <ZoomIn className="w-4 h-4" />
@@ -438,7 +446,7 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
             e.stopPropagation();
             handleZoomOut();
           }}
-          className="bg-white border-2 border-black hover:bg-black hover:text-white transition-all font-mono"
+          className="bg-white border-2 border-black hover:bg-black hover:text-white transition-all font-mono shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
           title="Уменьшить"
         >
           <ZoomOut className="w-4 h-4" />
@@ -451,7 +459,7 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
             e.stopPropagation();
             handleReset();
           }}
-          className="bg-white border-2 border-black hover:bg-black hover:text-white transition-all font-mono"
+          className="bg-white border-2 border-black hover:bg-black hover:text-white transition-all font-mono shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
           title="Сбросить"
         >
           <Maximize2 className="w-4 h-4" />
@@ -472,52 +480,111 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
         style={{ touchAction: 'none', display: 'block', minHeight: '400px', width: '100%', height: '100%' }}
       >
         <defs>
-          {/* Arrow marker for edges */}
-          <marker
-            id="arrowhead-black"
-            markerWidth="10"
-            markerHeight="10"
-            refX="9"
-            refY="3"
-            orient="auto"
+          {/* Dotted background pattern that scales with the graph */}
+          <pattern 
+            id={patternId}
+            x="0" 
+            y="0" 
+            width="150" 
+            height="150" 
+            patternUnits="userSpaceOnUse"
+            patternContentUnits="userSpaceOnUse"
           >
-            <polygon points="0 0, 10 3, 0 6" fill="#000000" />
-          </marker>
-          <marker
-            id="arrowhead-gray"
-            markerWidth="10"
-            markerHeight="10"
-            refX="9"
-            refY="3"
-            orient="auto"
-          >
-            <polygon points="0 0, 10 3, 0 6" fill="#666666" />
-          </marker>
-          
-          {/* Pattern for decorative elements */}
-          <pattern id="dots" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-            <circle cx="2" cy="2" r="1" fill="black" opacity="0.1" />
+            <circle cx="75" cy="75" r="7" fill="#000000" />
           </pattern>
         </defs>
-
+        
         {/* Основная группа - применяем pan и zoom через transform */}
         <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
-          {/* Background decorative circles */}
-          {Array.from({ length: 15 }).map((_, i) => (
-            <circle
-              key={`bg-circle-${i}`}
-              cx={Math.random() * 1000}
-              cy={Math.random() * 800}
-              r={Math.random() * 60 + 40}
-              fill="none"
-              stroke="#000000"
-              strokeWidth="1"
-              opacity={0.03}
-            />
-          ))}
+          {/* Background pattern - фиксированное поле за графом - покрывает всю площадь */}
+          <rect 
+            x="0" 
+            y="0" 
+            width="6000" 
+            height="4000" 
+            fill={`url(#${patternId})`}
+            opacity={0.6}
+            className="pointer-events-none"
+          />
+          
+          {/* Smooth curved edges */}
+          {(() => {
+            // Вычисляем скорректированные углы для edges от одного узла
+            const MIN_ANGLE = 15 * Math.PI / 180; // 15 градусов в радианах
+            const edgeAngleCorrections = new Map<string, number>();
+            
+            // Группируем edges по sourceId
+            const edgesBySource = new Map<string, typeof edges>();
+            edges.forEach(edge => {
+              if (!edgesBySource.has(edge.sourceId)) {
+                edgesBySource.set(edge.sourceId, []);
+              }
+              edgesBySource.get(edge.sourceId)!.push(edge);
+            });
 
-          {/* Edges */}
-          {edges.map((edge) => {
+            // Для каждой группы edges вычисляем и корректируем углы
+            edgesBySource.forEach((sourceEdges, sourceId) => {
+              if (sourceEdges.length <= 1) return;
+
+              const source = nodes.find(n => n.id === sourceId);
+              if (!source) return;
+
+              // Вычисляем углы для всех edges от этого узла
+              const angles: Array<{ edge: typeof edges[0]; angle: number; originalAngle: number }> = [];
+              
+              sourceEdges.forEach(edge => {
+                const target = nodes.find(n => n.id === edge.targetId);
+                if (!target) return;
+
+                const dx = target.x - source.x;
+                const dy = target.y - source.y;
+                const angle = Math.atan2(dy, dx);
+                angles.push({ edge, angle, originalAngle: angle });
+              });
+
+              // Сортируем по углу
+              angles.sort((a, b) => a.angle - b.angle);
+
+              // Проверяем и корректируем углы, если они слишком близки
+              let hasChanges = true;
+              let iterations = 0;
+              while (hasChanges && iterations < 10) {
+                hasChanges = false;
+                iterations++;
+                
+                for (let i = 0; i < angles.length; i++) {
+                  const current = angles[i];
+                  const next = angles[(i + 1) % angles.length];
+                  
+                  // Вычисляем разницу углов (учитываем переход через 0)
+                  let angleDiff = next.angle - current.angle;
+                  if (angleDiff < 0) angleDiff += Math.PI * 2;
+                  if (angleDiff > Math.PI) angleDiff = Math.PI * 2 - angleDiff;
+
+                  // Если угол слишком маленький, корректируем
+                  if (angleDiff < MIN_ANGLE && angleDiff > 0.001) {
+                    const correction = (MIN_ANGLE - angleDiff) / 2;
+                    angles[i].angle -= correction;
+                    angles[(i + 1) % angles.length].angle += correction;
+                    hasChanges = true;
+                    
+                    // Нормализуем углы
+                    angles.forEach(a => {
+                      while (a.angle >= Math.PI * 2) a.angle -= Math.PI * 2;
+                      while (a.angle < 0) a.angle += Math.PI * 2;
+                    });
+                  }
+                }
+              }
+
+              // Сохраняем корректировки
+              angles.forEach(({ edge, angle, originalAngle }) => {
+                const correction = angle - originalAngle;
+                edgeAngleCorrections.set(edge.id, correction);
+              });
+            });
+
+            return edges.map((edge) => {
             const source = nodes.find((n) => n.id === edge.sourceId);
             const target = nodes.find((n) => n.id === edge.targetId);
             
@@ -547,21 +614,77 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
             const style = getEdgeStyle(edge.type);
             const isHighlighted = selectedNode?.id === source.id || selectedNode?.id === target.id;
 
+            // Calculate smooth curve control points
+            const dx = target.x - source.x;
+            const dy = target.y - source.y;
+            const len = Math.sqrt(dx * dx + dy * dy) || 1;
+            
+            // Базовое направление от source к target
+            let baseAngle = Math.atan2(dy, dx);
+            
+            // Применяем коррекцию угла, если она есть (для обеспечения минимального угла между линиями)
+            const angleCorrection = edgeAngleCorrections.get(edge.id) || 0;
+            const correctedAngle = baseAngle + angleCorrection;
+            
+            // Вычисляем скорректированное направление для начальной точки
+            const correctedUx = Math.cos(correctedAngle);
+            const correctedUy = Math.sin(correctedAngle);
+            
+            // Оригинальное направление для конечной точки (не меняем)
+            const ux = dx / len;
+            const uy = dy / len;
+
+            // Node radius for padding
+            const getNodeRadius = (node: GraphNode) => {
+              // Для корневого узла используем размер текста
+              const isRoot = node.id === 'root' || node.entityId === 'root' || (node.type === 'concept' && node.title === 'GRAPH');
+              if (isRoot) return 120; // Размер текста в центре (увеличен в 2 раза)
+              if (node.type === 'course') return 36; // Увеличен в 2 раза
+              if (node.type === 'module') return 44; // Увеличен в 2 раза
+              if (node.type === 'concept') return 30; // Увеличен в 2 раза
+              return 24; // Увеличен в 2 раза
+            };
+            const sourceRadius = getNodeRadius(source);
+            const targetRadius = getNodeRadius(target);
+            const startPad = sourceRadius + 2;
+            const endPad = targetRadius + 2;
+
+            // Используем скорректированное направление для начальной точки
+            const x1 = source.x + correctedUx * startPad;
+            const y1 = source.y + correctedUy * startPad;
+            const x2 = target.x - ux * endPad;
+            const y2 = target.y - uy * endPad;
+
+            // Curved path control point (perpendicular offset for smooth curve)
+            // Используем среднее направление для более плавной кривой
+            const midUx = (correctedUx + ux) / 2;
+            const midUy = (correctedUy + uy) / 2;
+            const midLen = Math.sqrt(midUx * midUx + midUy * midUy) || 1;
+            const normalizedMidUx = midUx / midLen;
+            const normalizedMidUy = midUy / midLen;
+            
+            const curvature = Math.min(len * 0.15, 60);
+            const cx = (x1 + x2) / 2 + normalizedMidUy * curvature;
+            const cy = (y1 + y2) / 2 - normalizedMidUx * curvature;
+
             return (
-              <line
+              <path
                 key={edge.id}
-                x1={source.x}
-                y1={source.y}
-                x2={target.x}
-                y2={target.y}
+                d={`M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`}
                 stroke={style.stroke}
-                strokeWidth={isHighlighted ? style.strokeWidth * 1.5 : style.strokeWidth}
+                strokeWidth={isHighlighted ? style.strokeWidth * 1.3 : style.strokeWidth}
                 strokeDasharray={style.strokeDasharray}
-                opacity={isHighlighted ? 1 : 0.7}
-                markerEnd="url(#arrowhead-black)"
+                fill="none"
+                strokeLinecap="round"
+                opacity={isHighlighted ? 0.85 : 0.5}
+                style={{
+                  transition: 'all 0.2s ease',
+                  filter: isHighlighted ? 'drop-shadow(0 0 2px rgba(0,0,0,0.3))' : 'none',
+                }}
               />
             );
-          })}
+            });
+          })()}
 
           {/* Nodes */}
           {nodes.map((node) => {
@@ -571,29 +694,72 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
 
             // Проверка валидности координат
             if (isNaN(node.x) || isNaN(node.y) || !isFinite(node.x) || !isFinite(node.y)) {
-              console.warn(`Invalid coordinates for node ${node.id}: x=${node.x}, y=${node.y}`);
+              if (import.meta.env.DEV) {
+                console.warn(`Invalid coordinates for node ${node.id}: x=${node.x}, y=${node.y}`);
+              }
               return null;
             }
 
+            const isRoot = node.id === 'root' || node.entityId === 'root' || (node.type === 'concept' && node.title === 'GRAPH');
             const colors = getNodeColors(node);
+            const isSelected = selectedNode?.id === node.id;
+
+            // Для корневого узла отображаем только текст
+            if (isRoot) {
+              const fontSize = 240; // Увеличено в 2 раза
+              const lineHeight = 280; // Увеличено в 2 раза
+              const lines = node.title.split('\n').filter(line => line.trim().length > 0);
+              
+              return (
+                <g
+                  key={node.id}
+                  className="pointer-events-none"
+                >
+                  {/* Текст в центре вместо кружка */}
+                  {lines.map((line, i) => (
+                    <text
+                      key={i}
+                      x={node.x}
+                      y={node.y + i * lineHeight}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fill="#000000"
+                      fontSize={fontSize}
+                      fontFamily="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace"
+                      fontWeight="900"
+                      style={{ 
+                        letterSpacing: '0.05em',
+                        paintOrder: 'stroke fill',
+                        stroke: '#ffffff',
+                        strokeWidth: '16px',
+                        strokeLinejoin: 'round',
+                        filter: 'drop-shadow(0 3px 5px rgba(0,0,0,0.2))'
+                      }}
+                    >
+                      {line.toUpperCase()}
+                    </text>
+                  ))}
+                </g>
+              );
+            }
+
             // Размеры узлов в зависимости от типа
             let baseSize: number;
             let minRadius: number;
             if (node.type === 'course') {
-              baseSize = node.size || 35; // Уменьшен размер курсов
-              minRadius = 18;
+              baseSize = (node.size || 35) * 2; // Увеличен в 2 раза
+              minRadius = 36; // Увеличен в 2 раза
             } else if (node.type === 'module') {
-              baseSize = node.size || 45; // Уменьшен размер модулей
-              minRadius = 22;
+              baseSize = (node.size || 45) * 2; // Увеличен в 2 раза
+              minRadius = 44; // Увеличен в 2 раза
             } else if (node.type === 'concept') {
-              baseSize = node.size || 30; // Уменьшен размер концептов
-              minRadius = 15;
+              baseSize = (node.size || 30) * 2; // Увеличен в 2 раза
+              minRadius = 30; // Увеличен в 2 раза
             } else {
-              baseSize = node.size || 25; // Уменьшен размер остальных узлов
-              minRadius = 12;
+              baseSize = (node.size || 25) * 2; // Увеличен в 2 раза
+              minRadius = 24; // Увеличен в 2 раза
             }
             const radius = Math.max(baseSize / 2, minRadius);
-            const isSelected = selectedNode?.id === node.id;
 
             return (
               <g
@@ -601,190 +767,102 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
                 className="cursor-pointer transition-all"
                 onClick={() => handleNodeClick(node)}
               >
-                {/* Selection ring */}
+                {/* Enhanced node design with better contrast */}
+                {/* Selection ring with glow effect */}
                 {isSelected && (
-                  <circle
-                    cx={node.x}
-                    cy={node.y}
-                    r={radius + 8}
-                    fill="none"
-                    stroke={colors.accent}
-                    strokeWidth="3"
-                    opacity={0.6}
-                  />
-                )}
-                
-                {/* Track color ring */}
-                {node.id !== 'root' && (
-                  <circle
-                    cx={node.x}
-                    cy={node.y}
-                    r={radius + 4}
-                    fill="none"
-                    stroke={colors.ring}
-                    strokeWidth={3}
-                    opacity={node.status === 'closed' ? 0.35 : 0.8}
-                  />
+                  <>
+                    <circle
+                      cx={node.x}
+                      cy={node.y}
+                      r={radius + 8}
+                      fill="none"
+                      stroke={colors.accent}
+                      strokeWidth="3"
+                      opacity={0.3}
+                      style={{ transition: 'all 0.2s ease' }}
+                    />
+                    <circle
+                      cx={node.x}
+                      cy={node.y}
+                      r={radius + 6}
+                      fill="none"
+                      stroke={colors.accent}
+                      strokeWidth="2"
+                      opacity={0.5}
+                      style={{ transition: 'all 0.2s ease' }}
+                    />
+                  </>
                 )}
 
-                {/* Main node */}
+                {/* Main node circle with shadow for depth */}
                 <circle
                   cx={node.x}
                   cy={node.y}
                   r={radius}
                   fill={colors.fill}
                   stroke={colors.stroke}
-                  strokeWidth={isSelected ? (colors.strokeWidth || 3) + 1 : (colors.strokeWidth || 3)}
-                  opacity={node.status === 'closed' ? 0.6 : 1}
-                  className="transition-all"
+                  strokeWidth={isSelected ? colors.strokeWidth + 1 : colors.strokeWidth}
+                  opacity={node.status === 'closed' ? 0.7 : 1}
+                  style={{ 
+                    transition: 'all 0.2s ease',
+                    filter: isSelected ? 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' : 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))'
+                  }}
                 />
-
-                {/* Corner decorations for selected/current nodes */}
-                {(node.status === 'current' || isSelected) && (
-                  <>
-                    <line x1={node.x - radius - 6} y1={node.y - radius - 6} x2={node.x - radius - 2} y2={node.y - radius - 6} stroke={colors.accent} strokeWidth="2" />
-                    <line x1={node.x - radius - 6} y1={node.y - radius - 6} x2={node.x - radius - 6} y2={node.y - radius - 2} stroke={colors.accent} strokeWidth="2" />
-                    
-                    <line x1={node.x + radius + 6} y1={node.y + radius + 6} x2={node.x + radius + 2} y2={node.y + radius + 6} stroke={colors.accent} strokeWidth="2" />
-                    <line x1={node.x + radius + 6} y1={node.y + radius + 6} x2={node.x + radius + 6} y2={node.y + radius + 2} stroke={colors.accent} strokeWidth="2" />
-                  </>
+                
+                {/* Inner highlight for depth */}
+                {node.type === 'course' && (
+                  <circle
+                    cx={node.x}
+                    cy={node.y}
+                    r={radius * 0.7}
+                    fill="none"
+                    stroke="rgba(255,255,255,0.3)"
+                    strokeWidth="1"
+                    opacity={node.status === 'closed' ? 0.3 : 0.5}
+                  />
                 )}
 
-                {/* Status indicator - removed checkmarks */}
-
-                {/* Label with connecting line - positioned far from node to avoid overlap */}
+                {/* Simple label - text directly below node */}
                 <g>
                   {(() => {
-                    // Calculate all visual elements that extend from node
-                    const selectionRing = isSelected ? 8 : 0;
-                    const trackRing = node.id !== 'root' ? 4 : 0;
-                    const cornerDecorations = (node.status === 'current' || isSelected) ? 6 : 0;
-                    const maxVisualRadius = radius + Math.max(selectionRing, trackRing) + cornerDecorations;
+                    const selectionRing = isSelected ? 6 : 0;
+                    const maxVisualRadius = radius + selectionRing;
                     
-                    // Spacing to keep text close but not overlapping
-                    const minSpacing = 70; // Увеличено расстояние между узлом и текстом
-                    const lineHeight = 64; // Увеличен размер строки в 2 раза
-                    const padding = 32; // Увеличен padding в 2 раза
-                    const fixedBlockWidth = 400; // Фиксированная ширина блока
-                    const fontSize = 40;
-                    const charWidth = 24; // Примерная ширина символа
-                    const maxCharsPerLine = Math.floor((fixedBlockWidth - padding * 2) / charWidth);
+                    // Увеличенный размер текста для лучшей читаемости (в 2 раза больше)
+                    const fontSize = 180; // Увеличено в 2 раза
+                    const lineHeight = 240; // Увеличено в 2 раза
+                    const spacing = 200; // Расстояние от узла до текста (увеличено в 2 раза)
                     
-                    // Функция для разбиения текста на строки с учетом фиксированной ширины
-                    const wrapText = (text: string): string[] => {
-                      const words = text.split(/\s+/);
-                      const lines: string[] = [];
-                      let currentLine = '';
-                      
-                      for (const word of words) {
-                        const testLine = currentLine ? `${currentLine} ${word}` : word;
-                        // Проверяем, помещается ли строка (с учетом заглавных букв)
-                        if (testLine.length <= maxCharsPerLine) {
-                          currentLine = testLine;
-                        } else {
-                          if (currentLine) {
-                            lines.push(currentLine);
-                          }
-                          // Если слово само по себе длиннее строки, разбиваем его
-                          if (word.length > maxCharsPerLine) {
-                            let remainingWord = word;
-                            while (remainingWord.length > maxCharsPerLine) {
-                              lines.push(remainingWord.substring(0, maxCharsPerLine));
-                              remainingWord = remainingWord.substring(maxCharsPerLine);
-                            }
-                            currentLine = remainingWord;
-                          } else {
-                            currentLine = word;
-                          }
-                        }
-                      }
-                      
-                      if (currentLine) {
-                        lines.push(currentLine);
-                      }
-                      
-                      return lines.length > 0 ? lines : [text];
-                    };
+                    // Простое разбиение текста на строки (только по \n, без сложной логики)
+                    const lines = node.title.split('\n').filter(line => line.trim().length > 0);
+                    const totalHeight = lines.length * lineHeight;
                     
-                    // Разбиваем текст на строки (сначала по \n, потом по ширине)
-                    const initialLines = node.title.split('\n');
-                    const wrappedLines: string[] = [];
-                    initialLines.forEach(line => {
-                      wrappedLines.push(...wrapText(line));
-                    });
-                    
-                    const lines = wrappedLines;
-                    const totalHeight = lines.length * lineHeight + padding * 2;
-                    const blockWidth = fixedBlockWidth;
-                    
-                    // Position label below the node (simpler and more readable)
-                    // Always place label below node with proper spacing
+                    // Позиция текста прямо под узлом
                     const labelX = node.x;
-                    const labelY = node.y + maxVisualRadius + minSpacing;
-                    
-                    // Connecting line from node bottom to label top
-                    const lineStartY = node.y + maxVisualRadius;
-                    const lineEndY = labelY - totalHeight / 2;
-                    
-                    // Функция для определения контрастного цвета текста
-                    const getContrastColor = (bgColor: string): string => {
-                      // Преобразуем hex в RGB
-                      const hex = bgColor.replace('#', '');
-                      if (hex.length !== 6) return '#000000'; // Fallback для некорректных цветов
-                      const r = parseInt(hex.substring(0, 2), 16);
-                      const g = parseInt(hex.substring(2, 4), 16);
-                      const b = parseInt(hex.substring(4, 6), 16);
-                      // Вычисляем яркость (luminance)
-                      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-                      // Если фон светлый, текст черный, иначе белый
-                      return luminance > 0.5 ? '#000000' : '#ffffff';
-                    };
-                    
-                    // Используем акцентный цвет для фона метки
-                    const labelBgColor = colors.accent || '#000000';
-                    const labelTextColor = getContrastColor(labelBgColor);
+                    const labelY = node.y + maxVisualRadius + spacing;
                     
                     return (
                       <>
-                        {/* Connecting line from node to label */}
-                        <line
-                          x1={node.x}
-                          y1={lineStartY}
-                          x2={labelX}
-                          y2={lineEndY}
-                          stroke={labelBgColor}
-                          strokeWidth="1.5"
-                          opacity="0.4"
-                          strokeDasharray="4,4"
-                        />
-                        
-                        {/* Text block with background */}
-                        <rect
-                          x={labelX - blockWidth / 2}
-                          y={labelY - totalHeight / 2}
-                          width={blockWidth}
-                          height={totalHeight}
-                          fill={labelBgColor}
-                          opacity="0.95"
-                          rx="4"
-                          stroke={labelTextColor}
-                          strokeWidth="2"
-                          strokeOpacity="0.8"
-                        />
-                        
-                        {/* Text lines */}
+                        {/* Простой текст без блоков и линий - максимально минималистично */}
                         {lines.map((line, i) => (
                           <text
                             key={i}
                             x={labelX}
-                            y={labelY - totalHeight / 2 + padding + (i + 0.75) * lineHeight}
+                            y={labelY + i * lineHeight}
                             textAnchor="middle"
-                            fill={labelTextColor}
+                            fill="#000000"
                             fontSize={fontSize}
                             fontFamily="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace"
                             fontWeight="700"
                             className="pointer-events-none"
-                            style={{ textShadow: labelTextColor === '#ffffff' ? '0 1px 2px rgba(0,0,0,0.3)' : '0 1px 2px rgba(255,255,255,0.3)' }}
+                            style={{ 
+                              letterSpacing: '0.03em',
+                              paintOrder: 'stroke fill',
+                              stroke: '#ffffff',
+                              strokeWidth: '12px',
+                              strokeLinejoin: 'round',
+                              filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.15))'
+                            }}
                           >
                             {line.toUpperCase()}
                           </text>
@@ -799,9 +877,9 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
         </g>
       </svg>
 
-      {/* Node details card */}
+      {/* Node details card - improved design */}
       {selectedNode && (
-        <Card className="absolute bottom-6 left-6 right-6 md:right-auto md:w-96 p-6 bg-white border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+        <Card className="absolute bottom-6 left-6 right-6 md:right-auto md:w-96 p-6 bg-white border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] transition-all">
           <div className="space-y-4">
             <div className="bg-black text-white px-3 py-2 inline-block font-mono text-sm tracking-wide">
               {selectedNode.title.replace(/\n/g, ' ').toUpperCase()}

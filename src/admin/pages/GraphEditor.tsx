@@ -48,6 +48,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { adminAPI } from '@/api/adminClient';
+import { filterFixedCourses } from '../utils/fixedCourses';
 
 // Типы узлов и их иконки
 // Уменьшены размеры узлов
@@ -233,7 +234,7 @@ function generateHierarchicalLayout(
   // Определяет, с какой стороны source узла должна выходить связь в направлении к target
   const getSourcePosition = (sourceX: number, sourceY: number, targetX: number, targetY: number): Position => {
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/f934cd13-d56f-4483-86ce-e2102f0bc81b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'GraphEditor.tsx:233',message:'getSourcePosition called',data:{sourceX,sourceY,targetX,targetY},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // Debug logging disabled
     // #endregion
     const dx = targetX - sourceX;
     const dy = targetY - sourceY;
@@ -254,7 +255,7 @@ function generateHierarchicalLayout(
       result = dy > 0 ? Position.Bottom : Position.Top;
     }
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/f934cd13-d56f-4483-86ce-e2102f0bc81b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'GraphEditor.tsx:251',message:'getSourcePosition result',data:{result,dx,dy,absDx,absDy},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // Debug logging disabled
     // #endregion
     return result;
   };
@@ -263,7 +264,7 @@ function generateHierarchicalLayout(
   // Определяет, с какой стороны target узла должна входить связь (противоположная стороне выхода из source)
   const getTargetPosition = (sourceX: number, sourceY: number, targetX: number, targetY: number): Position => {
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/f934cd13-d56f-4483-86ce-e2102f0bc81b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'GraphEditor.tsx:255',message:'getTargetPosition called',data:{sourceX,sourceY,targetX,targetY},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // Debug logging disabled
     // #endregion
     const dx = targetX - sourceX;
     const dy = targetY - sourceY;
@@ -284,7 +285,7 @@ function generateHierarchicalLayout(
       result = dy > 0 ? Position.Top : Position.Bottom;
     }
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/f934cd13-d56f-4483-86ce-e2102f0bc81b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'GraphEditor.tsx:273',message:'getTargetPosition result',data:{result,dx,dy,absDx,absDy},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // Debug logging disabled
     // #endregion
     return result;
   };
@@ -518,7 +519,7 @@ function generateHierarchicalLayout(
       }
       
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/f934cd13-d56f-4483-86ce-e2102f0bc81b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'GraphEditor.tsx:430',message:'Creating edge root->course',data:{edgeId:`edge-root-${course.id}`,source:'root',target:nodeId,sourcePosition,targetPosition,rootPos,coursePos,direction:direction.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // Debug logging disabled
       // #endregion
       
       const edge = {
@@ -535,7 +536,7 @@ function generateHierarchicalLayout(
       };
       
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/f934cd13-d56f-4483-86ce-e2102f0bc81b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'GraphEditor.tsx:422',message:'Edge created with positions',data:{edgeId:edge.id,hasSourcePosition:edge.sourcePosition !== undefined,hasTargetPosition:edge.targetPosition !== undefined,sourcePosition:edge.sourcePosition,targetPosition:edge.targetPosition,edgeType:edge.type,sourceNode:rootNode.id,sourceNodePosition:rootNode.sourcePosition,targetNode:nodeId,targetNodePosition:nodeMap.get(nodeId)?.sourcePosition},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
+      // Debug logging disabled
       // #endregion
       
       edges.push(edge);
@@ -625,7 +626,7 @@ function generateHierarchicalLayout(
       const targetPosition = getTargetPosition(coursePos.x, coursePos.y, modulePos.x, modulePos.y);
       
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/f934cd13-d56f-4483-86ce-e2102f0bc81b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'GraphEditor.tsx:499',message:'Creating edge course->module',data:{edgeId:`edge-${course.id}-${module.id}`,source:`node-${course.id}`,target:nodeId,sourcePosition,targetPosition,coursePos,modulePos},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // Debug logging disabled
       // #endregion
       
       const edge = {
@@ -644,7 +645,7 @@ function generateHierarchicalLayout(
       };
       
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/f934cd13-d56f-4483-86ce-e2102f0bc81b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'GraphEditor.tsx:518',message:'Edge created with positions',data:{edgeId:edge.id,hasSourcePosition:edge.sourcePosition !== undefined,hasTargetPosition:edge.targetPosition !== undefined,sourcePosition:edge.sourcePosition,targetPosition:edge.targetPosition,edgeType:edge.type},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // Debug logging disabled
       // #endregion
       
       edges.push(edge);
@@ -728,7 +729,7 @@ function generateHierarchicalLayout(
       const targetPosition = getTargetPosition(modulePos.x, modulePos.y, lessonPos.x, lessonPos.y);
       
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/f934cd13-d56f-4483-86ce-e2102f0bc81b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'GraphEditor.tsx:591',message:'Creating edge module->lesson',data:{edgeId:`edge-${module.id}-${lesson.id}`,source:`node-${module.id}`,target:nodeId,sourcePosition,targetPosition,modulePos,lessonPos},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // Debug logging disabled
       // #endregion
       
       const edge = {
@@ -747,7 +748,7 @@ function generateHierarchicalLayout(
       };
       
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/f934cd13-d56f-4483-86ce-e2102f0bc81b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'GraphEditor.tsx:610',message:'Edge created with positions',data:{edgeId:edge.id,hasSourcePosition:edge.sourcePosition !== undefined,hasTargetPosition:edge.targetPosition !== undefined,sourcePosition:edge.sourcePosition,targetPosition:edge.targetPosition,edgeType:edge.type},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // Debug logging disabled
       // #endregion
       
       edges.push(edge);
@@ -861,7 +862,8 @@ export function GraphEditor() {
         adminAPI.lessons.getAll(),
       ]);
 
-      setCourses(Array.isArray(coursesData) ? coursesData : []);
+      // Фильтруем только фиксированные курсы (4 курса)
+      setCourses(filterFixedCourses(Array.isArray(coursesData) ? coursesData : []));
       setModules(Array.isArray(modulesData) ? modulesData : []);
       setLessons(Array.isArray(lessonsData) ? lessonsData : []);
 

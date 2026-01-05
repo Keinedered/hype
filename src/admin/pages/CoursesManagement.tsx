@@ -13,11 +13,12 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Trash2, Globe, Eye } from 'lucide-react';
 import { adminAPI } from '@/api/adminClient';
 import { useNavigate } from 'react-router-dom';
-import { useApiQuery, useApiMutation, invalidateCache } from '../hooks';
+import { useApiQuery, useApiMutation } from '../hooks';
 import { LoadingState, ErrorState, EmptyState, ConfirmDialog, SearchBar, FormField } from '../components';
 import { useFormValidation } from '../hooks';
 import { generateIdFromTitle } from '../utils';
 import { toast } from 'sonner';
+import { filterFixedCourses, FIXED_COURSES } from '../utils/fixedCourses';
 
 interface Course {
   id: string;
@@ -30,13 +31,6 @@ interface Course {
   authors?: string[];
   created_at?: string;
 }
-
-const FIXED_COURSES = [
-  { id: 'design', title: 'Дизайн', track: 'design' },
-  { id: 'event-basics', title: 'Ивент', track: 'event' },
-  { id: 'product-intro', title: 'Цифровые продукты', track: 'digital' },
-  { id: 'business-comm', title: 'Внешние коммуникации', track: 'communication' },
-];
 
 export function CoursesManagement() {
   const navigate = useNavigate();
@@ -52,10 +46,27 @@ export function CoursesManagement() {
   // Загрузка курсов
   const { data: coursesData, loading, error, refetch } = useApiQuery(
     () => adminAPI.courses.getAll(),
-    { cacheTime: 2 * 60 * 1000 }
+    { 
+      queryKey: 'courses', // Явный ключ кэша для курсов
+      cacheTime: 2 * 60 * 1000,
+      onSuccess: (data) => {
+        console.log('[CoursesManagement] Courses loaded:', data);
+      },
+      onError: (err) => {
+        console.error('[CoursesManagement] Error loading courses:', err);
+      }
+    }
   );
 
-  const courses = Array.isArray(coursesData) ? coursesData : [];
+  // Фильтруем только фиксированные курсы (4 курса)
+  // Пустой массив [] - это валидные данные (нет курсов), а не отсутствие данных
+  const courses = useMemo(() => {
+    const allCourses = Array.isArray(coursesData) ? coursesData : [];
+    console.log('[CoursesManagement] All courses from API:', allCourses);
+    const filtered = filterFixedCourses(allCourses);
+    console.log('[CoursesManagement] Filtered courses (fixed only):', filtered);
+    return filtered;
+  }, [coursesData]);
 
   // Фильтрация и поиск
   const filteredCourses = useMemo(() => {
@@ -213,6 +224,9 @@ export function CoursesManagement() {
     }
   };
 
+  // Показываем загрузку пока идет загрузка данных
+  // Пустой массив [] означает "нет данных", а не "данные не загружены"
+  // Проверяем только loading, так как пустой массив - это валидные данные
   if (loading) {
     return <LoadingState message="Загрузка курсов..." />;
   }
@@ -228,176 +242,10 @@ export function CoursesManagement() {
         <div>
           <h1 className="text-3xl font-bold mb-2">Управление курсами</h1>
           <p className="text-gray-300 text-sm">
-            Создание и управление курсами платформы. Доступно 4 фиксированных курса для редактирования.
+            Управление курсами платформы. На площадке всего 4 фиксированных курса, каждый содержит модули (образуют граф), в модулях находятся уроки.
           </p>
         </div>
-        <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
-          setIsCreateDialogOpen(open);
-          if (!open) resetForm();
-        }}>
-          <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="mr-2" size={20} />
-              Создать курс
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-gray-900 border-gray-800 max-w-3xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Создать новый курс</DialogTitle>
-              <DialogDescription className="text-gray-300">
-                Заполните форму для создания нового курса. Все поля, отмеченные *, обязательны.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 mt-4">
-              <FormField
-                type="input"
-                label="ID курса"
-                value={formData.id}
-                onChange={(value) => setFieldValue('id', value)}
-                onBlur={() => handleBlur('id')}
-                error={errors.id}
-                required
-                hint="Уникальный идентификатор (латиница, дефисы, подчеркивания)"
-              />
-
-              <FormField
-                type="input"
-                label="Название курса"
-                value={formData.title}
-                onChange={handleTitleChange}
-                onBlur={() => handleBlur('title')}
-                error={errors.title}
-                required
-                placeholder="Например: React Basics"
-              />
-
-              <FormField
-                type="textarea"
-                label="Краткое описание"
-                value={formData.short_description}
-                onChange={(value) => setFieldValue('short_description', value)}
-                onBlur={() => handleBlur('short_description')}
-                error={errors.short_description}
-                required
-                rows={2}
-                hint="Отображается в каталоге курсов"
-              />
-
-              <FormField
-                type="textarea"
-                label="Полное описание"
-                value={formData.description}
-                onChange={(value) => setFieldValue('description', value)}
-                onBlur={() => handleBlur('description')}
-                error={errors.description}
-                required
-                rows={4}
-              />
-
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  type="select"
-                  label="Уровень"
-                  value={formData.level}
-                  onChange={(value) => setFieldValue('level', value)}
-                  options={[
-                    { value: 'beginner', label: 'Начальный' },
-                    { value: 'intermediate', label: 'Средний' },
-                    { value: 'advanced', label: 'Продвинутый' },
-                  ]}
-                  required
-                />
-
-                <FormField
-                  type="select"
-                  label="Трек"
-                  value={formData.track_id}
-                  onChange={(value) => setFieldValue('track_id', value)}
-                  options={[
-                    { value: 'design', label: 'Дизайн' },
-                    { value: 'event', label: 'Ивент' },
-                    { value: 'digital', label: 'Цифровые продукты' },
-                    { value: 'communication', label: 'Внешние коммуникации' },
-                  ]}
-                  required
-                />
-              </div>
-
-              <FormField
-                type="input"
-                label="Версия"
-                value={formData.version}
-                onChange={(value) => setFieldValue('version', value)}
-                hint="По умолчанию: 1.0"
-              />
-
-              <FormField
-                type="input"
-                label="Срок записи"
-                value={formData.enrollment_deadline}
-                onChange={(value) => setFieldValue('enrollment_deadline', value)}
-                inputType="date"
-                hint="Опционально"
-              />
-
-              {/* Авторы */}
-              <div className="space-y-2">
-                <label className="text-gray-200 text-sm font-medium">Авторы курса</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={authorInput}
-                    onChange={(e) => setAuthorInput(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        addAuthor();
-                      }
-                    }}
-                    placeholder="Введите имя автора"
-                    className="flex-1 bg-gray-800 border border-gray-700 px-3 py-2 rounded-md placeholder:text-gray-400"
-                  />
-                  <Button type="button" onClick={addAuthor} variant="outline" className="border-gray-700">
-                    Добавить
-                  </Button>
-                </div>
-                {Array.isArray(formData.authors) && formData.authors.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {formData.authors.map((author, index) => (
-                      <Badge key={index} variant="outline" className="border-blue-600/30 text-blue-400">
-                        {author}
-                        <button
-                          type="button"
-                          onClick={() => removeAuthor(index)}
-                          className="ml-2 hover:text-red-400"
-                        >
-                          ×
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex gap-2 pt-4">
-                <Button
-                  onClick={() => setIsCreateDialogOpen(false)}
-                  variant="outline"
-                  className="flex-1 border-gray-700"
-                >
-                  Отмена
-                </Button>
-                <Button
-                  onClick={handleCreate}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
-                  disabled={createMutation.loading}
-                >
-                  {createMutation.loading ? 'Создание...' : 'Создать курс'}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+        {/* На площадке всего 4 фиксированных курса, создание новых отключено */}
       </div>
 
       {/* Фильтры и поиск */}
@@ -434,7 +282,7 @@ export function CoursesManagement() {
           </div>
         </div>
         <div className="mt-3 text-sm text-gray-300">
-          Найдено курсов: {filteredCourses.length} из {courses.length}
+          Найдено курсов: {filteredCourses.length} из {courses.length} (всего 4 фиксированных курса)
         </div>
       </Card>
 
@@ -446,8 +294,6 @@ export function CoursesManagement() {
           description={searchQuery || statusFilter !== 'all' || trackFilter !== 'all'
             ? 'Попробуйте изменить параметры поиска или фильтры'
             : 'Создайте первый курс, чтобы начать работу'}
-          actionLabel="Создать курс"
-          onAction={() => setIsCreateDialogOpen(true)}
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

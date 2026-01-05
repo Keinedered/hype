@@ -3,31 +3,12 @@ import { CourseCard } from './CourseCard';
 import { TrackFilter } from './TrackFilter';
 import { Course, TrackId } from '../types';
 import { coursesAPI } from '../api/client';
+import { transformCourseFromAPI, ApiCourse } from '../utils/apiTransformers';
 
 interface CourseCatalogProps {
   onCourseSelect?: (courseId: string) => void;
   selectedTrack?: TrackId | 'all';
   onSelectedTrackChange?: (trackId: TrackId | 'all') => void;
-}
-
-// Преобразование данных из API в формат фронтенда
-function transformCourseFromAPI(apiCourse: any): Course {
-  return {
-    id: apiCourse.id,
-    trackId: apiCourse.track_id as TrackId,
-    title: apiCourse.title,
-    version: apiCourse.version || '1.0',
-    description: apiCourse.description || '',
-    shortDescription: apiCourse.short_description || '',
-    level: apiCourse.level as 'beginner' | 'intermediate' | 'advanced',
-    moduleCount: apiCourse.module_count || 0,
-    lessonCount: apiCourse.lesson_count || 0,
-    taskCount: apiCourse.task_count || 0,
-    authors: apiCourse.authors || [],
-    enrollmentDeadline: apiCourse.enrollment_deadline,
-    progress: apiCourse.progress,
-    status: apiCourse.status as 'not_started' | 'in_progress' | 'completed' | undefined,
-  };
 }
 
 export function CourseCatalog({ onCourseSelect, selectedTrack, onSelectedTrackChange }: CourseCatalogProps) {
@@ -55,9 +36,12 @@ export function CourseCatalog({ onCourseSelect, selectedTrack, onSelectedTrackCh
           ? apiCourses.map(transformCourseFromAPI)
           : [];
         setCourses(transformedCourses);
-      } catch (err: any) {
-        console.error('Failed to fetch courses:', err);
-        setError(err.message || 'Ошибка загрузки курсов');
+      } catch (err: unknown) {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Failed to fetch courses:', err);
+        }
+        const errorMessage = err instanceof Error ? err.message : 'Ошибка загрузки курсов';
+        setError(errorMessage);
         setCourses([]);
       } finally {
         setLoading(false);
@@ -92,14 +76,26 @@ export function CourseCatalog({ onCourseSelect, selectedTrack, onSelectedTrackCh
 
       {loading ? (
         <div className="text-center py-20">
-          <p className="text-muted-foreground font-mono">Загрузка курсов...</p>
+          <div className="inline-flex flex-col items-center gap-4">
+            <div className="w-8 h-8 border-4 border-black border-t-transparent animate-spin rounded-full" />
+            <p className="text-muted-foreground font-mono">Загрузка курсов...</p>
+          </div>
         </div>
       ) : error ? (
-        <div className="text-center py-20 border-2 border-black">
+        <div className="text-center py-20 border-2 border-black bg-white p-6 max-w-2xl mx-auto">
           <div className="bg-black text-white px-6 py-3 inline-block font-mono tracking-wide mb-4">
             ОШИБКА
           </div>
-          <p className="text-muted-foreground font-mono">{error}</p>
+          <p className="text-foreground font-mono mb-4">{error}</p>
+          <button
+            onClick={() => {
+              setError(null);
+              fetchCourses();
+            }}
+            className="border-2 border-black px-4 py-2 font-mono text-sm hover:bg-black hover:text-white transition-colors"
+          >
+            Попробовать снова
+          </button>
         </div>
       ) : (
         <>

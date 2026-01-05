@@ -181,7 +181,7 @@ class Lesson(Base):
     __tablename__ = "lessons"
     
     id = Column(String, primary_key=True, index=True)
-    module_id = Column(String, ForeignKey("modules.id", ondelete="SET NULL"), nullable=True, index=True)
+    module_id = Column(String, ForeignKey("modules.id", ondelete="CASCADE"), nullable=False, index=True)
     title = Column(String, nullable=False)
     description = Column(Text)
     video_url = Column(String)

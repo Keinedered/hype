@@ -7,43 +7,17 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './
 import { ArrowLeft, BookOpen, MapPin, CheckCircle2, Circle, Play } from 'lucide-react';
 import { modulesAPI as apiModulesAPI, lessonsAPI as apiLessonsAPI, tracksAPI as apiTracksAPI, coursesAPI } from '../api/client';
 import { tracks } from '../data/mockData';
+import { transformModuleFromAPI, transformLessonFromAPI, ApiModule, ApiLesson } from '../utils/apiTransformers';
 
 interface CoursePageProps {
   course: Course;
   onBack?: () => void;
   onStartCourse?: () => void;
   onOpenMap?: () => void;
+  onSelectModule?: (moduleId: string) => void;
   onSelectLesson?: (lessonId: string) => void;
   onOpenHandbook?: () => void;
   onCourseUpdate?: (course: Course) => void;
-}
-
-// Преобразование модуля из API
-function transformModuleFromAPI(apiModule: any): Module {
-  return {
-    id: apiModule.id,
-    courseId: apiModule.course_id,
-    title: apiModule.title,
-    description: apiModule.description || '',
-    lessons: apiModule.lessons ? apiModule.lessons.map(transformLessonFromAPI) : [],
-    progress: undefined, // TODO: добавить прогресс пользователя
-  };
-}
-
-// Преобразование урока из API
-function transformLessonFromAPI(apiLesson: any): Lesson {
-  return {
-    id: apiLesson.id,
-    moduleId: apiLesson.module_id,
-    title: apiLesson.title,
-    description: apiLesson.description || '',
-    videoUrl: apiLesson.video_url,
-    videoDuration: apiLesson.video_duration,
-    content: apiLesson.content || '',
-    handbookExcerpts: apiLesson.handbook_excerpts || [],
-    assignment: apiLesson.assignment || null,
-    status: undefined, // TODO: добавить статус из user_lessons
-  };
 }
 
 export function CoursePage({ 
@@ -51,13 +25,14 @@ export function CoursePage({
   onBack, 
   onStartCourse,
   onOpenMap,
+  onSelectModule,
   onSelectLesson,
   onOpenHandbook,
   onCourseUpdate
 }: CoursePageProps) {
   const [courseModules, setCourseModules] = useState<Module[]>([]);
   const [loading, setLoading] = useState(true);
-  const [track, setTrack] = useState<any>(null);
+  const [track, setTrack] = useState<{ id: string; name: string; color: string } | null>(null);
   const [lessonsByModule, setLessonsByModule] = useState<Record<string, Lesson[]>>({});
 
   useEffect(() => {
@@ -69,7 +44,7 @@ export function CoursePage({
         try {
           const tracksData = await apiTracksAPI.getAll();
           const foundTrack = Array.isArray(tracksData) 
-            ? tracksData.find((t: any) => t.id === course.trackId) 
+            ? (tracksData as Array<{ id: string; name: string; color: string }>).find((t) => t.id === course.trackId) 
             : tracks.find((t) => t.id === course.trackId);
           setTrack(foundTrack || tracks.find((t) => t.id === course.trackId));
         } catch {
@@ -91,8 +66,10 @@ export function CoursePage({
             lessonsMap[module.id] = Array.isArray(lessonsData)
               ? lessonsData.map(transformLessonFromAPI)
               : [];
-          } catch (err) {
-            console.error(`Failed to fetch lessons for module ${module.id}:`, err);
+          } catch (err: unknown) {
+            if (process.env.NODE_ENV === 'development') {
+              console.error(`Failed to fetch lessons for module ${module.id}:`, err);
+            }
             lessonsMap[module.id] = [];
           }
         }
@@ -105,8 +82,13 @@ export function CoursePage({
 
         setCourseModules(modulesWithLessons);
         setLessonsByModule(lessonsMap);
-      } catch (err: any) {
-        console.error('Failed to fetch course data:', err);
+      } catch (err: unknown) {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Failed to fetch course data:', err);
+        }
+        // Ошибка будет отображаться через состояние loading = false и пустые данные
+        setCourseModules([]);
+        setLessonsByModule({});
       } finally {
         setLoading(false);
       }
@@ -273,7 +255,14 @@ export function CoursePage({
             
             {loading ? (
               <div className="text-center py-12">
-                <p className="text-gray-700 font-mono">Загрузка модулей...</p>
+                <div className="inline-flex flex-col items-center gap-4">
+                  <div className="w-8 h-8 border-4 border-black border-t-transparent animate-spin rounded-full" />
+                  <p className="text-foreground font-mono">Загрузка модулей...</p>
+                </div>
+              </div>
+            ) : courseModules.length === 0 ? (
+              <div className="text-center py-12 border-2 border-black bg-white p-6">
+                <p className="text-foreground font-mono">Модули не найдены</p>
               </div>
             ) : (
               <Accordion type="single" collapsible className="space-y-4">
@@ -284,7 +273,13 @@ export function CoursePage({
                   className="border-2 border-black bg-white"
                 >
                   <AccordionTrigger className="hover:no-underline px-6 py-4">
-                    <div className="flex items-start gap-4 text-left flex-1">
+                    <div 
+                      className="flex items-start gap-4 text-left flex-1 cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelectModule?.(module.id);
+                      }}
+                    >
                       <div 
                         className="w-10 h-10 border-2 border-black flex items-center justify-center font-mono font-bold shrink-0"
                         style={{ backgroundColor: track?.color }}
@@ -318,22 +313,17 @@ export function CoursePage({
                   <AccordionContent>
                     <div className="px-6 pb-4 space-y-2 border-t-2 border-black pt-4">
                       {module.lessons && module.lessons.length > 0 ? (
-                        module.lessons.map((lesson) => (
-                          <button
-                            key={lesson.id}
-                            onClick={() => onSelectLesson?.(lesson.id)}
-                            className="w-full flex items-center gap-4 p-4 border-2 border-black hover:bg-black hover:text-white transition-all text-left font-mono"
+                        <>
+                          <p className="text-gray-700 font-mono text-sm py-2 mb-2">
+                            Откройте модуль, чтобы просмотреть уроки
+                          </p>
+                          <Button
+                            onClick={() => onSelectModule?.(module.id)}
+                            className="w-full border-2 border-black hover:bg-black hover:text-white font-mono tracking-wide"
                           >
-                            {lesson.status === 'completed' ? (
-                              <CheckCircle2 className="w-5 h-5" style={{ color: track?.color }} />
-                            ) : lesson.status === 'in_progress' ? (
-                              <Circle className="w-5 h-5" style={{ color: track?.color, fill: track?.color }} />
-                            ) : (
-                              <Circle className="w-5 h-5" />
-                            )}
-                            <span className="text-sm tracking-wide">{lesson.title.toUpperCase()}</span>
-                          </button>
-                        ))
+                            ОТКРЫТЬ МОДУЛЬ
+                          </Button>
+                        </>
                       ) : (
                         <p className="text-gray-700 font-mono text-sm py-2">
                           В этом модуле пока нет уроков

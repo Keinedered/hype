@@ -22,10 +22,11 @@ import { Plus, Edit, Trash2, Package, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { adminAPI } from '@/api/adminClient';
 import { useNavigate } from 'react-router-dom';
+import { FIXED_COURSES } from '../utils/fixedCourses';
 
 interface Lesson {
   id: string;
-  module_id: string | null;
+  module_id: string; // Обязательное поле - урок должен быть привязан к модулю
   title: string;
   description: string;
   content: string;
@@ -46,14 +47,6 @@ interface Module {
   lesson_ids: string[]; // ID уроков в модуле
 }
 
-// 4 фиксированных курса (соответствуют реальным ID из базы данных)
-const FIXED_COURSES = [
-  { id: 'design', title: 'Дизайн', track: 'design' },
-  { id: 'event-basics', title: 'Ивент', track: 'event' },
-  { id: 'product-intro', title: 'Цифровые продукты', track: 'digital' },
-  { id: 'business-comm', title: 'Внешние коммуникации', track: 'communication' },
-];
-
 export function LessonsBuilder() {
   const navigate = useNavigate();
   const [lessons, setLessons] = useState<Lesson[]>([]);
@@ -61,6 +54,7 @@ export function LessonsBuilder() {
   const [isCreateLessonDialogOpen, setIsCreateLessonDialogOpen] = useState(false);
   const [lessonFormData, setLessonFormData] = useState({
     id: '',
+    module_id: '', // Обязательное поле
     title: '',
     description: '',
     content: '',
@@ -100,33 +94,46 @@ export function LessonsBuilder() {
     }
   };
 
-  // Уроки без модуля (свободные)
-  const freeLessons = Array.isArray(lessons) ? lessons.filter(l => !l.module_id) : [];
+  // Уроки всегда привязаны к модулям, поэтому свободных уроков нет
+  const freeLessons: Lesson[] = [];
 
   const handleCreateLesson = async () => {
+    // Валидация всех обязательных полей согласно схеме LessonCreate
     if (!lessonFormData.id || !lessonFormData.id.trim()) {
       toast.error('Введите ID урока');
+      return;
+    }
+    if (!lessonFormData.module_id) {
+      toast.error('Выберите модуль для урока. Урок должен быть привязан к модулю');
       return;
     }
     if (!lessonFormData.title || !lessonFormData.title.trim()) {
       toast.error('Введите название урока');
       return;
     }
+    if (!lessonFormData.description || !lessonFormData.description.trim()) {
+      toast.error('Введите описание урока');
+      return;
+    }
+    if (!lessonFormData.content || !lessonFormData.content.trim()) {
+      toast.error('Введите контент урока');
+      return;
+    }
 
     try {
-      // Создаем урок БЕЗ module_id (null)
+      // Создаем урок с обязательным module_id и всеми обязательными полями
       const createData = {
         id: lessonFormData.id.trim(),
-        module_id: null, // Урок создается без модуля
+        module_id: lessonFormData.module_id, // Обязательное поле
         title: lessonFormData.title.trim(),
-        description: lessonFormData.description || '',
-        content: lessonFormData.content || '',
-        video_url: lessonFormData.video_url || null,
-        video_duration: lessonFormData.video_duration || null,
-        content_type: lessonFormData.content_type,
-        tags: lessonFormData.tags || '',
+        description: lessonFormData.description.trim(), // Обязательное поле
+        content: lessonFormData.content.trim(), // Обязательное поле
+        video_url: lessonFormData.video_url?.trim() || null,
+        video_duration: lessonFormData.video_duration?.trim() || null,
+        content_type: lessonFormData.content_type || 'text',
+        tags: lessonFormData.tags?.trim() || null,
         estimated_time: lessonFormData.estimated_time || 0,
-        order_index: freeLessons.length + 1,
+        order_index: 0, // Будет установлен автоматически на бэкенде
       };
 
       await adminAPI.lessons.create(createData);
@@ -142,6 +149,7 @@ export function LessonsBuilder() {
   const resetLessonForm = () => {
     setLessonFormData({
       id: '',
+      module_id: '', // Обязательное поле
       title: '',
       description: '',
       content: '',
@@ -164,7 +172,7 @@ export function LessonsBuilder() {
         <div className="flex gap-3 flex-shrink-0">
           <button
             type="button"
-            onClick={() => navigate('/admin/lessons/new')}
+            onClick={() => navigate('/admin/lessons/create')}
             className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold transition-all bg-blue-600 hover:bg-blue-700 px-6 py-2.5 shadow-md cursor-pointer"
             style={{ backgroundColor: '#2563eb', color: '#ffffff' }}
           >
@@ -173,20 +181,10 @@ export function LessonsBuilder() {
           </button>
           <button
             type="button"
-            onClick={() => {
-              if (freeLessons.length > 0) {
-                navigate('/admin/modules/new');
-              } else {
-                toast.info('Сначала создайте хотя бы один урок');
-              }
-            }}
-            disabled={freeLessons.length === 0}
-            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold transition-all bg-green-600 hover:bg-green-700 px-6 py-2.5 shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ 
-              backgroundColor: freeLessons.length > 0 ? '#16a34a' : '#6b7280',
-              color: '#ffffff'
-            }}
-            title={freeLessons.length === 0 ? 'Сначала создайте хотя бы один урок' : 'Создать модуль из свободных уроков'}
+            onClick={() => navigate('/admin/modules/new')}
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold transition-all bg-green-600 hover:bg-green-700 px-6 py-2.5 shadow-md cursor-pointer"
+            style={{ backgroundColor: '#16a34a', color: '#ffffff' }}
+            title="Создать новый модуль"
           >
             <Package size={20} />
             Создать модуль
@@ -203,55 +201,16 @@ export function LessonsBuilder() {
         </div>
       </div>
 
-      {/* Свободные уроки (без модуля) */}
+      {/* Информация о структуре */}
       <Card className="p-6 bg-white border-gray-200">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-black">Свободные уроки ({freeLessons.length})</h2>
+          <h2 className="text-xl font-bold text-black">Структура: КУРС → МОДУЛИ → УРОКИ</h2>
         </div>
-        {freeLessons.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-gray-600 text-sm">Нет свободных уроков. Используйте кнопку "Создать урок" в шапке страницы.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {freeLessons.map((lesson) => (
-              <Card key={lesson.id} className="p-4 bg-white border-gray-300">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="text-black font-semibold">{lesson.title}</h3>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-gray-600 hover:text-red-600"
-                    onClick={async () => {
-                      if (confirm('Удалить урок?')) {
-                        try {
-                          await adminAPI.lessons.delete(lesson.id);
-                          toast.success('Урок удален');
-                          fetchLessons();
-                        } catch (error: any) {
-                          toast.error(error.message || 'Ошибка удаления');
-                        }
-                      }
-                    }}
-                  >
-                    <Trash2 size={16} />
-                  </Button>
-                </div>
-                <p className="text-gray-600 text-sm line-clamp-2">{lesson.description || 'Без описания'}</p>
-                <div className="mt-2 flex gap-2">
-                  <span className="text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded border border-gray-300">
-                    {lesson.content_type}
-                  </span>
-                  {lesson.estimated_time > 0 && (
-                    <span className="text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded border border-gray-300">
-                      {lesson.estimated_time} мин
-                    </span>
-                  )}
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
+        <div className="text-center py-4">
+          <p className="text-gray-600 text-sm">
+            Все уроки должны быть привязаны к модулям. Создайте модуль, затем создайте уроки для него.
+          </p>
+        </div>
       </Card>
 
       {/* Модули по курсам */}
@@ -280,14 +239,11 @@ export function LessonsBuilder() {
                             size="icon"
                             className="text-gray-600 hover:text-red-600"
                             onClick={async () => {
-                              if (confirm('Удалить модуль? Уроки станут свободными.')) {
+                              if (confirm('Удалить модуль? Все уроки модуля будут удалены.')) {
                                 try {
-                                  // Освобождаем уроки
-                                  for (const lesson of moduleLessonsList) {
-                                    await adminAPI.lessons.update(lesson.id, { module_id: null });
-                                  }
+                                  // Удаляем модуль (уроки удалятся каскадно)
                                   await adminAPI.modules.delete(module.id);
-                                  toast.success('Модуль удален, уроки освобождены');
+                                  toast.success('Модуль и все его уроки удалены');
                                   fetchLessons();
                                   fetchModules();
                                 } catch (error: any) {
@@ -359,6 +315,7 @@ export function LessonsBuilder() {
                 onChange={(e) => setLessonFormData({ ...lessonFormData, id: e.target.value })}
                 placeholder="lesson-1"
                 className="bg-gray-800 border-gray-700 text-white"
+                required
               />
             </div>
             <div>
@@ -368,24 +325,29 @@ export function LessonsBuilder() {
                 onChange={(e) => setLessonFormData({ ...lessonFormData, title: e.target.value })}
                 placeholder="Название урока"
                 className="bg-gray-800 border-gray-700 text-white"
+                required
               />
             </div>
             <div>
-              <Label className="text-gray-200">Описание</Label>
+              <Label className="text-gray-200">Описание *</Label>
               <Textarea
                 value={lessonFormData.description}
                 onChange={(e) => setLessonFormData({ ...lessonFormData, description: e.target.value })}
                 className="bg-gray-800 border-gray-700 text-white"
                 rows={3}
+                required
+                placeholder="Краткое описание урока (обязательно)"
               />
             </div>
             <div>
-              <Label className="text-gray-200">Контент</Label>
+              <Label className="text-gray-200">Контент *</Label>
               <Textarea
                 value={lessonFormData.content}
                 onChange={(e) => setLessonFormData({ ...lessonFormData, content: e.target.value })}
                 className="bg-gray-800 border-gray-700 text-white"
                 rows={5}
+                required
+                placeholder="Основной контент урока в формате Markdown (обязательно)"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -441,6 +403,31 @@ export function LessonsBuilder() {
                 </div>
               </div>
             )}
+            <div>
+              <Label className="text-gray-200">Модуль *</Label>
+              <Select
+                value={lessonFormData.module_id}
+                onValueChange={(value) => setLessonFormData({ ...lessonFormData, module_id: value })}
+              >
+                <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                  <SelectValue placeholder="Выберите модуль" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-700 shadow-lg">
+                  {modules.map((module) => (
+                    <SelectItem 
+                      key={module.id} 
+                      value={module.id}
+                      className="bg-gray-800 hover:bg-gray-700 focus:bg-gray-700 cursor-pointer"
+                    >
+                      {module.title} ({FIXED_COURSES.find(c => c.id === module.course_id)?.title || module.course_id})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {modules.length === 0 && (
+                <p className="text-yellow-400 text-xs mt-1">Сначала создайте модуль</p>
+              )}
+            </div>
             <div>
               <Label className="text-gray-200">Теги (через запятую)</Label>
               <Input

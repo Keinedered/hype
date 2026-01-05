@@ -3614,7 +3614,8 @@ html {
 .admin-panel [class*="SelectViewport"],
 .admin-panel [class*="DropdownMenuContent"],
 .admin-panel [data-radix-select-content],
-.admin-panel [data-radix-dropdown-menu-content] {
+.admin-panel [data-radix-dropdown-menu-content],
+.admin-panel [data-slot="select-content"] {
   background-color: rgb(31 41 55) !important; /* gray-800 */
   background: rgb(31 41 55) !important;
   opacity: 1 !important;
@@ -3627,12 +3628,14 @@ html {
 .admin-panel [class*="CommandList"],
 .admin-panel [class*="CommandItem"],
 .admin-panel [data-radix-dialog-content],
-.admin-panel [data-radix-popover-content] {
-  background-color: rgb(17 24 39) !important; /* gray-900 */
-  background: rgb(17 24 39) !important;
+.admin-panel [data-radix-popover-content],
+.admin-panel [data-slot="dialog-content"] {
+  background-color: #ffffff !important; /* white */
+  background: #ffffff !important;
   opacity: 1 !important;
   --tw-bg-opacity: 1 !important;
   backdrop-filter: none !important;
+  color: #000000 !important;
 }
 
 .admin-panel [class*="SelectItem"],

@@ -326,7 +326,7 @@ export function AssignmentsManagement() {
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold   mb-2">Управление заданиями</h1>
+          <h1 className="text-3xl font-bold mb-2">Управление заданиями</h1>
           <p className="text-gray-300 text-sm">
             Создание заданий и проверка работ студентов
           </p>
@@ -366,7 +366,7 @@ export function AssignmentsManagement() {
                 <Card key={assignment.id} className="bg-gray-900 border-gray-800 p-6 hover:border-gray-700 transition-colors">
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
-                      <h3 className="text-lg font-semibold   mb-2">ID: {assignment.id}</h3>
+                      <h3 className="text-lg font-semibold mb-2">ID: {assignment.id}</h3>
                       <p className="text-gray-300 text-sm mb-3 line-clamp-2">{assignment.description}</p>
                       <div className="flex flex-wrap gap-2">
                         {assignment.requires_text && (
@@ -431,7 +431,7 @@ export function AssignmentsManagement() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="bg-gray-800 border border-gray-700   px-3 py-2 rounded-md text-sm"
+                className="bg-gray-800 border border-gray-700 px-3 py-2 rounded-md text-sm"
               >
                 <option value="all">Все статусы</option>
                 <option value="pending">На проверке</option>
@@ -463,7 +463,7 @@ export function AssignmentsManagement() {
                       <div className="flex items-center gap-3 mb-3">
                         {getStatusIcon(submission.status)}
                         <div>
-                          <h3 className="text-lg font-semibold  ">Работа #{submission.id}</h3>
+                          <h3 className="text-lg font-semibold">Работа #{submission.id}</h3>
                           <p className="text-gray-300 text-sm">
                             Пользователь: {submission.user?.username || submission.user_id}
                             {submission.user?.email && ` (${submission.user.email})`}
@@ -563,7 +563,7 @@ export function AssignmentsManagement() {
         setIsCreateDialogOpen(open);
         if (!open) resetForm();
       }}>
-        <DialogContent className="bg-gray-900 border-gray-800   max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-gray-900 border-gray-800 max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Создать задание</DialogTitle>
             <DialogDescription className="text-gray-300">
@@ -679,7 +679,7 @@ export function AssignmentsManagement() {
           resetForm();
         }
       }}>
-        <DialogContent className="bg-gray-900 border-gray-800   max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-gray-900 border-gray-800 max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Редактировать задание</DialogTitle>
             <DialogDescription className="text-gray-300">
@@ -785,7 +785,7 @@ export function AssignmentsManagement() {
 
       {/* Grade Submission Dialog */}
       <Dialog open={isGradeDialogOpen} onOpenChange={setIsGradeDialogOpen}>
-        <DialogContent className="bg-gray-900 border-gray-800   max-w-2xl">
+        <DialogContent className="bg-gray-900 border-gray-800 max-w-2xl">
           <DialogHeader>
             <DialogTitle>Оценить работу</DialogTitle>
             <DialogDescription className="text-gray-300">

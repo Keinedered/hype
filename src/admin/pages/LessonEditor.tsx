@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useState, useEffect, useRef, FormEvent, ChangeEvent } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -52,7 +52,11 @@ interface Module {
 export function LessonEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const isEditMode = !!id;
+  
+  // Получаем module_id из query параметров для предзаполнения
+  const prefillModuleId = searchParams.get('module_id');
   
   const [loading, setLoading] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
@@ -82,9 +86,10 @@ export function LessonEditor() {
       setFormData(prev => ({
         ...prev,
         id: `lesson-${Date.now()}`,
+        module_id: prefillModuleId || null, // Предзаполняем module_id если передан в query
       }));
     }
-  }, [id, isEditMode]);
+  }, [id, isEditMode, prefillModuleId]);
 
   const fetchModules = async () => {
     try {
@@ -111,7 +116,7 @@ export function LessonEditor() {
         content_type: lesson.content_type || 'text',
         tags: lesson.tags || '',
         estimated_time: lesson.estimated_time || 0,
-        module_id: lesson.module_id || null,
+        module_id: lesson.module_id || prefillModuleId || null,
       });
       if (lesson.video_url) {
         setVideoInputValue(lesson.video_url);
@@ -208,7 +213,7 @@ export function LessonEditor() {
     }, 0);
   };
 
-  const handleVideoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleVideoUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -273,29 +278,82 @@ export function LessonEditor() {
     }
   };
 
-  const handleSaveAndPublish = async (e: React.FormEvent) => {
+  const handleSaveAndPublish = async (e: FormEvent) => {
     e.preventDefault();
     
-    if (!formData.id || !formData.title || !formData.content.trim()) {
-      toast.error('Заполните обязательные поля: ID, название и контент урока');
+    // Валидация обязательных полей согласно схеме БД
+    if (!formData.id || !formData.id.trim()) {
+      toast.error('Заполните обязательное поле: ID урока');
+      return;
+    }
+    if (!formData.module_id) {
+      toast.error('Выберите модуль. Урок должен быть привязан к модулю');
+      return;
+    }
+    if (!formData.title || !formData.title.trim()) {
+      toast.error('Заполните обязательное поле: название урока');
+      return;
+    }
+    if (!formData.description || !formData.description.trim()) {
+      toast.error('Заполните обязательное поле: описание урока');
+      return;
+    }
+    if (!formData.content || !formData.content.trim()) {
+      toast.error('Заполните обязательное поле: контент урока');
       return;
     }
 
     try {
       setLoading(true);
       
-      // Сначала сохраняем урок
+      // Подготавливаем данные согласно схеме LessonCreate/LessonUpdate
       if (isEditMode) {
-        await adminAPI.lessons.update(formData.id, formData);
+        // При обновлении используем LessonUpdate - все поля опциональны
+        const updateData: any = {
+          title: formData.title.trim(),
+          description: formData.description.trim(),
+          content: formData.content.trim(),
+          video_url: formData.video_url?.trim() || null,
+          video_duration: formData.video_duration?.trim() || null,
+          content_type: formData.content_type || 'text',
+          tags: formData.tags?.trim() || null,
+          estimated_time: formData.estimated_time || 0,
+        };
+        // module_id можно изменить при обновлении
+        if (formData.module_id) {
+          updateData.module_id = formData.module_id;
+        }
+        await adminAPI.lessons.update(formData.id, updateData);
       } else {
-        await adminAPI.lessons.create(formData);
+        // При создании используем LessonCreate - обязательные поля
+        const createData = {
+          id: formData.id.trim(),
+          module_id: formData.module_id, // Обязательно
+          title: formData.title.trim(),
+          description: formData.description.trim(), // Обязательно
+          content: formData.content.trim(), // Обязательно
+          video_url: formData.video_url?.trim() || null,
+          video_duration: formData.video_duration?.trim() || null,
+          content_type: formData.content_type || 'text',
+          tags: formData.tags?.trim() || null,
+          estimated_time: formData.estimated_time || 0,
+          order_index: 0, // Будет установлен автоматически на бэкенде
+        };
+        await adminAPI.lessons.create(createData);
       }
       
       // Затем публикуем
       await adminAPI.lessons.publish(formData.id);
       
       toast.success('Урок успешно сохранен и опубликован на платформе!');
-      navigate('/admin/lessons');
+      
+      // Если был передан module_id, возвращаемся на страницу модуля
+      if (prefillModuleId || formData.module_id) {
+        const moduleId = prefillModuleId || formData.module_id;
+        navigate(`/admin/modules/${moduleId}/edit`);
+      } else {
+        navigate('/admin/lessons');
+      }
     } catch (error: any) {
       toast.error(`Ошибка сохранения и публикации: ${error.message || 'Неизвестная ошибка'}`);
     } finally {
@@ -321,7 +379,15 @@ export function LessonEditor() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => navigate('/admin/lessons')}
+                onClick={() => {
+                  // Если был передан module_id, возвращаемся на страницу модуля
+                  if (prefillModuleId || formData.module_id) {
+                    const moduleId = prefillModuleId || formData.module_id;
+                    navigate(`/admin/modules/${moduleId}/edit`);
+                  } else {
+                    navigate('/admin/lessons');
+                  }
+                }}
                 className="text-gray-600 hover:text-black"
               >
                 <ArrowLeft size={20} />
@@ -368,32 +434,40 @@ export function LessonEditor() {
               </div>
 
               <div>
-                <Label className="text-black font-semibold">Модуль</Label>
+                <Label className="text-black font-semibold">Модуль *</Label>
                 <Select
-                  value={formData.module_id || '__none__'}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, module_id: value === '__none__' ? null : value }))}
+                  value={formData.module_id || ''}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, module_id: value }))}
+                  required
                 >
                     <SelectTrigger className="bg-white border-gray-300 text-black placeholder:text-gray-600 mt-2">
-                      <SelectValue placeholder="Выберите модуль" />
+                      <SelectValue placeholder="Выберите модуль (обязательно)" />
                     </SelectTrigger>
                     <SelectContent className="bg-white border-gray-300 text-black shadow-lg">
-                      <SelectItem value="__none__" className="bg-white text-black hover:bg-gray-100 focus:bg-gray-100 cursor-pointer">Без модуля</SelectItem>
-                      {modules.map((module) => (
-                        <SelectItem key={module.id} value={module.id} className="bg-white text-black hover:bg-gray-100 focus:bg-gray-100 cursor-pointer">
-                          {module.title}
+                      {modules.length === 0 ? (
+                        <SelectItem value="" disabled className="bg-white text-gray-400">
+                          Нет доступных модулей. Сначала создайте модуль.
                         </SelectItem>
-                      ))}
+                      ) : (
+                        modules.map((module) => (
+                          <SelectItem key={module.id} value={module.id} className="bg-white text-black hover:bg-gray-100 focus:bg-gray-100 cursor-pointer">
+                            {module.title}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                 </Select>
+                <p className="text-gray-600 text-xs mt-1">Урок должен быть привязан к модулю</p>
               </div>
 
               <div>
-                <Label className="text-black font-semibold">Описание</Label>
+                <Label className="text-black font-semibold">Описание *</Label>
                 <Input
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   className="bg-white border-gray-300 text-black mt-2"
                   placeholder="Краткое описание урока"
+                  required
                 />
               </div>
             </div>
@@ -595,7 +669,15 @@ export function LessonEditor() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => navigate('/admin/lessons')}
+                onClick={() => {
+                  // Если был передан module_id, возвращаемся на страницу модуля
+                  if (prefillModuleId || formData.module_id) {
+                    const moduleId = prefillModuleId || formData.module_id;
+                    navigate(`/admin/modules/${moduleId}/edit`);
+                  } else {
+                    navigate('/admin/lessons');
+                  }
+                }}
                 className="bg-white border-gray-300 text-black hover:bg-gray-50 px-6"
               >
                 Отмена

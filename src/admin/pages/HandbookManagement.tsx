@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+﻿import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,8 @@ import {
 import { Plus, Edit, Trash2, FileText, FolderOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { adminAPI } from '@/api/adminClient';
+import { useApiQuery, useApiMutation } from '../hooks';
+import { LoadingState, ErrorState, EmptyState } from '../components';
 
 interface Article {
   id: string;
@@ -24,7 +26,6 @@ interface Article {
 }
 
 export function HandbookManagement() {
-  const [articles, setArticles] = useState<Article[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
@@ -36,21 +37,52 @@ export function HandbookManagement() {
     tags: '',
   });
 
-  useEffect(() => {
-    fetchArticles();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Загрузка статей через useApiQuery
+  const { data: articlesData, loading, error, refetch } = useApiQuery(
+    () => adminAPI.handbook.getArticles(),
+    { cacheTime: 2 * 60 * 1000 }
+  );
 
-  const fetchArticles = async () => {
-    try {
-      const data = await adminAPI.handbook.getArticles();
-      setArticles(Array.isArray(data) ? data : []);
-    } catch (error: any) {
-      console.error('Failed to fetch articles:', error);
-      toast.error(error.message || 'Ошибка загрузки статей');
-      setArticles([]);
+  const articles = Array.isArray(articlesData) ? articlesData : [];
+
+  // Мутации
+  const createMutation = useApiMutation(
+    (data: any) => adminAPI.handbook.createArticle(data),
+    {
+      invalidateQueries: ['handbook'],
+      successMessage: 'Статья успешно создана',
+      onSuccess: () => {
+        refetch();
+        setIsCreateDialogOpen(false);
+        resetForm();
+      },
     }
-  };
+  );
+
+  const updateMutation = useApiMutation(
+    (data: { id: string; data: any }) => adminAPI.handbook.updateArticle(data.id, data.data),
+    {
+      invalidateQueries: ['handbook'],
+      successMessage: 'Статья успешно обновлена',
+      onSuccess: () => {
+        refetch();
+        setEditingArticle(null);
+        setIsEditDialogOpen(false);
+        resetForm();
+      },
+    }
+  );
+
+  const deleteMutation = useApiMutation(
+    (id: string) => adminAPI.handbook.deleteArticle(id),
+    {
+      invalidateQueries: ['handbook'],
+      successMessage: 'Статья успешно удалена',
+      onSuccess: () => {
+        refetch();
+      },
+    }
+  );
 
   const handleCreate = async () => {
     // Валидация
@@ -71,23 +103,15 @@ export function HandbookManagement() {
       return;
     }
 
-    try {
-      const createData = {
-        id: formData.id.trim(),
-        section_id: formData.section_id.trim(),
-        title: formData.title.trim(),
-        content: formData.content.trim(),
-        tags: formData.tags?.trim() || null,
-      };
+    const createData = {
+      id: formData.id.trim(),
+      section_id: formData.section_id.trim(),
+      title: formData.title.trim(),
+      content: formData.content.trim(),
+      tags: formData.tags?.trim() || null,
+    };
 
-      await adminAPI.handbook.createArticle(createData);
-      toast.success('Статья успешно создана');
-      fetchArticles();
-      setIsCreateDialogOpen(false);
-      resetForm();
-    } catch (error: any) {
-      toast.error(error.message || 'Ошибка при создании статьи');
-    }
+    await createMutation.mutate(createData);
   };
 
   const handleUpdate = async () => {
@@ -107,35 +131,19 @@ export function HandbookManagement() {
       return;
     }
 
-    try {
-      const updateData = {
-        title: formData.title.trim(),
-        content: formData.content.trim(),
-        section_id: formData.section_id.trim(),
-        tags: formData.tags?.trim() || null,
-      };
+    const updateData = {
+      title: formData.title.trim(),
+      content: formData.content.trim(),
+      section_id: formData.section_id.trim(),
+      tags: formData.tags?.trim() || null,
+    };
 
-      await adminAPI.handbook.updateArticle(editingArticle.id, updateData);
-      toast.success('Статья успешно обновлена');
-      fetchArticles();
-      setEditingArticle(null);
-      setIsEditDialogOpen(false);
-      resetForm();
-    } catch (error: any) {
-      toast.error(error.message || 'Ошибка при обновлении статьи');
-    }
+    await updateMutation.mutate({ id: editingArticle.id, data: updateData });
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Вы уверены, что хотите удалить статью?')) return;
-
-    try {
-      await adminAPI.handbook.deleteArticle(id);
-      toast.success('Статья успешно удалена');
-      fetchArticles();
-    } catch (error: any) {
-      toast.error(error.message || 'Ошибка при удалении статьи');
-    }
+    await deleteMutation.mutate(id);
   };
 
   const resetForm = () => {
@@ -147,6 +155,15 @@ export function HandbookManagement() {
       tags: '',
     });
   };
+
+  // Обработка состояний загрузки и ошибок
+  if (loading) {
+    return <LoadingState message="Загрузка статей..." />;
+  }
+
+  if (error) {
+    return <ErrorState error={error} title="Ошибка загрузки статей" onRetry={refetch} />;
+  }
 
   return (
     <div>

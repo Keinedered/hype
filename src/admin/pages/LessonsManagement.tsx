@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -22,6 +22,9 @@ import {
 import { Plus, Edit, Trash2, BookOpen, FolderOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { adminAPI } from '@/api/adminClient';
+import { useApiQuery, useApiMutation } from '../hooks';
+import { LoadingState, ErrorState } from '../components';
+import { filterFixedCourses } from '../utils/fixedCourses';
 
 interface Lesson {
   id: string;
@@ -50,9 +53,6 @@ interface Course {
 }
 
 export function LessonsManagement() {
-  const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [modules, setModules] = useState<Module[]>([]);
-  const [courses, setCourses] = useState<Course[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
@@ -77,81 +77,110 @@ export function LessonsManagement() {
     y: 0,
   });
 
-  useEffect(() => {
-    fetchCourses();
-  }, []);
-
-  useEffect(() => {
-    if (selectedCourseId) {
-      fetchModules();
-    } else {
-      setModules([]);
-      setLessons([]);
+  // Загрузка данных через useApiQuery
+  const { data: coursesData, loading: coursesLoading, error: coursesError, refetch: refetchCourses } = useApiQuery(
+    () => adminAPI.courses.getAll(),
+    { 
+      queryKey: 'courses', // Явный ключ кэша для курсов
+      cacheTime: 5 * 60 * 1000 
     }
-  }, [selectedCourseId]);
+  );
 
-  useEffect(() => {
+  const { data: modulesData, loading: modulesLoading, error: modulesError, refetch: refetchModules } = useApiQuery(
+    () => adminAPI.modules.getAll(), // Загружаем все модули сразу
+    { 
+      queryKey: 'modules', // Явный ключ кэша для модулей
+      cacheTime: 2 * 60 * 1000,
+      enabled: true, // Всегда загружаем модули
+    }
+  );
+
+  const { data: lessonsData, loading: lessonsLoading, error: lessonsError, refetch: refetchLessons } = useApiQuery(
+    () => adminAPI.lessons.getAll(),
+    { 
+      queryKey: 'lessons', // Явный ключ кэша для уроков
+      cacheTime: 2 * 60 * 1000 
+    }
+  );
+
+  // Фильтруем только фиксированные курсы (4 курса)
+  // Пустой массив [] - это валидные данные (нет курсов/модулей/уроков), а не отсутствие данных
+  const courses = filterFixedCourses(Array.isArray(coursesData) ? coursesData : []);
+  const modules = Array.isArray(modulesData) ? modulesData : [];
+  const allLessons = Array.isArray(lessonsData) ? lessonsData : [];
+
+  // Получить модули для выбранного курса
+  const getModulesForCourse = useCallback((courseId: string) => {
+    return modules.filter((m) => m.course_id === courseId);
+  }, [modules]);
+
+  // Фильтрация уроков на основе выбранного курса/модуля
+  const lessons = useMemo(() => {
+    let filtered = allLessons;
+    
     if (selectedModuleId) {
-      fetchLessons();
+      // Если выбран модуль, фильтруем по module_id
+      filtered = filtered.filter((lesson: Lesson) => lesson.module_id === selectedModuleId);
     } else if (selectedCourseId) {
-      // Если выбран курс, но не модуль, показываем все уроки курса
-      fetchLessons();
-    } else {
-      setLessons([]);
+      // Если выбран курс, но не модуль, фильтруем по модулям курса
+      const courseModuleIds = getModulesForCourse(selectedCourseId).map(m => m.id);
+      filtered = filtered.filter((lesson: Lesson) => 
+        lesson.module_id && courseModuleIds.includes(lesson.module_id)
+      );
     }
-  }, [selectedModuleId, selectedCourseId]);
+    
+    // Сортируем по order_index
+    return filtered.sort((a: Lesson, b: Lesson) => (a.order_index || 0) - (b.order_index || 0));
+  }, [allLessons, selectedModuleId, selectedCourseId, getModulesForCourse]);
 
-  const fetchCourses = async () => {
-    try {
-      const data = await adminAPI.courses.getAll();
-      setCourses(Array.isArray(data) ? data : []);
-    } catch (error: any) {
-      console.error('Failed to fetch courses:', error);
-      toast.error(error.message || 'Ошибка загрузки курсов');
+  // Сброс selectedModuleId если модуль не существует в новом списке
+  useEffect(() => {
+    if (selectedModuleId && modules.length > 0 && !modules.find((m: Module) => m.id === selectedModuleId)) {
+      setSelectedModuleId('');
     }
-  };
+  }, [modules, selectedModuleId]);
 
-  const fetchModules = async () => {
-    try {
-      const data = await adminAPI.modules.getAll(selectedCourseId || undefined);
-      const modulesList = Array.isArray(data) ? data : [];
-      setModules(modulesList);
-      // Если выбранный модуль не существует в новом списке, сбросим его
-      if (selectedModuleId && !modulesList.find((m: Module) => m.id === selectedModuleId)) {
-        setSelectedModuleId('');
-      }
-    } catch (error: any) {
-      console.error('Failed to fetch modules:', error);
-      toast.error(error.message || 'Ошибка загрузки модулей');
-      setModules([]);
+  // Мутации
+  const createMutation = useApiMutation(
+    (data: { lessonData: any; options?: any }) => adminAPI.lessons.create(data.lessonData, data.options),
+    {
+      invalidateQueries: ['lessons', 'modules'], // Инвалидируем и уроки, и модули (т.к. модули могут содержать информацию об уроках)
+      successMessage: 'Урок успешно создан',
+      onSuccess: () => {
+        refetchLessons();
+        refetchModules(); // Обновляем модули тоже
+        setIsCreateDialogOpen(false);
+        resetForm();
+      },
     }
-  };
+  );
 
-  const fetchLessons = async () => {
-    try {
-      const data = await adminAPI.lessons.getAll(selectedModuleId ? { module_id: selectedModuleId } : undefined);
-      let filteredLessons = Array.isArray(data) ? data : [];
-      
-      // Если выбран курс, но не модуль, фильтруем уроки по модулям курса
-      if (selectedCourseId && !selectedModuleId) {
-        const courseModuleIds = getModulesForCourse(selectedCourseId).map(m => m.id);
-        filteredLessons = filteredLessons.filter((lesson: Lesson) => 
-          courseModuleIds.includes(lesson.module_id)
-        );
-      }
-      
-      // Сортируем по order_index
-      filteredLessons.sort((a: Lesson, b: Lesson) => (a.order_index || 0) - (b.order_index || 0));
-      setLessons(filteredLessons);
-    } catch (error: any) {
-      console.error('Failed to fetch lessons:', error);
-      // Не показываем ошибку, если просто нет данных
-      if (error.message && !error.message.includes('404')) {
-        toast.error(error.message || 'Ошибка загрузки уроков');
-      }
-      setLessons([]);
+  const updateMutation = useApiMutation(
+    (data: { id: string; data: any }) => adminAPI.lessons.update(data.id, data.data),
+    {
+      invalidateQueries: ['lessons', 'modules'], // Инвалидируем и уроки, и модули
+      successMessage: 'Урок успешно обновлен',
+      onSuccess: () => {
+        refetchLessons();
+        refetchModules(); // Обновляем модули тоже
+        setEditingLesson(null);
+        setIsEditDialogOpen(false);
+        resetForm();
+      },
     }
-  };
+  );
+
+  const deleteMutation = useApiMutation(
+    (id: string) => adminAPI.lessons.delete(id),
+    {
+      invalidateQueries: ['lessons', 'modules'], // Инвалидируем и уроки, и модули
+      successMessage: 'Урок успешно удален',
+      onSuccess: () => {
+        refetchLessons();
+        refetchModules(); // Обновляем модули тоже
+      },
+    }
+  );
 
   const handleCreate = async () => {
     // Валидация обязательных полей
@@ -176,77 +205,68 @@ export function LessonsManagement() {
       return;
     }
 
-    try {
-      // Автоматически определяем order_index, если не указан
-      const orderIndex = formData.order_index || getNextOrderIndex();
-      
-      await adminAPI.lessons.create(
-        {
-          id: formData.id.trim(),
-          module_id: formData.module_id,
-          title: formData.title.trim(),
-          description: formData.description.trim(),
-          content: formData.content.trim(),
-          video_url: formData.video_url?.trim() || null,
-          video_duration: formData.video_duration?.trim() || null,
-          tags: formData.tags?.trim() || null,
-          order_index: orderIndex,
-          content_type: formData.content_type,
-          estimated_time: formData.estimated_time || 0,
-        },
-        {
-          createGraphNode: graphOptions.createGraphNode,
-          x: graphOptions.x,
-          y: graphOptions.y,
-        }
-      );
-      toast.success('Урок успешно создан');
-      fetchLessons();
-      setIsCreateDialogOpen(false);
-      resetForm();
-    } catch (error: any) {
-      console.error('Error creating lesson:', error);
-      toast.error(error.message || 'Ошибка при создании урока');
-    }
-  };
-
-  const handleUpdate = async () => {
-    if (!editingLesson) return;
-
-    try {
-      const updateData = {
+    // Автоматически определяем order_index, если не указан
+    const orderIndex = formData.order_index || getNextOrderIndex();
+    
+    await createMutation.mutate({
+      lessonData: {
+        id: formData.id.trim(),
+        module_id: formData.module_id,
         title: formData.title.trim(),
         description: formData.description.trim(),
         content: formData.content.trim(),
         video_url: formData.video_url?.trim() || null,
         video_duration: formData.video_duration?.trim() || null,
-        order_index: formData.order_index,
-        content_type: formData.content_type,
         tags: formData.tags?.trim() || null,
+        order_index: orderIndex,
+        content_type: formData.content_type,
         estimated_time: formData.estimated_time || 0,
-      };
-      
-      await adminAPI.lessons.update(editingLesson.id, updateData);
-      toast.success('Урок успешно обновлен');
-      fetchLessons();
-      setEditingLesson(null);
-      setIsEditDialogOpen(false);
-      resetForm();
-    } catch (error: any) {
-      toast.error(error.message || 'Ошибка при обновлении урока');
+      },
+      options: {
+        createGraphNode: graphOptions.createGraphNode,
+        x: graphOptions.x,
+        y: graphOptions.y,
+      },
+    });
+  };
+
+  const handleUpdate = async () => {
+    if (!editingLesson) return;
+
+    // Валидация обязательных полей при обновлении
+    if (!formData.title || !formData.title.trim()) {
+      toast.error('Введите название урока');
+      return;
     }
+    if (!formData.description || !formData.description.trim()) {
+      toast.error('Введите описание урока');
+      return;
+    }
+    if (!formData.content || !formData.content.trim()) {
+      toast.error('Введите контент урока');
+      return;
+    }
+
+    const updateData = {
+      title: formData.title.trim(),
+      description: formData.description.trim(),
+      content: formData.content.trim(),
+      video_url: formData.video_url?.trim() || null,
+      video_duration: formData.video_duration?.trim() || null,
+      order_index: formData.order_index,
+      content_type: formData.content_type || 'text',
+      tags: formData.tags?.trim() || null,
+      estimated_time: formData.estimated_time || 0,
+      // module_id можно изменить, но проверяется на бэкенде
+      module_id: formData.module_id || editingLesson.module_id,
+    };
+    
+    await updateMutation.mutate({ id: editingLesson.id, data: updateData });
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Вы уверены, что хотите удалить урок? Это действие нельзя отменить.')) return;
-
-    try {
-      await adminAPI.lessons.delete(id);
-      toast.success('Урок успешно удален');
-      fetchLessons();
-    } catch (error: any) {
-      toast.error(error.message || 'Ошибка при удалении урока');
-    }
+    await deleteMutation.mutate(id);
   };
 
   const resetForm = () => {
@@ -300,7 +320,7 @@ export function LessonsManagement() {
   // Автоматически определить следующий порядковый номер
   const getNextOrderIndex = () => {
     if (selectedModuleId) {
-      const moduleLessons = Array.isArray(lessons) ? lessons.filter((l) => l.module_id === selectedModuleId) : [];
+      const moduleLessons = Array.isArray(lessons) ? lessons.filter((l) => l.module_id && l.module_id === selectedModuleId) : [];
       if (moduleLessons.length > 0) {
         const indices = moduleLessons.map((l) => l.order_index || 0);
         const maxIndex = indices.length > 0 ? Math.max(...indices) : 0;
@@ -315,13 +335,10 @@ export function LessonsManagement() {
     return 1;
   };
 
-  // Получить модули для выбранного курса
-  const getModulesForCourse = (courseId: string) => {
-    return Array.isArray(modules) ? modules.filter((m) => m.course_id === courseId) : [];
-  };
 
   // Получить модуль по ID
-  const getModuleById = (moduleId: string) => {
+  const getModuleById = (moduleId: string | null | undefined) => {
+    if (!moduleId) return undefined;
     return modules.find((m) => m.id === moduleId);
   };
 
@@ -330,13 +347,36 @@ export function LessonsManagement() {
     return courses.find((c) => c.id === courseId);
   };
 
+  // Обработка состояний загрузки и ошибок
+  // Показываем загрузку пока идет загрузка данных
+  // Пустой массив [] означает "нет данных", а не "данные не загружены"
+  const loading = coursesLoading || modulesLoading || lessonsLoading;
+  
+  if (coursesError) {
+    return <ErrorState error={coursesError} title="Ошибка загрузки курсов" onRetry={refetchCourses} />;
+  }
+  
+  if (modulesError) {
+    return <ErrorState error={modulesError} title="Ошибка загрузки модулей" onRetry={refetchModules} />;
+  }
+  
+  if (lessonsError) {
+    return <ErrorState error={lessonsError} title="Ошибка загрузки уроков" onRetry={refetchLessons} />;
+  }
+
+  // Показываем загрузку до тех пор, пока все данные не будут загружены
+  // Проверяем только loading, так как пустой массив - это валидные данные
+  if (loading) {
+    return <LoadingState message="Загрузка данных..." />;
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold mb-2">Управление уроками</h1>
-          <p className="text-gray-300 text-sm">Создание и редактирование уроков для модулей курсов</p>
+          <p className="text-gray-300 text-sm">Управление уроками. На площадке 4 курса, каждый содержит модули (образуют граф), в модулях находятся уроки.</p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
@@ -391,7 +431,7 @@ export function LessonsManagement() {
                       setSelectedModuleId(value);
                       // Вычисляем order_index на основе выбранного модуля
                       const lessonsArray = Array.isArray(lessons) ? lessons : [];
-                      const moduleLessons = lessonsArray.filter((l) => l.module_id === value);
+                      const moduleLessons = lessonsArray.filter((l) => l.module_id && l.module_id === value);
                       let nextIndex = 1;
                       if (moduleLessons.length > 0) {
                         const indices = moduleLessons.map((l) => l.order_index || 0);

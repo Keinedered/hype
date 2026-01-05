@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import { tracks } from '../data/mockData';
 
 type Node = {
@@ -74,6 +74,8 @@ function getNodeById(id: string) {
 
 export function PurposeGraph() {
   const id = useId();
+  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const [hoveredEdge, setHoveredEdge] = useState<string | null>(null);
 
   return (
     <div className="w-full overflow-x-auto">
@@ -85,22 +87,43 @@ export function PurposeGraph() {
         preserveAspectRatio="xMidYMid meet"
       >
         <defs>
-          {/* subtle colored halos for nodes */}
+          {/* Enhanced gradients for nodes with better opacity */}
           {nodes.map((n) => (
             <radialGradient key={n.id} id={`${id}-${n.id}`} cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor={n.color} stopOpacity="0.55" />
-              <stop offset="70%" stopColor={n.color} stopOpacity="0.12" />
+              <stop offset="0%" stopColor={n.color} stopOpacity="0.65" />
+              <stop offset="60%" stopColor={n.color} stopOpacity="0.20" />
               <stop offset="100%" stopColor={n.color} stopOpacity="0" />
             </radialGradient>
           ))}
+          
+          {/* Hover gradients for interactive feedback */}
+          {nodes.map((n) => (
+            <radialGradient key={`hover-${n.id}`} id={`${id}-hover-${n.id}`} cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor={n.color} stopOpacity="0.85" />
+              <stop offset="60%" stopColor={n.color} stopOpacity="0.30" />
+              <stop offset="100%" stopColor={n.color} stopOpacity="0" />
+            </radialGradient>
+          ))}
+
+          {/* Glow filter for hover effect */}
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+            <feMerge>
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
         </defs>
 
-        {/* edges (no arrowheads) */}
-        <g opacity="0.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        {/* edges with improved styling and hover effects */}
+        <g stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
           {edges.map((e) => {
             const from = getNodeById(e.from);
             const to = getNodeById(e.to);
             if (!from || !to) return null;
+
+            const edgeKey = `${e.from}->${e.to}`;
+            const isHovered = hoveredEdge === edgeKey || hoveredNode === e.from || hoveredNode === e.to;
 
             // slight offsets so arrows don't sit directly on top of node centers
             const dx = to.x - from.x;
@@ -123,51 +146,109 @@ export function PurposeGraph() {
 
             return (
               <path
-                key={`${e.from}->${e.to}`}
+                key={edgeKey}
                 d={`M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`}
                 fill="none"
-                opacity="0.9"
+                strokeWidth={isHovered ? 3 : 2.5}
+                opacity={isHovered ? 0.6 : 0.4}
+                style={{
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer',
+                }}
+                onMouseEnter={() => setHoveredEdge(edgeKey)}
+                onMouseLeave={() => setHoveredEdge(null)}
               />
             );
           })}
         </g>
 
-        {/* nodes */}
+        {/* nodes with enhanced interactivity */}
         <g>
-          {nodes.map((n) => (
-            <g key={n.id} transform={`translate(${n.x}, ${n.y})`}>
-              {/* halo */}
-              <circle r="44" fill={`url(#${id}-${n.id})`} />
-
-              {/* point */}
-              <circle r="15" fill={n.color} />
-              <circle r="15" fill="none" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2" />
-
-              {/* labels - positioned well above the node and halo to avoid overlap */}
-              <text
-                x="0"
-                y="-68"
-                textAnchor="middle"
-                className="fill-current"
-                style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' }}
-                fontSize="18"
-                fontWeight="700"
+          {nodes.map((n) => {
+            const isHovered = hoveredNode === n.id;
+            
+            return (
+              <g 
+                key={n.id} 
+                transform={`translate(${n.x}, ${n.y})`}
+                style={{ cursor: 'pointer' }}
+                onMouseEnter={() => setHoveredNode(n.id)}
+                onMouseLeave={() => setHoveredNode(null)}
               >
-                {n.title}
-              </text>
-              <text
-                x="0"
-                y="-50"
-                textAnchor="middle"
-                className="fill-current"
-                opacity="0.7"
-                style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' }}
-                fontSize="13"
-              >
-                {n.subtitle}
-              </text>
-            </g>
-          ))}
+                {/* Enhanced halo with animation */}
+                <circle 
+                  r={isHovered ? 52 : 44} 
+                  fill={isHovered ? `url(#${id}-hover-${n.id})` : `url(#${id}-${n.id})`}
+                  style={{
+                    transition: 'r 0.3s ease, fill 0.3s ease',
+                  }}
+                />
+
+                {/* Outer ring for depth */}
+                <circle 
+                  r={isHovered ? 18 : 17} 
+                  fill="none" 
+                  stroke={n.color} 
+                  strokeOpacity={isHovered ? 0.4 : 0.2} 
+                  strokeWidth={isHovered ? 3 : 2}
+                  style={{
+                    transition: 'all 0.3s ease',
+                  }}
+                />
+
+                {/* Main node circle with glow on hover */}
+                <circle 
+                  r={isHovered ? 16 : 15} 
+                  fill={n.color}
+                  filter={isHovered ? "url(#glow)" : undefined}
+                  style={{
+                    transition: 'all 0.3s ease',
+                  }}
+                />
+                
+                {/* Inner highlight */}
+                <circle 
+                  r={isHovered ? 8 : 7} 
+                  fill="white" 
+                  opacity={isHovered ? 0.4 : 0.3}
+                  style={{
+                    transition: 'all 0.3s ease',
+                  }}
+                />
+
+                {/* labels with improved styling and hover effects */}
+                <text
+                  x="0"
+                  y="-68"
+                  textAnchor="middle"
+                  className="fill-current"
+                  style={{ 
+                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                    transition: 'all 0.3s ease',
+                  }}
+                  fontSize={isHovered ? "20" : "18"}
+                  fontWeight="700"
+                  opacity={isHovered ? 1 : 0.95}
+                >
+                  {n.title}
+                </text>
+                <text
+                  x="0"
+                  y="-50"
+                  textAnchor="middle"
+                  className="fill-current"
+                  style={{ 
+                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+                    transition: 'all 0.3s ease',
+                  }}
+                  fontSize={isHovered ? "14" : "13"}
+                  opacity={isHovered ? 0.85 : 0.7}
+                >
+                  {n.subtitle}
+                </text>
+              </g>
+            );
+          })}
         </g>
       </svg>
     </div>

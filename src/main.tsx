@@ -14,6 +14,7 @@ import { ModuleEditor } from './admin/pages/ModuleEditor';
 import { LessonsManagement } from './admin/pages/LessonsManagement';
 import { LessonsBuilder } from './admin/pages/LessonsBuilder';
 import { LessonEditor } from './admin/pages/LessonEditor';
+import { CreateLessonPage } from './admin/pages/CreateLessonPage';
 import { GraphEditor } from './admin/pages/GraphEditor';
 import { HandbookManagement } from './admin/pages/HandbookManagement';
 import { AssignmentsManagement } from './admin/pages/AssignmentsManagement';
@@ -56,10 +57,10 @@ createRoot(document.getElementById('root')!).render(
             <Route path="modules/:id/edit" element={<ModuleEditor />} />
             <Route path="modules" element={<ModulesManagement />} />
             {/* Более специфичные маршруты должны идти первыми */}
-            <Route path="lessons/new" element={<LessonEditor />} />
+            <Route path="lessons/create" element={<CreateLessonPage />} />
             <Route path="lessons/:id/edit" element={<LessonEditor />} />
-            <Route path="lessons" element={<LessonsBuilder />} />
-            <Route path="lessons-old" element={<LessonsManagement />} />
+            <Route path="lessons" element={<LessonsManagement />} />
+            <Route path="lessons-builder" element={<LessonsBuilder />} />
             <Route path="graph" element={<GraphEditor />} />
             <Route path="handbook" element={<HandbookManagement />} />
             <Route path="assignments" element={<AssignmentsManagement />} />

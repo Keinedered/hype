@@ -16,12 +16,15 @@ interface LessonPageProps {
   onOpenHandbook?: () => void;
   trackId?: TrackId;
   trackName?: string;
+  courseTitle?: string;
+  moduleId?: string;
   lessonId?: string;
 }
 
-export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpenHandbook, trackId, trackName, lessonId }: LessonPageProps) {
+export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpenHandbook, trackId, trackName, courseTitle, moduleId, lessonId }: LessonPageProps) {
   const [lesson, setLesson] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [textAnswer, setTextAnswer] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   const [submissionStatus, setSubmissionStatus] = useState<'not_submitted' | 'pending' | 'accepted' | 'needs_revision'>('not_submitted');
@@ -29,6 +32,8 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
   useEffect(() => {
     if (lessonId) {
       loadLesson();
+    } else {
+      setLoading(false);
     }
   }, [lessonId]);
 
@@ -36,12 +41,18 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
     if (!lessonId) return;
     try {
       setLoading(true);
+      setError(null);
       const lessonData = await lessonsAPI.getById(lessonId);
       setLesson(lessonData);
       // Загружаем статус submission, если есть
-      // TODO: загрузить статус из API
-    } catch (error: any) {
-      console.error('Failed to load lesson:', error);
+      // TODO: загрузить статус из API через submissionsAPI
+    } catch (error: unknown) {
+      if (import.meta.env.DEV) {
+        console.error('Failed to load lesson:', error);
+      }
+      const errorMessage = error instanceof Error ? error.message : 'Ошибка загрузки урока';
+      setError(errorMessage);
+      setLesson(null);
     } finally {
       setLoading(false);
     }
@@ -92,7 +103,7 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
            <div className="flex items-center gap-6 min-w-0">
               <Button variant="ghost" onClick={onBack} className="group px-0 hover:bg-transparent hover:text-black/70">
                 <ArrowLeft className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" />
-                <span className="font-mono uppercase tracking-wide text-sm hidden sm:inline">К курсу</span>
+                <span className="font-mono uppercase tracking-wide text-sm hidden sm:inline">К модулю</span>
               </Button>
               
               <div className="h-6 w-px bg-black/20 mx-2 hidden sm:block"></div>
@@ -136,6 +147,34 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
       </header>
 
       <main className="container mx-auto px-6 py-12">
+        {loading ? (
+          <div className="text-center py-20">
+            <div className="inline-flex flex-col items-center gap-4">
+              <div className="w-8 h-8 border-4 border-black border-t-transparent animate-spin rounded-full" />
+              <p className="text-foreground font-mono">Загрузка урока...</p>
+            </div>
+          </div>
+        ) : error ? (
+          <div className="text-center py-20 border-2 border-black bg-white p-6 max-w-2xl mx-auto">
+            <div className="bg-black text-white px-6 py-3 inline-block font-mono tracking-wide mb-4">
+              ОШИБКА
+            </div>
+            <p className="text-foreground font-mono mb-4">{error}</p>
+            <button
+              onClick={loadLesson}
+              className="border-2 border-black px-4 py-2 font-mono text-sm hover:bg-black hover:text-white transition-colors"
+            >
+              Попробовать снова
+            </button>
+          </div>
+        ) : !lesson ? (
+          <div className="text-center py-20 border-2 border-black bg-white p-6 max-w-2xl mx-auto">
+            <div className="bg-black text-white px-6 py-3 inline-block font-mono tracking-wide mb-4">
+              НЕ НАЙДЕНО
+            </div>
+            <p className="text-foreground font-mono">Урок не найден</p>
+          </div>
+        ) : (
         <div className="grid lg:grid-cols-12 gap-12">
           
           {/* Main Content (Left) */}
@@ -367,6 +406,7 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
           </div>
 
         </div>
+        )}
       </main>
     </div>
   );

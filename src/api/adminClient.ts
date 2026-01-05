@@ -5,9 +5,10 @@ function getAuthToken(): string | null {
   return localStorage.getItem('token') || localStorage.getItem('auth_token');
 }
 
-// Base fetch wrapper with better error handling
-async function adminFetch(endpoint: string, options: RequestInit = {}) {
+// Base fetch wrapper with timeout and improved error handling
+async function adminFetch(endpoint: string, options: RequestInit = {}, timeout: number = 30000) {
   const token = getAuthToken();
+  console.log(`[adminFetch] Starting request to ${endpoint}, token exists:`, !!token);
   
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -16,41 +17,57 @@ async function adminFetch(endpoint: string, options: RequestInit = {}) {
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
+  } else {
+    console.warn(`[adminFetch] No token found for request to ${endpoint}`);
   }
 
   try {
     const fullUrl = `${API_BASE_URL}${endpoint}`;
+    console.log(`[adminFetch] Full URL:`, fullUrl);
+    
+    // Create abort controller for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
     let response: Response;
     try {
       response = await fetch(fullUrl, {
         ...options,
         headers,
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
+      console.log(`[adminFetch] Response status for ${endpoint}:`, response.status, response.statusText);
     } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+      console.error(`[adminFetch] Fetch error for ${endpoint}:`, fetchError);
+      if (fetchError.name === 'AbortError') {
+        throw new Error(`Запрос превысил время ожидания (${timeout / 1000} секунд). Сервер не отвечает.`);
+      }
       throw fetchError;
     }
 
     // Handle 401 Unauthorized
     if (response.status === 401) {
+      console.error(`[adminFetch] 401 Unauthorized for ${endpoint}`);
       localStorage.removeItem('token');
       localStorage.removeItem('auth_token');
-      // Не делаем редирект сразу, чтобы не прерывать обработку ошибки
-      // Редирект будет выполнен в компоненте после обработки ошибки
       throw new Error('Unauthorized - требуется авторизация');
     }
 
     // Handle network errors
     if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unknown error');
-      let errorDetail = 'Ошибка запроса';
-      
+      let errorDetail = `Ошибка ${response.status}`;
       try {
-        const errorJson = JSON.parse(errorText);
-        errorDetail = errorJson.detail || errorJson.message || errorDetail;
+        const errorText = await response.text();
+        console.error(`[adminFetch] Error response for ${endpoint}:`, errorText);
+        if (errorText) {
+          const errorJson = JSON.parse(errorText);
+          errorDetail = errorJson.detail || errorJson.message || errorDetail;
+        }
       } catch {
-        errorDetail = errorText || `HTTP ${response.status}`;
+        errorDetail = `HTTP ${response.status}`;
       }
-      
       throw new Error(errorDetail);
     }
 
@@ -59,28 +76,47 @@ async function adminFetch(endpoint: string, options: RequestInit = {}) {
     if (contentType && contentType.includes('application/json')) {
       const text = await response.text();
       if (!text || text.trim().length === 0) {
+        console.log(`[adminFetch] Empty response for ${endpoint}`);
+        // Для DELETE запросов это нормально
+        if (options.method === 'DELETE') {
+          return { success: true };
+        }
         return null;
       }
       try {
-        return JSON.parse(text);
+        const parsed = JSON.parse(text);
+        console.log(`[adminFetch] Successfully parsed response for ${endpoint}:`, parsed);
+        return parsed;
       } catch (parseError) {
-        throw new Error(`Неверный формат ответа от сервера: ${parseError}`);
+        console.error(`[adminFetch] JSON parse error for ${endpoint}:`, parseError, 'Text:', text);
+        throw new Error(`Неверный формат ответа от сервера`);
       }
     }
     
+    // Если это DELETE запрос и нет контента, возвращаем успешный результат
+    if (options.method === 'DELETE') {
+      return { success: true };
+    }
+    
+    // Для других типов запросов без контента возвращаем null
+    console.log(`[adminFetch] No content-type for ${endpoint}, returning null`);
     return null;
-  } catch (error) {
+  } catch (error: any) {
+    console.error(`[adminFetch] Error in adminFetch for ${endpoint}:`, error);
     // Handle network connection errors
     if (error instanceof TypeError && error.message === 'Failed to fetch') {
       throw new Error(
-        `Не удалось подключиться к серверу.\n` +
-        `Проверьте, что backend запущен на ${API_BASE_URL}\n` +
-        `Ошибка: ${error.message}`
+        `Не удалось подключиться к серверу. Проверьте, что backend запущен на ${API_BASE_URL}`
       );
     }
-    
-    // Re-throw other errors
-    throw error;
+    if (error.name === 'AbortError') {
+      throw new Error(`Запрос превысил время ожидания. Сервер не отвечает.`);
+    }
+    // Re-throw known errors
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error(`Произошла неизвестная ошибка: ${String(error)}`);
   }
 }
 
@@ -89,7 +125,10 @@ export const adminAPI = {
   // Courses
   courses: {
     async getAll() {
-      return adminFetch('/admin/courses');
+      console.log('[adminAPI.courses.getAll] Fetching courses from /admin/courses');
+      const result = await adminFetch('/admin/courses');
+      console.log('[adminAPI.courses.getAll] Received result:', result);
+      return result;
     },
     
     async getById(courseId: string) {
@@ -139,7 +178,11 @@ export const adminAPI = {
   modules: {
     async getAll(courseId?: string) {
       const params = courseId ? `?course_id=${courseId}` : '';
-      return adminFetch(`/admin/modules${params}`);
+      const url = `/admin/modules${params}`;
+      console.log('[adminAPI.modules.getAll] Fetching modules from', url);
+      const result = await adminFetch(url);
+      console.log('[adminAPI.modules.getAll] Received result:', result);
+      return result;
     },
     
     async getById(moduleId: string) {

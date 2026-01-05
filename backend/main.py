@@ -21,6 +21,15 @@ try:
         import logging
         logger = logging.getLogger(__name__)
         logger.warning(f"Migration warning: {e}")
+    # Исправляем структуру БД для соблюдения КУРС → МОДУЛИ → УРОКИ
+    try:
+        from fix_lesson_module_constraint import fix_lesson_module_constraint
+        fix_lesson_module_constraint()
+    except Exception as e:
+        # Логируем ошибку, но не прерываем запуск (возможно, миграция уже выполнена)
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Migration warning (fix_lesson_module_constraint): {e}")
 except Exception as e:
     raise
 

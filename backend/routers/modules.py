@@ -18,10 +18,16 @@ def get_course_modules(course_id: str, db: Session = Depends(get_db)):
 
 @router.get("/{module_id}", response_model=schemas.Module)
 def get_module(module_id: str, db: Session = Depends(get_db)):
-    """Получить модуль по ID"""
-    module = crud.get_module(db, module_id)
+    """Получить модуль по ID с уроками"""
+    from sqlalchemy.orm import joinedload
+    
+    module = db.query(models.Module).options(
+        joinedload(models.Module.lessons)
+    ).filter(models.Module.id == module_id).first()
+    
     if not module:
         raise HTTPException(status_code=404, detail="Module not found")
+    
     return module
 
 

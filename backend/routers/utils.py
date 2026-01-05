@@ -21,12 +21,11 @@ def update_course_lesson_count(db: Session, course_id: str) -> None:
     course = db.query(models.Course).filter(models.Course.id == course_id).first()
     if course:
         # Считаем только уроки, которые привязаны к модулям этого курса
-        # Уроки с module_id = null не учитываются
+        # Все уроки должны быть привязаны к модулям (module_id обязателен)
         course.lesson_count = db.query(models.Lesson).join(
             models.Module
         ).filter(
-            models.Module.course_id == course_id,
-            models.Lesson.module_id.isnot(None)  # Только уроки с модулем
+            models.Module.course_id == course_id
         ).count()
 
 

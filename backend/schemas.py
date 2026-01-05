@@ -137,7 +137,7 @@ class Assignment(AssignmentBase):
 
 class LessonBase(BaseModel):
     id: str
-    module_id: Optional[str] = None  # Опционально - урок может быть без модуля
+    module_id: str  # Обязательно - урок должен быть привязан к модулю
     title: str
     description: Optional[str] = None
     video_url: Optional[str] = None
@@ -358,7 +358,7 @@ class ModuleUpdate(BaseModel):
 
 class LessonCreate(BaseModel):
     id: str
-    module_id: Optional[str] = None  # Опционально - можно создать урок без модуля
+    module_id: str  # Обязательно - урок должен быть привязан к модулю
     title: str
     description: str
     content: str

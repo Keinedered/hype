@@ -23,7 +23,7 @@ const menuItems = [
   { path: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/admin/courses', label: 'Курсы', icon: BookOpen },
   { path: '/admin/modules', label: 'Модули', icon: FolderOpen },
-  { path: '/admin/lessons', label: 'Конструктор', icon: FileTextIcon },
+  { path: '/admin/lessons', label: 'Уроки', icon: FileTextIcon },
   { path: '/admin/graph', label: 'Граф знаний', icon: Network },
   { path: '/admin/handbook', label: 'Handbook', icon: FileText },
   { path: '/admin/assignments', label: 'Задания', icon: ClipboardList },

@@ -5,14 +5,15 @@ import { useApiQuery } from '../hooks';
 import { LoadingState, ErrorState } from '../components';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { filterFixedCourses } from '../utils/fixedCourses';
 
 export function Dashboard() {
   // Загружаем данные параллельно
-  const { data: courses, loading: coursesLoading, error: coursesError, refetch: refetchCourses } = useApiQuery(
+  const { data: coursesData, loading: coursesLoading, error: coursesError, refetch: refetchCourses } = useApiQuery(
     () => adminAPI.courses.getAll(),
     { cacheTime: 2 * 60 * 1000 } // 2 минуты
   );
-
+  
   const { data: submissions, loading: submissionsLoading } = useApiQuery(
     () => adminAPI.submissions.getAll('pending'),
     { cacheTime: 1 * 60 * 1000 } // 1 минута
@@ -28,11 +29,17 @@ export function Dashboard() {
     { cacheTime: 5 * 60 * 1000 } // 5 минут
   );
 
+  // Фильтруем только фиксированные курсы (4 курса)
+  // Пустой массив [] - это валидные данные (нет курсов), а не отсутствие данных
+  const courses = filterFixedCourses(Array.isArray(coursesData) ? coursesData : []);
+
+  // Показываем загрузку пока идет загрузка данных
+  // Пустой массив [] означает "нет данных", а не "данные не загружены"
   const loading = coursesLoading || submissionsLoading || usersLoading || analyticsLoading;
 
   // Вычисляем статистику
   const stats = {
-    courses: Array.isArray(courses) ? courses.length : 0,
+    courses: courses.length, // Только 4 фиксированных курса
     students: Array.isArray(users) 
       ? users.filter((u) => u && typeof u === 'object' && 'is_active' in u && u.is_active).length 
       : 0,
@@ -163,7 +170,7 @@ export function Dashboard() {
       <Card className="p-6 bg-gray-900 border-gray-800">
         <h2 className="text-xl font-bold mb-4">Недавняя активность</h2>
         <div className="space-y-4">
-          {Array.isArray(courses) && courses.length > 0 ? (
+          {courses.length > 0 ? (
             courses.slice(0, 5).map((course: any) => (
               <div key={course.id} className="flex items-center justify-between py-3 border-b border-gray-800 last:border-0">
                 <div>

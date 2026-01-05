@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import {
   Select,
@@ -9,7 +9,8 @@ import {
 } from '@/components/ui/select';
 import { TrendingUp, Users, BookOpen, CheckCircle, Clock } from 'lucide-react';
 import { adminAPI } from '@/api/adminClient';
-import { toast } from 'sonner';
+import { useApiQuery } from '../hooks';
+import { LoadingState, ErrorState } from '../components';
 
 interface AnalyticsData {
   totalUsers: number;
@@ -30,69 +31,56 @@ interface AnalyticsData {
 }
 
 export function Analytics() {
-  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('all');
 
-  useEffect(() => {
-    fetchAnalytics();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeRange]);
-
-  const fetchAnalytics = async () => {
-    try {
-      setLoading(true);
-      const data = await adminAPI.analytics.get(timeRange);
-      setAnalytics(data);
-    } catch (error: any) {
-      console.error('Failed to fetch analytics:', error);
-      toast.error(error.message || 'Ошибка загрузки аналитики');
-      // Fallback data
-      setAnalytics({
-        totalUsers: 0,
-        activeUsers: 0,
-        totalCourses: 0,
-        publishedCourses: 0,
-        totalSubmissions: 0,
-        pendingSubmissions: 0,
-        completedSubmissions: 0,
-        averageCompletionRate: 0,
-        courseProgress: [],
-      });
-    } finally {
-      setLoading(false);
+  // Загрузка аналитики через useApiQuery
+  // Используем useMemo для создания стабильной функции запроса
+  const analyticsQuery = useMemo(
+    () => () => adminAPI.analytics.get(timeRange),
+    [timeRange]
+  );
+  
+  const { data: analytics, loading, error, refetch } = useApiQuery(
+    analyticsQuery,
+    { 
+      cacheTime: 1 * 60 * 1000, // 1 минута
     }
-  };
+  );
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-gray-300">Загрузка аналитики...</p>
-      </div>
-    );
+    return <LoadingState message="Загрузка аналитики..." />;
   }
 
-  if (!analytics) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-gray-300">Данные недоступны</p>
-      </div>
-    );
+  if (error) {
+    return <ErrorState error={error} title="Ошибка загрузки аналитики" onRetry={refetch} />;
   }
+
+  // Fallback данные если analytics null
+  const analyticsData: AnalyticsData = analytics || {
+    totalUsers: 0,
+    activeUsers: 0,
+    totalCourses: 0,
+    publishedCourses: 0,
+    totalSubmissions: 0,
+    pendingSubmissions: 0,
+    completedSubmissions: 0,
+    averageCompletionRate: 0,
+    courseProgress: [],
+  };
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold  ">Аналитика</h1>
+        <h1 className="text-3xl font-bold">Аналитика</h1>
         <Select value={timeRange} onValueChange={setTimeRange}>
-          <SelectTrigger className="bg-gray-900 border-gray-800   w-48">
+          <SelectTrigger className="bg-gray-900 border-gray-800 w-48">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="bg-gray-800 border-gray-700   shadow-lg">
-            <SelectItem value="all" className="bg-gray-800   hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Все время</SelectItem>
-            <SelectItem value="month" className="bg-gray-800   hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Последний месяц</SelectItem>
-            <SelectItem value="week" className="bg-gray-800   hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Последняя неделя</SelectItem>
-            <SelectItem value="day" className="bg-gray-800   hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Сегодня</SelectItem>
+          <SelectContent className="bg-gray-800 border-gray-700 shadow-lg">
+            <SelectItem value="all" className="bg-gray-800 hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Все время</SelectItem>
+            <SelectItem value="month" className="bg-gray-800 hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Последний месяц</SelectItem>
+            <SelectItem value="week" className="bg-gray-800 hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Последняя неделя</SelectItem>
+            <SelectItem value="day" className="bg-gray-800 hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Сегодня</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -103,9 +91,9 @@ export function Analytics() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-300 text-sm">Всего пользователей</p>
-              <p className="text-3xl font-bold   mt-2">{analytics.totalUsers}</p>
+              <p className="text-3xl font-bold mt-2">{analyticsData.totalUsers}</p>
               <p className="text-gray-300 text-xs mt-1">
-                Активных: {analytics.activeUsers}
+                Активных: {analyticsData.activeUsers}
               </p>
             </div>
             <Users className="text-blue-500" size={32} />
@@ -116,9 +104,9 @@ export function Analytics() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-300 text-sm">Курсы</p>
-              <p className="text-3xl font-bold   mt-2">{analytics.totalCourses}</p>
+              <p className="text-3xl font-bold mt-2">{analyticsData.totalCourses}</p>
               <p className="text-gray-300 text-xs mt-1">
-                Опубликовано: {analytics.publishedCourses}
+                Опубликовано: {analyticsData.publishedCourses}
               </p>
             </div>
             <BookOpen className="text-green-500" size={32} />
@@ -129,9 +117,9 @@ export function Analytics() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-300 text-sm">Задания</p>
-              <p className="text-3xl font-bold   mt-2">{analytics.totalSubmissions}</p>
+              <p className="text-3xl font-bold mt-2">{analyticsData.totalSubmissions}</p>
               <p className="text-gray-300 text-xs mt-1">
-                На проверке: {analytics.pendingSubmissions}
+                На проверке: {analyticsData.pendingSubmissions}
               </p>
             </div>
             <Clock className="text-orange-500" size={32} />
@@ -142,11 +130,11 @@ export function Analytics() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-300 text-sm">Средний прогресс</p>
-              <p className="text-3xl font-bold   mt-2">
-                {analytics.averageCompletionRate.toFixed(1)}%
+              <p className="text-3xl font-bold mt-2">
+                {analyticsData.averageCompletionRate.toFixed(1)}%
               </p>
               <p className="text-gray-300 text-xs mt-1">
-                Завершено: {analytics.completedSubmissions}
+                Завершено: {analyticsData.completedSubmissions}
               </p>
             </div>
             <TrendingUp className="text-purple-500" size={32} />
@@ -156,22 +144,22 @@ export function Analytics() {
 
       {/* Course Progress */}
       <Card className="p-6 bg-gray-900 border-gray-800">
-        <h2 className="text-xl font-bold   mb-4">Прогресс по курсам</h2>
-        {analytics.courseProgress.length === 0 ? (
+        <h2 className="text-xl font-bold mb-4">Прогресс по курсам</h2>
+        {analyticsData.courseProgress.length === 0 ? (
           <p className="text-gray-300 text-center py-8">Нет данных о прогрессе</p>
         ) : (
           <div className="space-y-4">
-            {analytics.courseProgress.map((course) => (
+            {analyticsData.courseProgress.map((course) => (
               <div key={course.courseId} className="border-b border-gray-800 pb-4 last:border-0">
                 <div className="flex justify-between items-start mb-2">
                   <div>
-                    <h3 className="text-lg font-semibold  ">{course.courseTitle}</h3>
+                    <h3 className="text-lg font-semibold">{course.courseTitle}</h3>
                     <p className="text-gray-300 text-sm">
                       Записано: {course.enrolledUsers} | Завершено: {course.completedUsers}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold  ">
+                    <p className="text-2xl font-bold">
                       {course.averageProgress.toFixed(1)}%
                     </p>
                     <p className="text-gray-300 text-xs">Средний прогресс</p>

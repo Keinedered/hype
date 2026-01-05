@@ -166,10 +166,74 @@ def get_lesson(db: Session, lesson_id: str, published_only: bool = True) -> Opti
 
 # Graph
 def get_graph_nodes(db: Session, user_id: Optional[str] = None) -> List[models.GraphNode]:
-    """Получить все узлы графа, фильтруя те, которых нет в БД"""
+    """Получить все узлы графа, автоматически создавая узлы для курсов и модулей из БД, которых нет в графе"""
+    # Сначала получаем все существующие узлы
     all_nodes = db.query(models.GraphNode).all()
     valid_nodes = []
+    existing_module_ids = set()
+    existing_course_ids = set()
+    nodes_created = False
     
+    # Собираем ID модулей и курсов, для которых уже есть узлы графа
+    for node in all_nodes:
+        if node.type == models.NodeType.module and node.entity_id:
+            existing_module_ids.add(node.entity_id)
+        elif node.type == models.NodeType.course and node.entity_id:
+            existing_course_ids.add(node.entity_id)
+    
+    # Получаем все курсы из БД и создаем узлы для тех, которых нет
+    all_courses = db.query(models.Course).all()
+    for course in all_courses:
+        if course.id not in existing_course_ids:
+            try:
+                course_node = get_graph_node_by_entity(db, course.id, models.NodeType.course)
+                if not course_node:
+                    # Создаем узел графа для курса
+                    course_node = models.GraphNode(
+                        id=f"node-{course.id}",
+                        type=models.NodeType.course,
+                        entity_id=course.id,
+                        title=course.title,
+                        x=0.0,  # Координаты будут установлены алгоритмом размещения
+                        y=0.0,
+                        status=models.NodeStatus.open,
+                        size=150
+                    )
+                    db.add(course_node)
+                    nodes_created = True
+                existing_course_ids.add(course.id)
+                if course_node not in all_nodes:
+                    all_nodes.append(course_node)
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Failed to create graph node for course {course.id}: {e}")
+    
+    # Получаем все модули из БД и создаем узлы для тех, которых нет
+    all_modules = db.query(models.Module).all()
+    for module in all_modules:
+        if module.id not in existing_module_ids:
+            try:
+                graph_node = create_graph_node_for_module(db, module, auto_create_edge=True)
+                existing_module_ids.add(module.id)
+                if graph_node not in all_nodes:
+                    all_nodes.append(graph_node)
+                nodes_created = True
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Failed to create graph node for module {module.id}: {e}")
+    
+    # Коммитим изменения, если были созданы новые узлы
+    if nodes_created:
+        try:
+            db.commit()
+            # Перезагружаем узлы после коммита
+            all_nodes = db.query(models.GraphNode).all()
+        except Exception:
+            db.rollback()
+    
+    # Фильтруем узлы, проверяя существование entity в БД
     for node in all_nodes:
         # Проверяем существование entity в БД в зависимости от типа узла
         if node.type == models.NodeType.course:

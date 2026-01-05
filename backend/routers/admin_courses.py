@@ -418,11 +418,16 @@ def delete_module(
     
     course_id = module.course_id
     
-    # Освобождаем уроки (устанавливаем module_id = NULL)
-    # Это делается автоматически через ondelete="SET NULL", но лучше сделать явно
+    # Удаляем все уроки модуля (каскадно через CASCADE)
+    # Уроки не могут существовать без модуля, поэтому удаляем их вместе с модулем
     lessons = db.query(models.Lesson).filter(models.Lesson.module_id == module_id).all()
     for lesson in lessons:
-        lesson.module_id = None
+        # Удаляем узел графа для каждого урока
+        try:
+            crud.delete_graph_node_for_lesson(db, lesson.id)
+        except Exception as e:
+            logger.warning(f"Failed to delete graph node for lesson {lesson.id}: {e}", exc_info=True)
+        db.delete(lesson)
     
     # Удаляем узел графа модуля
     try:
@@ -438,7 +443,7 @@ def delete_module(
     update_course_module_count(db, course_id)
     safe_commit(db, "update_course_module_count")
     
-    # Обновить счетчик уроков в курсе (так как уроки были освобождены)
+    # Обновить счетчик уроков в курсе (уроки были удалены вместе с модулем)
     update_course_lesson_count(db, course_id)
     safe_commit(db, "update_course_lesson_count")
     
@@ -462,11 +467,13 @@ def create_lesson(
     if existing_lesson:
         raise HTTPException(status_code=400, detail='Lesson with this ID already exists')
     
-    # Если указан module_id, проверяем существование модуля
-    if lesson.module_id:
-        module = db.query(models.Module).filter(models.Module.id == lesson.module_id).first()
-        if not module:
-            raise HTTPException(status_code=404, detail='Module not found')
+    # module_id обязателен - проверяем существование модуля
+    if not lesson.module_id:
+        raise HTTPException(status_code=400, detail='module_id is required. Lesson must be attached to a module')
+    
+    module = db.query(models.Module).filter(models.Module.id == lesson.module_id).first()
+    if not module:
+        raise HTTPException(status_code=404, detail='Module not found')
     
     lesson_data = lesson.dict()
     # Убеждаемся, что все поля имеют правильные значения по умолчанию
@@ -484,12 +491,10 @@ def create_lesson(
     db.add(new_lesson)
     db.flush()  # Получить ID урока
     
-    # Обновить счетчик уроков в курсе, если урок привязан к модулю
-    if lesson.module_id:
-        module = db.query(models.Module).filter(models.Module.id == lesson.module_id).first()
-        if module:
-            update_course_lesson_count(db, module.course_id)
-            safe_commit(db, "update_course_lesson_count_create")
+    # Обновить счетчик уроков в курсе (урок всегда привязан к модулю)
+    # module уже получен выше, используем его
+    update_course_lesson_count(db, module.course_id)
+    safe_commit(db, "update_course_lesson_count_create")
     
     # Автоматически создать узел графа, если указано
     if create_graph_node:
@@ -532,7 +537,7 @@ def create_lesson(
 
 @router.get('/admin/lessons', response_model=List[schemas.Lesson])
 def list_lessons(
-    module_id: Optional[str] = Query(None, description="Фильтр по модулю. Если 'free', возвращает уроки без модуля"),
+    module_id: Optional[str] = Query(None, description="Фильтр по модулю. Все уроки должны быть привязаны к модулю"),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_admin)
 ):
@@ -543,11 +548,8 @@ def list_lessons(
             joinedload(models.Lesson.assignment)
         )
         if module_id:
-            if module_id == 'free':
-                # Уроки без модуля (свободные)
-                query = query.filter(models.Lesson.module_id.is_(None))
-            else:
-                query = query.filter(models.Lesson.module_id == module_id)
+            # Все уроки должны быть привязаны к модулю, фильтруем по module_id
+            query = query.filter(models.Lesson.module_id == module_id)
         lessons = query.order_by(models.Lesson.order_index).all()
         
         # Убеждаемся, что все обязательные поля имеют значения
@@ -634,13 +636,12 @@ def update_lesson(
     
     # Обновляем счетчики уроков в курсах
     if old_module_id != new_module_id:
-        # Уменьшаем счетчик в старом курсе (если урок был привязан к модулю)
-        if old_module_id:
-            old_module = db.query(models.Module).filter(models.Module.id == old_module_id).first()
-            if old_module:
-                update_course_lesson_count(db, old_module.course_id)
-                safe_commit(db, "update_course_lesson_count_old")
-        # Увеличиваем счетчик в новом курсе (если урок привязывается к модулю)
+        # Уменьшаем счетчик в старом курсе (урок всегда привязан к модулю)
+        old_module = db.query(models.Module).filter(models.Module.id == old_module_id).first()
+        if old_module:
+            update_course_lesson_count(db, old_module.course_id)
+            safe_commit(db, "update_course_lesson_count_old")
+        # Увеличиваем счетчик в новом курсе (урок всегда привязан к модулю)
         if new_module_id:
             new_module = db.query(models.Module).filter(models.Module.id == new_module_id).first()
             if new_module:
@@ -815,10 +816,9 @@ def delete_lesson(
     if not lesson:
         raise HTTPException(status_code=404, detail='Lesson not found')
     
-    course_id = None
-    if lesson.module_id:
-        module = db.query(models.Module).filter(models.Module.id == lesson.module_id).first()
-        course_id = module.course_id if module else None
+    # Урок всегда привязан к модулю
+    module = db.query(models.Module).filter(models.Module.id == lesson.module_id).first()
+    course_id = module.course_id if module else None
     
     # Удалить узел графа (каскадно удалятся связи через CASCADE)
     try:

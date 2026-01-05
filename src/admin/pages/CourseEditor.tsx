@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,7 @@ import {
 import { ArrowLeft, Globe, GraduationCap } from 'lucide-react';
 import { toast } from 'sonner';
 import { adminAPI } from '@/api/adminClient';
+import { FIXED_COURSES } from '../utils/fixedCourses';
 
 interface CourseFormData {
   id: string;
@@ -32,14 +33,6 @@ interface Track {
   id: string;
   name: string;
 }
-
-// 4 фиксированных курса
-const FIXED_COURSES = [
-  { id: 'design', title: 'Дизайн', track: 'design' },
-  { id: 'event-basics', title: 'Ивент', track: 'event' },
-  { id: 'product-intro', title: 'Цифровые продукты', track: 'digital' },
-  { id: 'business-comm', title: 'Внешние коммуникации', track: 'communication' },
-];
 
 export function CourseEditor() {
   const { id } = useParams<{ id: string }>();
@@ -115,7 +108,7 @@ export function CourseEditor() {
     }
   };
 
-  const handleSaveAndPublish = async (e: React.FormEvent) => {
+  const handleSaveAndPublish = async (e: FormEvent) => {
     e.preventDefault();
     
     if (!formData.id || !formData.title || !formData.track_id) {
