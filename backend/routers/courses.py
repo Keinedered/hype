@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 from typing import List, Optional
+from datetime import datetime
 from database import get_db
 import schemas
 import crud
@@ -80,7 +81,7 @@ def enroll_in_course(
             course_id=course_id,
             status=models.CourseStatus.not_started,
             progress=0.0,
-            started_at=func.now()
+            started_at=datetime.utcnow()
         )
         db.add(user_course)
         db.commit()

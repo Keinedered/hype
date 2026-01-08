@@ -219,7 +219,7 @@ def update_course(
         except Exception as e:
             logger.warning(f"Failed to update graph node for course {course_id}: {e}", exc_info=True)
     
-    db_course.updated_at = datetime.now()
+    db_course.updated_at = datetime.utcnow()
     safe_commit(db, "update_course")
     # Перезагружаем курс с авторами
     db_course = db.query(models.Course).options(joinedload(models.Course.authors)).filter(models.Course.id == course_id).first()
@@ -238,7 +238,7 @@ def publish_course(
         raise HTTPException(status_code=404, detail='Course not found')
     
     course.status = 'published'
-    course.published_at = datetime.now()
+    course.published_at = datetime.utcnow()
     safe_commit(db, "publish_course")
     return {'message': 'Course published successfully'}
 
@@ -549,7 +549,7 @@ def list_lessons(
         )
         if module_id:
             # Все уроки должны быть привязаны к модулю, фильтруем по module_id
-            query = query.filter(models.Lesson.module_id == module_id)
+                query = query.filter(models.Lesson.module_id == module_id)
         lessons = query.order_by(models.Lesson.order_index).all()
         
         # Убеждаемся, что все обязательные поля имеют значения
@@ -743,7 +743,7 @@ def publish_lesson(
     
     # Устанавливаем статус опубликован
     lesson.status = 'published'
-    lesson.published_at = datetime.now()
+    lesson.published_at = datetime.utcnow()
     
     # Синхронизация счетчиков в модуле и курсе
     if lesson.module_id:

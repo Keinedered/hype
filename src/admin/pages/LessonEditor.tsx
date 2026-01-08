@@ -281,65 +281,19 @@ export function LessonEditor() {
   const handleSaveAndPublish = async (e: FormEvent) => {
     e.preventDefault();
     
-    // Валидация обязательных полей согласно схеме БД
-    if (!formData.id || !formData.id.trim()) {
-      toast.error('Заполните обязательное поле: ID урока');
-      return;
-    }
-    if (!formData.module_id) {
-      toast.error('Выберите модуль. Урок должен быть привязан к модулю');
-      return;
-    }
-    if (!formData.title || !formData.title.trim()) {
-      toast.error('Заполните обязательное поле: название урока');
-      return;
-    }
-    if (!formData.description || !formData.description.trim()) {
-      toast.error('Заполните обязательное поле: описание урока');
-      return;
-    }
-    if (!formData.content || !formData.content.trim()) {
-      toast.error('Заполните обязательное поле: контент урока');
+    if (!formData.id || !formData.title || !formData.content.trim()) {
+      toast.error('Заполните обязательные поля: ID, название и контент урока');
       return;
     }
 
     try {
       setLoading(true);
       
-      // Подготавливаем данные согласно схеме LessonCreate/LessonUpdate
+      // Сначала сохраняем урок
       if (isEditMode) {
-        // При обновлении используем LessonUpdate - все поля опциональны
-        const updateData: any = {
-          title: formData.title.trim(),
-          description: formData.description.trim(),
-          content: formData.content.trim(),
-          video_url: formData.video_url?.trim() || null,
-          video_duration: formData.video_duration?.trim() || null,
-          content_type: formData.content_type || 'text',
-          tags: formData.tags?.trim() || null,
-          estimated_time: formData.estimated_time || 0,
-        };
-        // module_id можно изменить при обновлении
-        if (formData.module_id) {
-          updateData.module_id = formData.module_id;
-        }
-        await adminAPI.lessons.update(formData.id, updateData);
+        await adminAPI.lessons.update(formData.id, formData);
       } else {
-        // При создании используем LessonCreate - обязательные поля
-        const createData = {
-          id: formData.id.trim(),
-          module_id: formData.module_id, // Обязательно
-          title: formData.title.trim(),
-          description: formData.description.trim(), // Обязательно
-          content: formData.content.trim(), // Обязательно
-          video_url: formData.video_url?.trim() || null,
-          video_duration: formData.video_duration?.trim() || null,
-          content_type: formData.content_type || 'text',
-          tags: formData.tags?.trim() || null,
-          estimated_time: formData.estimated_time || 0,
-          order_index: 0, // Будет установлен автоматически на бэкенде
-        };
-        await adminAPI.lessons.create(createData);
+        await adminAPI.lessons.create(formData);
       }
       
       // Затем публикуем
@@ -434,40 +388,32 @@ export function LessonEditor() {
               </div>
 
               <div>
-                <Label className="text-black font-semibold">Модуль *</Label>
+                <Label className="text-black font-semibold">Модуль</Label>
                 <Select
-                  value={formData.module_id || ''}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, module_id: value }))}
-                  required
+                  value={formData.module_id || '__none__'}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, module_id: value === '__none__' ? null : value }))}
                 >
                     <SelectTrigger className="bg-white border-gray-300 text-black placeholder:text-gray-600 mt-2">
-                      <SelectValue placeholder="Выберите модуль (обязательно)" />
+                      <SelectValue placeholder="Выберите модуль" />
                     </SelectTrigger>
                     <SelectContent className="bg-white border-gray-300 text-black shadow-lg">
-                      {modules.length === 0 ? (
-                        <SelectItem value="" disabled className="bg-white text-gray-400">
-                          Нет доступных модулей. Сначала создайте модуль.
+                      <SelectItem value="__none__" className="bg-white text-black hover:bg-gray-100 focus:bg-gray-100 cursor-pointer">Без модуля</SelectItem>
+                      {modules.map((module) => (
+                        <SelectItem key={module.id} value={module.id} className="bg-white text-black hover:bg-gray-100 focus:bg-gray-100 cursor-pointer">
+                          {module.title}
                         </SelectItem>
-                      ) : (
-                        modules.map((module) => (
-                          <SelectItem key={module.id} value={module.id} className="bg-white text-black hover:bg-gray-100 focus:bg-gray-100 cursor-pointer">
-                            {module.title}
-                          </SelectItem>
-                        ))
-                      )}
+                      ))}
                     </SelectContent>
                 </Select>
-                <p className="text-gray-600 text-xs mt-1">Урок должен быть привязан к модулю</p>
               </div>
 
               <div>
-                <Label className="text-black font-semibold">Описание *</Label>
+                <Label className="text-black font-semibold">Описание</Label>
                 <Input
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   className="bg-white border-gray-300 text-black mt-2"
                   placeholder="Краткое описание урока"
-                  required
                 />
               </div>
             </div>

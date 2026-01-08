@@ -21,6 +21,7 @@ import {
 import { Plus, Edit, Trash2, Package, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { adminAPI } from '@/api/adminClient';
+import { logger } from '../utils/logger';
 import { useNavigate } from 'react-router-dom';
 import { FIXED_COURSES } from '../utils/fixedCourses';
 
@@ -77,7 +78,7 @@ export function LessonsBuilder() {
       const lessonsList = Array.isArray(data) ? data : [];
       setLessons(lessonsList);
     } catch (error: any) {
-      console.error('Failed to fetch lessons:', error);
+      logger.error('Failed to fetch lessons:', error);
       toast.error(error.message || 'Ошибка загрузки уроков');
       setLessons([]);
     }
@@ -354,13 +355,14 @@ export function LessonsBuilder() {
               <div>
                 <Label className="text-gray-200">Тип контента</Label>
                 <Select
+                  modal={false}
                   value={lessonFormData.content_type}
                   onValueChange={(value) => setLessonFormData({ ...lessonFormData, content_type: value })}
                 >
-                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                  <SelectTrigger className="bg-white border-gray-300 text-black">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-700 shadow-lg">
+                  <SelectContent className="!bg-gray-800 border-gray-700 shadow-lg text-white">
                     <SelectItem value="text" className="bg-gray-800 hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Текст</SelectItem>
                     <SelectItem value="video" className="bg-gray-800 hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Видео</SelectItem>
                     <SelectItem value="interactive" className="bg-gray-800 hover:bg-gray-700 focus:bg-gray-700 cursor-pointer">Интерактивный</SelectItem>
@@ -406,10 +408,11 @@ export function LessonsBuilder() {
             <div>
               <Label className="text-gray-200">Модуль *</Label>
               <Select
+                modal={false}
                 value={lessonFormData.module_id}
                 onValueChange={(value) => setLessonFormData({ ...lessonFormData, module_id: value })}
               >
-                <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                <SelectTrigger className="bg-white border-gray-300 text-black">
                   <SelectValue placeholder="Выберите модуль" />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-700 shadow-lg">

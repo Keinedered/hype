@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional, List
 from datetime import datetime
 from enum import Enum
@@ -151,6 +151,24 @@ class LessonBase(BaseModel):
     published_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    
+    @field_validator('title')
+    @classmethod
+    def title_not_empty(cls, v):
+        """Проверка что название не пусто"""
+        if not v or not v.strip():
+            raise ValueError('Title cannot be empty')
+        if len(v) > 255:
+            raise ValueError('Title must be less than 255 characters')
+        return v.strip()
+    
+    @field_validator('estimated_time')
+    @classmethod
+    def estimated_time_positive(cls, v):
+        """Проверка что время положительное"""
+        if v and v < 0:
+            raise ValueError('Estimated time cannot be negative')
+        return v
 
 
 class Lesson(LessonBase):
@@ -262,6 +280,40 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    
+    @field_validator('username')
+    @classmethod
+    def username_not_empty(cls, v):
+        """Проверка что username не пустой и не содержит недопустимых символов"""
+        if not v or not v.strip():
+            raise ValueError('Username cannot be empty')
+        if len(v) < 3:
+            raise ValueError('Username must be at least 3 characters')
+        if len(v) > 50:
+            raise ValueError('Username must be less than 50 characters')
+        if not v.isalnum() and '_' not in v:
+            raise ValueError('Username can only contain alphanumeric characters and underscores')
+        return v.strip()
+    
+    @field_validator('password')
+    @classmethod
+    def password_strong(cls, v):
+        """Проверка надежности пароля"""
+        if not v or not v.strip():
+            raise ValueError('Password cannot be empty')
+        if len(v) < 6:
+            raise ValueError('Password must be at least 6 characters')
+        if len(v) > 100:
+            raise ValueError('Password must be less than 100 characters')
+        return v
+    
+    @field_validator('email')
+    @classmethod
+    def email_not_empty(cls, v):
+        """Проверка email"""
+        if not v or not v.strip():
+            raise ValueError('Email cannot be empty')
+        return v
 
 
 class UserLogin(BaseModel):
@@ -469,3 +521,20 @@ class AssignmentUpdate(BaseModel):
     requires_text: Optional[bool] = None
     requires_file: Optional[bool] = None
     requires_link: Optional[bool] = None
+
+class TokenResponse(BaseModel):
+    """Ответ при входе/refresh - содержит access и refresh токены"""
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+
+
+class RefreshTokenRequest(BaseModel):
+    """Запрос на обновление access токена"""
+    refresh_token: str
+
+
+class RefreshTokenResponse(BaseModel):
+    """Ответ на обновление токена"""
+    access_token: str
+    token_type: str = "bearer"

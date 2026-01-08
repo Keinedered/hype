@@ -11,9 +11,12 @@ import {
 import { cn } from "./utils";
 
 function Select({
+  modal = true,
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Root>) {
-  return <SelectPrimitive.Root data-slot="select" {...props} />;
+}: React.ComponentProps<typeof SelectPrimitive.Root> & {
+  modal?: boolean;
+}) {
+  return <SelectPrimitive.Root data-slot="select" modal={modal} {...props} />;
 }
 
 function SelectGroup({
@@ -36,14 +39,23 @@ function SelectTrigger({
 }: React.ComponentProps<typeof SelectPrimitive.Trigger> & {
   size?: "sm" | "default";
 }) {
+  // Check if this is a white background SelectTrigger in admin panel
+  const isWhiteTrigger = className?.includes('bg-white');
+  
   return (
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
       data-size={size}
       className={cn(
-        "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex w-full items-center justify-between gap-2 rounded-md border bg-input-background px-3 py-2 text-sm whitespace-nowrap transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex w-full items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm whitespace-nowrap transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        isWhiteTrigger ? "!bg-white !text-black hover:!bg-white hover:!text-black active:!bg-white active:!text-black focus:!bg-white focus:!text-black focus-visible:!bg-white focus-visible:!text-black [&_*]:!text-black [&_svg]:!text-black [&_svg]:!fill-black [&_svg]:hover:!text-black [&_svg]:hover:!fill-black data-[placeholder]:!text-black [&_[data-slot=select-value]]:!text-black !border-gray-300" : "bg-input-background",
         className,
       )}
+      style={isWhiteTrigger ? { 
+        backgroundColor: '#ffffff',
+        color: '#000000',
+        '--select-text-color': '#000000'
+      } as React.CSSProperties : undefined}
       {...props}
     >
       {children}
@@ -65,21 +77,44 @@ function SelectContent({
       <SelectPrimitive.Content
         data-slot="select-content"
         className={cn(
-          "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 relative z-50 max-h-(--radix-select-content-available-height) min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border shadow-md",
+          "bg-white text-black data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 relative z-[10000] max-h-(--radix-select-content-available-height) min-w-[8rem] origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border border-gray-300 shadow-md",
           position === "popper" &&
             "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
           className,
         )}
+        style={{
+          backgroundColor: '#ffffff',
+          color: '#000000',
+        }}
         position={position}
+        onCloseAutoFocus={(e) => {
+          // Разрешаем автофокус, но только если это не мешает другим модальным окнам
+          const target = e.target as HTMLElement;
+          if (target.closest('[data-slot="dialog-content"]')) {
+            // Если Select внутри Dialog, не возвращаем фокус, чтобы не мешать Dialog
+            e.preventDefault();
+          }
+        }}
+        onEscapeKeyDown={(e) => {
+          // Закрываем Select по Escape
+          props.onEscapeKeyDown?.(e);
+        }}
+        onPointerDownOutside={(e) => {
+          // Закрываем Select при клике вне
+          props.onPointerDownOutside?.(e);
+        }}
         {...props}
       >
         <SelectScrollUpButton />
         <SelectPrimitive.Viewport
           className={cn(
-            "p-1",
+            "p-1 bg-white",
             position === "popper" &&
               "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)] scroll-my-1",
           )}
+          style={{
+            backgroundColor: '#ffffff',
+          }}
         >
           {children}
         </SelectPrimitive.Viewport>
@@ -111,9 +146,17 @@ function SelectItem({
     <SelectPrimitive.Item
       data-slot="select-item"
       className={cn(
-        "focus:bg-accent focus:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+        "bg-white text-black hover:bg-gray-100 hover:text-black focus:bg-gray-100 focus:text-black [&_svg]:text-black [&_svg]:fill-black relative flex w-full cursor-pointer items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
         className,
       )}
+      style={{
+        backgroundColor: '#ffffff',
+        color: '#000000',
+      }}
+      onSelect={(e) => {
+        // Закрываем Select после выбора
+        props.onSelect?.(e);
+      }}
       {...props}
     >
       <span className="absolute right-2 flex size-3.5 items-center justify-center">

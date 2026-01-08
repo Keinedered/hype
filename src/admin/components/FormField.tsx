@@ -42,6 +42,7 @@ interface SelectFieldProps extends BaseFieldProps {
   onChange: (value: string) => void;
   options: { value: string; label: string }[];
   placeholder?: string;
+  modal?: boolean;
 }
 
 type FormFieldProps = InputFieldProps | TextareaFieldProps | SelectFieldProps;
@@ -91,7 +92,7 @@ export function FormField(props: FormFieldProps) {
       )}
 
       {props.type === 'select' && (
-        <Select value={props.value} onValueChange={props.onChange}>
+        <Select modal={props.modal !== undefined ? props.modal : false} value={props.value} onValueChange={props.onChange}>
           <SelectTrigger
             id={fieldId}
             className={`bg-gray-800 border-gray-700 text-white ${
@@ -102,7 +103,7 @@ export function FormField(props: FormFieldProps) {
           >
             <SelectValue placeholder={props.placeholder || 'Выберите...'} />
           </SelectTrigger>
-          <SelectContent className="bg-gray-800 border-gray-700 text-white">
+          <SelectContent className="!bg-gray-800 border-gray-700 text-white">
             {props.options.map((option) => (
               <SelectItem
                 key={option.value}

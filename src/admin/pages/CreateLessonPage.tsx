@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { adminAPI } from '@/api/adminClient';
+import { logger } from '../utils/logger';
 
 interface LessonFormData {
   id: string;
@@ -97,7 +98,7 @@ export function CreateLessonPage() {
       const modulesList = Array.isArray(data) ? data : [];
       setModules(modulesList);
     } catch (error: any) {
-      console.error('Failed to fetch modules:', error);
+      logger.error('Failed to fetch modules:', error);
       toast.error('Ошибка загрузки модулей');
       setModules([]);
     } finally {

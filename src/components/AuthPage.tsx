@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Card } from './ui/card';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
-import { LogIn, UserPlus, Lock, Mail, User as UserIcon, AlertCircle } from 'lucide-react';
+import { LogIn, UserPlus, Lock, Mail, User as UserIcon, AlertCircle, Sparkles, BookOpen, TrendingUp, Shield } from 'lucide-react';
 import { handleApiError, checkApiAvailability } from '../utils/apiErrorHandler';
+import { validateEmail, validatePassword, validateUsername } from '../utils/validation';
+import { authFormStyles, authCardStyles, authHeaderStyles, authErrorStyles, authInfoPanelStyles } from './auth';
 
 export function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -37,19 +38,50 @@ export function AuthPage() {
     }
   }, [user, navigate]);
 
+  const resetForm = () => {
+    setUsername('');
+    setEmail('');
+    setPassword('');
+    setFullName('');
+    setError('');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    
+    // Валидация
+    const usernameValidation = validateUsername(username);
+    if (!usernameValidation.valid) {
+      setError(usernameValidation.message || 'Неверное имя пользователя');
+      return;
+    }
+
+    if (!isLogin) {
+      if (!validateEmail(email)) {
+        setError('Введите корректный email адрес');
+        return;
+      }
+    }
+
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.valid) {
+      setError(passwordValidation.message || 'Неверный пароль');
+      return;
+    }
+
     setLoading(true);
 
     try {
       if (isLogin) {
         await login(username, password);
         toast.success('Успешный вход!');
+        resetForm();
         // Перенаправление произойдет через useEffect при обновлении user
       } else {
         await register(username, email, password, fullName);
         toast.success('Регистрация успешна! Добро пожаловать!');
+        resetForm();
         // Перенаправление произойдет через useEffect при обновлении user
       }
     } catch (err) {
@@ -62,31 +94,29 @@ export function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-6 relative">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-0 w-full h-full opacity-5">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-black rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-black rounded-full blur-3xl" />
-        </div>
-      </div>
-
-      <Card className="w-full max-w-md border-2 border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative z-10">
-        <div className="p-8">
+    <div className="min-h-screen flex">
+      {/* Левая половина - Белая форма авторизации */}
+      <div className="w-full md:w-1/2 bg-white flex items-center justify-center p-6 md:p-12 relative overflow-hidden">
+        {/* Декоративные элементы */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-gray-50 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-gray-50 rounded-full blur-3xl opacity-30 -translate-y-1/2 -translate-x-1/2" />
+        
+        <div className="w-full max-w-md relative z-10">
           {/* Header */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-black text-white mb-4 relative">
-              <div className="absolute -top-1 -left-1 w-3 h-3 border-l-2 border-t-2 border-black bg-white" />
-              <div className="absolute -bottom-1 -right-1 w-3 h-3 border-r-2 border-b-2 border-black bg-white" />
+          <div className="mb-8">
+            <div className={authHeaderStyles.iconContainer}>
+              <div className={authHeaderStyles.iconCorner} />
+              <div className={authHeaderStyles.iconCornerBottom} />
               {isLogin ? (
-                <LogIn className="h-8 w-8" />
+                <LogIn className="h-7 w-7" />
               ) : (
-                <UserPlus className="h-8 w-8" />
+                <UserPlus className="h-7 w-7" />
               )}
             </div>
-            <h1 className="text-3xl font-mono font-bold tracking-wider mb-2">
+            <h1 className={authHeaderStyles.title}>
               {isLogin ? 'ВХОД' : 'РЕГИСТРАЦИЯ'}
             </h1>
-            <p className="text-sm text-muted-foreground font-mono">
+            <p className={authHeaderStyles.subtitle}>
               {isLogin 
                 ? 'Войдите в свой аккаунт для продолжения' 
                 : 'Создайте новый аккаунт для начала обучения'}
@@ -94,18 +124,18 @@ export function AuthPage() {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="username" className="font-mono text-xs uppercase tracking-wide flex items-center gap-2">
+          <form onSubmit={handleSubmit} className={authFormStyles.container}>
+            <div className={authFormStyles.fieldGroup}>
+              <Label htmlFor="auth-username" className={authFormStyles.label}>
                 <UserIcon className="h-4 w-4" />
                 USERNAME
               </Label>
               <Input
-                id="username"
+                id="auth-username"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="border-2 border-black font-mono h-12"
+                className={authFormStyles.input}
                 placeholder="Введите имя пользователя"
                 required
                 disabled={loading}
@@ -114,34 +144,34 @@ export function AuthPage() {
 
             {!isLogin && (
               <>
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="font-mono text-xs uppercase tracking-wide flex items-center gap-2">
+                <div className={`${authFormStyles.fieldGroup} transition-all duration-300`}>
+                  <Label htmlFor="auth-email" className={authFormStyles.label}>
                     <Mail className="h-4 w-4" />
                     EMAIL
                   </Label>
                   <Input
-                    id="email"
+                    id="auth-email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="border-2 border-black font-mono h-12"
+                    className={authFormStyles.input}
                     placeholder="your@email.com"
                     required
                     disabled={loading}
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="fullName" className="font-mono text-xs uppercase tracking-wide flex items-center gap-2">
+                <div className={`${authFormStyles.fieldGroup} transition-all duration-300`}>
+                  <Label htmlFor="auth-fullName" className={authFormStyles.label}>
                     <UserIcon className="h-4 w-4" />
                     ИМЯ (необязательно)
                   </Label>
                   <Input
-                    id="fullName"
+                    id="auth-fullName"
                     type="text"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="border-2 border-black font-mono h-12"
+                    className={authFormStyles.input}
                     placeholder="Ваше полное имя"
                     disabled={loading}
                   />
@@ -149,43 +179,43 @@ export function AuthPage() {
               </>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="password" className="font-mono text-xs uppercase tracking-wide flex items-center gap-2">
+            <div className={authFormStyles.fieldGroup}>
+              <Label htmlFor="auth-password" className={authFormStyles.label}>
                 <Lock className="h-4 w-4" />
                 PASSWORD
               </Label>
               <Input
-                id="password"
+                id="auth-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="border-2 border-black font-mono h-12"
+                className={authFormStyles.input}
                 placeholder="Введите пароль"
                 required
                 disabled={loading}
               />
             </div>
 
-          {apiAvailable === false && (
-            <div className="p-4 border-2 border-orange-500 bg-orange-50 flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-orange-600" />
-              <p className="text-sm font-mono text-orange-600">
-                Backend недоступен. Убедитесь, что сервер запущен на порту 8000.
-              </p>
-            </div>
-          )}
+            {apiAvailable === false && (
+              <div className="p-4 border-2 border-orange-500 bg-orange-50 flex items-center gap-2 transition-all duration-300">
+                <AlertCircle className="h-4 w-4 text-orange-600 flex-shrink-0" />
+                <p className="text-sm font-mono text-orange-600">
+                  Backend недоступен. Убедитесь, что сервер запущен на порту 8000.
+                </p>
+              </div>
+            )}
 
-          {error && (
-            <div className="p-4 border-2 border-red-500 bg-red-50 flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-red-600" />
-              <p className="text-sm font-mono text-red-600">{error}</p>
-            </div>
-          )}
+            {error && (
+              <div className={authErrorStyles.container}>
+                <AlertCircle className={authErrorStyles.icon} />
+                <p className={authErrorStyles.text}>{error}</p>
+              </div>
+            )}
 
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-12 border-2 border-black bg-black text-white hover:bg-white hover:text-black font-mono tracking-wide text-base transition-all disabled:opacity-50"
+              className={authFormStyles.button}
             >
               {loading ? (
                 <span className="flex items-center gap-2">
@@ -197,15 +227,14 @@ export function AuthPage() {
               )}
             </Button>
 
-            <div className="text-center">
+            <div className="text-center pt-2">
               <button
                 type="button"
                 onClick={() => {
                   setIsLogin(!isLogin);
-                  setError('');
-                  setPassword('');
+                  resetForm();
                 }}
-                className="text-sm font-mono underline hover:no-underline text-muted-foreground"
+                className={authFormStyles.toggleButton}
                 disabled={loading}
               >
                 {isLogin ? 'Нет аккаунта? Зарегистрируйтесь' : 'Есть аккаунт? Войдите'}
@@ -213,16 +242,90 @@ export function AuthPage() {
             </div>
           </form>
 
-          {/* Info Box */}
-          <div className="mt-6 p-4 border-2 border-black bg-gray-50">
-            <p className="text-xs font-mono mb-2 font-bold uppercase tracking-wide">ДЕМО-ДОСТУП:</p>
-            <div className="space-y-1 text-xs font-mono">
-              <p><strong>Пользователь:</strong> demo / demo123</p>
-              <p><strong>Админ:</strong> admin / admin123</p>
+          {/* Demo Info */}
+          <div className={`mt-8 ${authCardStyles.infoBox}`}>
+            <p className={authCardStyles.infoTitle}>ДЕМО-ДОСТУП:</p>
+            <div className={`space-y-1 ${authCardStyles.infoText}`}>
+              <p><strong className="text-foreground">Пользователь:</strong> demo / demo123</p>
+              <p><strong className="text-foreground">Админ:</strong> admin / admin123</p>
             </div>
           </div>
         </div>
-      </Card>
+      </div>
+
+      {/* Правая половина - Черная информационная панель */}
+      <div className={`hidden md:flex md:w-1/2 ${authInfoPanelStyles.container}`}>
+        {/* Декоративные элементы */}
+        <div className={authInfoPanelStyles.decorative} />
+        <div className="absolute bottom-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl translate-y-1/2 translate-x-1/2" />
+        
+        <div className={authInfoPanelStyles.content}>
+          {/* Логотип/Иконка */}
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 border-2 border-white flex items-center justify-center">
+              <Sparkles className="h-6 w-6" />
+            </div>
+            <h2 className="text-3xl font-mono font-bold tracking-wider">HYPE</h2>
+          </div>
+
+          {/* Заголовок */}
+          <h3 className="text-4xl font-mono font-bold leading-tight mb-4">
+            Добро пожаловать в платформу обучения
+          </h3>
+
+          {/* Описание */}
+          <p className="text-lg text-gray-300 leading-relaxed font-mono">
+            Присоединяйтесь к сообществу студентов и преподавателей. 
+            Изучайте новые навыки, отслеживайте прогресс и достигайте своих целей.
+          </p>
+
+          {/* Особенности */}
+          <div className="space-y-6 mt-10">
+            <div className={authInfoPanelStyles.featureItem}>
+              <div className={authInfoPanelStyles.featureIcon}>
+                <BookOpen className="h-5 w-5" />
+              </div>
+              <div>
+                <h4 className="font-mono font-bold text-lg mb-1">Интерактивные курсы</h4>
+                <p className="text-gray-400 font-mono text-sm">
+                  Изучайте материал в удобном для вас темпе с практическими заданиями
+                </p>
+              </div>
+            </div>
+
+            <div className={authInfoPanelStyles.featureItem}>
+              <div className={authInfoPanelStyles.featureIcon}>
+                <TrendingUp className="h-5 w-5" />
+              </div>
+              <div>
+                <h4 className="font-mono font-bold text-lg mb-1">Отслеживание прогресса</h4>
+                <p className="text-gray-400 font-mono text-sm">
+                  Видите свой прогресс в реальном времени и достигайте новых высот
+                </p>
+              </div>
+            </div>
+
+            <div className={authInfoPanelStyles.featureItem}>
+              <div className={authInfoPanelStyles.featureIcon}>
+                <Shield className="h-5 w-5" />
+              </div>
+              <div>
+                <h4 className="font-mono font-bold text-lg mb-1">Безопасность данных</h4>
+                <p className="text-gray-400 font-mono text-sm">
+                  Ваши данные защищены современными стандартами безопасности
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Дополнительная информация */}
+          <div className="mt-12 pt-8 border-t-2 border-white/20">
+            <p className="text-sm text-gray-400 font-mono">
+              Начните свое обучение уже сегодня
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

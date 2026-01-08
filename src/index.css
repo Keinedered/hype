@@ -3558,12 +3558,49 @@ html {
 .admin-panel h5,
 .admin-panel h6,
 .admin-panel label,
-.admin-panel button,
+.admin-panel button:not([data-slot="select-trigger"][class*="bg-gray-800"]):not([data-slot="select-trigger"][class*="bg-gray-900"]):not([data-slot="select-trigger"][class*="bg-gray-700"]),
 .admin-panel a,
 .admin-panel input,
 .admin-panel textarea,
 .admin-panel select {
   color: #000000 !important;
+}
+
+/* Exception: SelectTrigger with white background should have black text */
+/* These rules must come AFTER the general button rules to override them */
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"],
+.admin-panel [data-slot="select-trigger"][class*="bg-white"],
+.admin-panel button[data-slot="select-trigger"].bg-white,
+.admin-panel [data-slot="select-trigger"].bg-white {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  border-color: rgb(209 213 219) !important; /* gray-300 */
+  --tw-bg-opacity: 1 !important;
+}
+
+/* Override placeholder text color for white SelectTrigger - make it black */
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"][data-placeholder],
+.admin-panel [data-slot="select-trigger"][class*="bg-white"][data-placeholder],
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"][data-placeholder] *,
+.admin-panel [data-slot="select-trigger"][class*="bg-white"][data-placeholder] * {
+  color: #000000 !important; /* black */
+}
+
+/* All child elements including SelectValue and SVG icons for white SelectTrigger */
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"] *,
+.admin-panel [data-slot="select-trigger"][class*="bg-white"] *,
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"] [data-slot="select-value"],
+.admin-panel [data-slot="select-trigger"][class*="bg-white"] [data-slot="select-value"],
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"] svg,
+.admin-panel [data-slot="select-trigger"][class*="bg-white"] svg,
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"] span,
+.admin-panel [data-slot="select-trigger"][class*="bg-white"] span,
+.admin-panel button[data-slot="select-trigger"].bg-white *,
+.admin-panel [data-slot="select-trigger"].bg-white * {
+  color: #000000 !important;
+  fill: #000000 !important;
+  stroke: #000000 !important;
 }
 
 .admin-panel [class*="text-white"]:hover,
@@ -3580,7 +3617,7 @@ html {
 .admin-panel h5:hover,
 .admin-panel h6:hover,
 .admin-panel label:hover,
-.admin-panel button:hover,
+.admin-panel button:not([data-slot="select-trigger"][class*="bg-white"]):hover,
 .admin-panel a:hover,
 .admin-panel input:hover,
 .admin-panel textarea:hover,
@@ -3588,13 +3625,63 @@ html {
   color: #000000 !important;
 }
 
+/* Exception: SelectTrigger with white background should have black text on hover - NO CHANGES */
+.admin-panel [data-slot="select-trigger"][class*="bg-white"]:hover,
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"]:hover,
+.admin-panel [data-slot="select-trigger"].bg-white:hover,
+.admin-panel button[data-slot="select-trigger"].bg-white:hover {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  --tw-bg-opacity: 1 !important;
+}
+
+.admin-panel [data-slot="select-trigger"][class*="bg-white"]:hover *,
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"]:hover *,
+.admin-panel [data-slot="select-trigger"][class*="bg-white"]:hover [data-slot="select-value"],
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"]:hover [data-slot="select-value"],
+.admin-panel [data-slot="select-trigger"][class*="bg-white"]:hover svg,
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"]:hover svg,
+.admin-panel [data-slot="select-trigger"].bg-white:hover *,
+.admin-panel button[data-slot="select-trigger"].bg-white:hover * {
+  color: #000000 !important;
+  fill: #000000 !important;
+  stroke: #000000 !important;
+  background-color: transparent !important;
+}
+
 .admin-panel [class*="text-white"]:active,
 .admin-panel [class*="text-gray"]:active,
 .admin-panel [class*="text-slate"]:active,
 .admin-panel [class*="text-zinc"]:active,
-.admin-panel button:active,
+.admin-panel button:not([data-slot="select-trigger"][class*="bg-white"]):active,
 .admin-panel a:active {
   color: #000000 !important;
+}
+
+/* Exception: SelectTrigger with white background should have black text on active - NO CHANGES */
+.admin-panel [data-slot="select-trigger"][class*="bg-white"]:active,
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"]:active,
+.admin-panel [data-slot="select-trigger"].bg-white:active,
+.admin-panel button[data-slot="select-trigger"].bg-white:active {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  --tw-bg-opacity: 1 !important;
+}
+
+.admin-panel [data-slot="select-trigger"][class*="bg-white"]:active *,
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"]:active *,
+.admin-panel [data-slot="select-trigger"][class*="bg-white"]:active [data-slot="select-value"],
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"]:active [data-slot="select-value"],
+.admin-panel [data-slot="select-trigger"][class*="bg-white"]:active svg,
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"]:active svg,
+.admin-panel [data-slot="select-trigger"].bg-white:active *,
+.admin-panel button[data-slot="select-trigger"].bg-white:active * {
+  color: #000000 !important;
+  fill: #000000 !important;
+  stroke: #000000 !important;
+  background-color: transparent !important;
 }
 
 .admin-panel [class*="text-white"]:focus,
@@ -3604,23 +3691,64 @@ html {
 .admin-panel input:focus,
 .admin-panel textarea:focus,
 .admin-panel select:focus,
-.admin-panel button:focus,
+.admin-panel button:not([data-slot="select-trigger"][class*="bg-white"]):focus,
 .admin-panel a:focus {
   color: #000000 !important;
 }
 
+/* Exception: SelectTrigger with white background should have black text on focus - NO CHANGES */
+.admin-panel [data-slot="select-trigger"][class*="bg-white"]:focus,
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"]:focus,
+.admin-panel [data-slot="select-trigger"][class*="bg-white"]:focus-visible,
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"]:focus-visible,
+.admin-panel [data-slot="select-trigger"].bg-white:focus,
+.admin-panel button[data-slot="select-trigger"].bg-white:focus {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  --tw-bg-opacity: 1 !important;
+}
+
+.admin-panel [data-slot="select-trigger"][class*="bg-white"]:focus *,
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"]:focus *,
+.admin-panel [data-slot="select-trigger"][class*="bg-white"]:focus [data-slot="select-value"],
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"]:focus [data-slot="select-value"],
+.admin-panel [data-slot="select-trigger"][class*="bg-white"]:focus svg,
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"]:focus svg,
+.admin-panel [data-slot="select-trigger"][class*="bg-white"]:focus-visible *,
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"]:focus-visible *,
+.admin-panel [data-slot="select-trigger"].bg-white:focus *,
+.admin-panel button[data-slot="select-trigger"].bg-white:focus * {
+  color: #000000 !important;
+  fill: #000000 !important;
+  stroke: #000000 !important;
+  background-color: transparent !important;
+}
+
 /* Dropdown menus, dialogs, popovers: solid background, NOT transparent */
+/* SelectContent - Simple white background, black text */
 .admin-panel [class*="SelectContent"],
 .admin-panel [class*="SelectViewport"],
-.admin-panel [class*="DropdownMenuContent"],
 .admin-panel [data-radix-select-content],
-.admin-panel [data-radix-dropdown-menu-content],
-.admin-panel [data-slot="select-content"] {
+.admin-panel [data-slot="select-content"],
+.admin-panel [data-slot="select-content"] > * {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  opacity: 1 !important;
+  --tw-bg-opacity: 1 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.admin-panel [class*="DropdownMenuContent"],
+.admin-panel [data-radix-dropdown-menu-content] {
   background-color: rgb(31 41 55) !important; /* gray-800 */
   background: rgb(31 41 55) !important;
   opacity: 1 !important;
   --tw-bg-opacity: 1 !important;
   backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 .admin-panel [class*="DialogContent"],
@@ -3638,14 +3766,130 @@ html {
   color: #000000 !important;
 }
 
+/* SelectItem - Simple white background, black text */
 .admin-panel [class*="SelectItem"],
+.admin-panel [data-slot="select-item"] {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  --tw-bg-opacity: 1 !important;
+  opacity: 1 !important;
+}
+
+.admin-panel [class*="SelectItem"]:hover,
+.admin-panel [data-slot="select-item"]:hover,
+.admin-panel [class*="SelectItem"]:focus,
+.admin-panel [data-slot="select-item"]:focus {
+  background-color: #f3f4f6 !important; /* gray-100 */
+  background: #f3f4f6 !important;
+  color: #000000 !important;
+}
+
+.admin-panel [class*="SelectItem"] *,
+.admin-panel [data-slot="select-item"] *,
+.admin-panel [class*="SelectItem"] svg,
+.admin-panel [data-slot="select-item"] svg {
+  color: #000000 !important;
+  fill: #000000 !important;
+  stroke: #000000 !important;
+}
+
+.admin-panel [class*="SelectItem"]:hover *,
+.admin-panel [data-slot="select-item"]:hover *,
+.admin-panel [class*="SelectItem"]:focus *,
+.admin-panel [data-slot="select-item"]:focus * {
+  color: #000000 !important;
+  fill: #000000 !important;
+  stroke: #000000 !important;
+}
+
 .admin-panel [class*="DropdownMenuItem"] {
   background-color: transparent !important;
   --tw-bg-opacity: 1 !important;
   opacity: 1 !important;
 }
 
-.admin-panel [class*="SelectItem"]:hover,
 .admin-panel [class*="DropdownMenuItem"]:hover {
   background-color: rgb(55 65 81) !important; /* gray-700 */
+}
+
+/* CRITICAL: Override all text color rules for SelectTrigger with white backgrounds */
+/* These must be at the end to override all previous rules */
+/* NO CHANGES ON HOVER/ACTIVE/FOCUS */
+.admin-panel button[role="combobox"][data-slot="select-trigger"][class*="bg-white"],
+.admin-panel button[role="combobox"][data-slot="select-trigger"][class*="bg-white"]:hover,
+.admin-panel button[role="combobox"][data-slot="select-trigger"][class*="bg-white"]:active,
+.admin-panel button[role="combobox"][data-slot="select-trigger"][class*="bg-white"]:focus,
+.admin-panel button[role="combobox"][data-slot="select-trigger"][class*="bg-white"]:focus-visible {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  --tw-bg-opacity: 1 !important;
+}
+
+.admin-panel button[role="combobox"][data-slot="select-trigger"][class*="bg-white"] *,
+.admin-panel button[role="combobox"][data-slot="select-trigger"][class*="bg-white"] [data-slot="select-value"],
+.admin-panel button[role="combobox"][data-slot="select-trigger"][class*="bg-white"] span,
+.admin-panel button[role="combobox"][data-slot="select-trigger"][class*="bg-white"] svg,
+.admin-panel button[role="combobox"][data-slot="select-trigger"][class*="bg-white"]:hover *,
+.admin-panel button[role="combobox"][data-slot="select-trigger"][class*="bg-white"]:active *,
+.admin-panel button[role="combobox"][data-slot="select-trigger"][class*="bg-white"]:focus *,
+.admin-panel button[role="combobox"][data-slot="select-trigger"][class*="bg-white"]:hover svg,
+.admin-panel button[role="combobox"][data-slot="select-trigger"][class*="bg-white"]:active svg,
+.admin-panel button[role="combobox"][data-slot="select-trigger"][class*="bg-white"]:focus svg {
+  color: #000000 !important;
+  fill: #000000 !important;
+  stroke: #000000 !important;
+  background-color: transparent !important;
+}
+
+/* FINAL OVERRIDE: Most specific rules to ensure black text on white SelectTrigger */
+.admin-panel button[role="combobox"][data-slot="select-trigger"][class*="bg-white"],
+.admin-panel button[role="combobox"][data-slot="select-trigger"][class*="bg-white"][class*="text-black"],
+.admin-panel button[role="combobox"][data-slot="select-trigger"][class*="bg-white"]:hover,
+.admin-panel button[role="combobox"][data-slot="select-trigger"][class*="bg-white"]:active,
+.admin-panel button[role="combobox"][data-slot="select-trigger"][class*="bg-white"]:focus {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  --tw-bg-opacity: 1 !important;
+}
+
+.admin-panel button[role="combobox"][data-slot="select-trigger"][class*="bg-white"] *,
+.admin-panel button[role="combobox"][data-slot="select-trigger"][class*="bg-white"][class*="text-black"] *,
+.admin-panel button[role="combobox"][data-slot="select-trigger"][class*="bg-white"]:hover *,
+.admin-panel button[role="combobox"][data-slot="select-trigger"][class*="bg-white"]:active *,
+.admin-panel button[role="combobox"][data-slot="select-trigger"][class*="bg-white"]:focus * {
+  color: #000000 !important;
+  fill: #000000 !important;
+  stroke: #000000 !important;
+}
+
+/* ABSOLUTE FINAL OVERRIDE - Use attribute selector to match any element with bg-white in class */
+/* NO CHANGES ON HOVER/ACTIVE/FOCUS - Always white background, always black text */
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"],
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"]:hover,
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"]:active,
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"]:focus,
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"]:focus-visible {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  --tw-bg-opacity: 1 !important;
+}
+
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"] *,
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"] [data-slot="select-value"],
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"]:hover *,
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"]:active *,
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"]:focus *,
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"]:focus-visible *,
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"] svg,
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"]:hover svg,
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"]:active svg,
+.admin-panel button[data-slot="select-trigger"][class*="bg-white"]:focus svg {
+  color: #000000 !important;
+  fill: #000000 !important;
+  stroke: #000000 !important;
+  background-color: transparent !important;
 }

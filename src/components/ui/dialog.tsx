@@ -42,7 +42,15 @@ const DialogOverlay = React.forwardRef<
         "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-[9998] bg-black/50",
         className,
       )}
-      style={{ zIndex: 9998 }}
+      style={{ zIndex: 9998, pointerEvents: 'auto' }}
+      onPointerDownOutside={(e) => {
+        // Разрешаем клики по Select dropdowns
+        const target = e.target as HTMLElement;
+        if (target.closest('[data-slot="select-content"]') || 
+            target.closest('[data-slot="select-trigger"]')) {
+          e.preventDefault();
+        }
+      }}
       {...props}
     />
   );
@@ -63,6 +71,22 @@ function DialogContent({
           "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-1/2 left-1/2 z-[9999] grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg [&[data-state=open]]:!opacity-100",
           className,
         )}
+        onInteractOutside={(e) => {
+          // Разрешаем взаимодействие с Select dropdowns
+          const target = e.target as HTMLElement;
+          if (target.closest('[data-slot="select-content"]') || 
+              target.closest('[data-slot="select-trigger"]') ||
+              target.closest('[data-slot="select-item"]')) {
+            e.preventDefault();
+          }
+        }}
+        onEscapeKeyDown={(e) => {
+          // Разрешаем закрытие Select по Escape
+          const target = e.target as HTMLElement;
+          if (target.closest('[data-slot="select-content"]')) {
+            e.preventDefault();
+          }
+        }}
         {...props}
       >
         {children}

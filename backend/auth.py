@@ -9,6 +9,8 @@ from database import get_db
 import models
 import schemas
 from config import settings
+import uuid
+import hashlib
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
@@ -38,6 +40,59 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
+
+
+def create_refresh_token_hash(token_string: str) -> str:
+    """Хеширование refresh токена для безопасного хранения"""
+    return hashlib.sha256(token_string.encode()).hexdigest()
+
+
+def create_refresh_token(user_id: str, db: Session, expires_days: int = 7) -> str:
+    """Создание refresh токена и сохранение в БД"""
+    # Генерируем уникальный токен
+    token_string = str(uuid.uuid4())
+    token_hash = create_refresh_token_hash(token_string)
+    
+    # Сохраняем хеш в БД (для безопасности не храним сам токен)
+    refresh_token_db = models.RefreshToken(
+        id=str(uuid.uuid4()),
+        user_id=user_id,
+        token_hash=token_hash,
+        expires_at=datetime.utcnow() + timedelta(days=expires_days),
+        is_revoked=False
+    )
+    db.add(refresh_token_db)
+    db.commit()
+    
+    return token_string
+
+
+def verify_refresh_token(token_string: str, db: Session) -> Optional[models.RefreshToken]:
+    """Проверка refresh токена"""
+    token_hash = create_refresh_token_hash(token_string)
+    
+    refresh_token = db.query(models.RefreshToken).filter(
+        models.RefreshToken.token_hash == token_hash,
+        models.RefreshToken.is_revoked == False,
+        models.RefreshToken.expires_at > datetime.utcnow()
+    ).first()
+    
+    return refresh_token
+
+
+def revoke_refresh_token(token_string: str, db: Session) -> bool:
+    """Отозвать refresh токен (logout)"""
+    token_hash = create_refresh_token_hash(token_string)
+    
+    refresh_token = db.query(models.RefreshToken).filter(
+        models.RefreshToken.token_hash == token_hash
+    ).first()
+    
+    if refresh_token:
+        refresh_token.is_revoked = True
+        db.commit()
+        return True
+    return False
 
 
 def get_user_by_username(db: Session, username: str) -> Optional[models.User]:

@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from typing import List, Optional
+from datetime import datetime
 import models
 import schemas
 from auth import get_password_hash
@@ -234,27 +235,26 @@ def get_graph_nodes(db: Session, user_id: Optional[str] = None) -> List[models.G
             db.rollback()
     
     # Фильтруем узлы, проверяя существование entity в БД
+    # Оптимизация: предзагружаем все сущности для проверки в одном запросе (избегаем N+1)
+    all_courses_dict = {c.id: c for c in db.query(models.Course).all()}
+    all_modules_dict = {m.id: m for m in db.query(models.Module).all()}
+    all_lessons_dict = {l.id: l for l in db.query(models.Lesson).all()}
+    all_tracks_dict = {t.id: t for t in db.query(models.Track).all()}
+    
+    # Фильтруем узлы, проверяя существование entity в БД (без N+1)
     for node in all_nodes:
         # Проверяем существование entity в БД в зависимости от типа узла
-        if node.type == models.NodeType.course:
-            course = db.query(models.Course).filter(models.Course.id == node.entity_id).first()
-            if course:
-                valid_nodes.append(node)
-        elif node.type == models.NodeType.module:
-            module = db.query(models.Module).filter(models.Module.id == node.entity_id).first()
-            if module:
-                valid_nodes.append(node)
-        elif node.type == models.NodeType.lesson:
-            lesson = db.query(models.Lesson).filter(models.Lesson.id == node.entity_id).first()
-            if lesson:
-                valid_nodes.append(node)
+        if node.type == models.NodeType.course and node.entity_id in all_courses_dict:
+            valid_nodes.append(node)
+        elif node.type == models.NodeType.module and node.entity_id in all_modules_dict:
+            valid_nodes.append(node)
+        elif node.type == models.NodeType.lesson and node.entity_id in all_lessons_dict:
+            valid_nodes.append(node)
         elif node.type == models.NodeType.concept:
             # Концепты (например, root) всегда валидны
             valid_nodes.append(node)
-        elif node.type == models.NodeType.track:
-            track = db.query(models.Track).filter(models.Track.id == node.entity_id).first()
-            if track:
-                valid_nodes.append(node)
+        elif node.type == models.NodeType.track and node.entity_id in all_tracks_dict:
+            valid_nodes.append(node)
         else:
             # Для неизвестных типов оставляем узел
             valid_nodes.append(node)
@@ -745,13 +745,13 @@ def update_lesson_progress(db: Session, user_id: str, lesson_id: str, status: st
     if user_lesson:
         user_lesson.status = status_enum
         if status_enum == models.CourseStatus.completed and not user_lesson.completed_at:
-            user_lesson.completed_at = func.now()
+            user_lesson.completed_at = datetime.utcnow()
     else:
         user_lesson = models.UserLesson(
             user_id=user_id,
             lesson_id=lesson_id,
             status=status_enum,
-            completed_at=func.now() if status_enum == models.CourseStatus.completed else None
+            completed_at=datetime.utcnow() if status_enum == models.CourseStatus.completed else None
         )
         db.add(user_lesson)
     
@@ -783,3 +783,54 @@ def get_first_lesson_id(db: Session, course_id: str) -> Optional[str]:
     # Возвращаем ID первого урока
     return lessons[0].id
 
+
+# Audit Logging
+def log_audit(
+    db: Session,
+    user_id: Optional[str],
+    action: str,
+    entity_type: str,
+    entity_id: str,
+    old_data: Optional[dict] = None,
+    new_data: Optional[dict] = None,
+    ip_address: Optional[str] = None
+) -> models.AuditLog:
+    """Логирование действия в таблицу аудита"""
+    import json
+    
+    audit_log = models.AuditLog(
+        id=str(uuid.uuid4()),
+        user_id=user_id,
+        action=action,  # CREATE, UPDATE, DELETE
+        entity_type=entity_type,
+        entity_id=entity_id,
+        old_data=json.dumps(old_data) if old_data else None,
+        new_data=json.dumps(new_data) if new_data else None,
+        ip_address=ip_address
+    )
+    db.add(audit_log)
+    db.commit()
+    return audit_log
+
+
+def get_audit_logs(
+    db: Session,
+    entity_type: Optional[str] = None,
+    entity_id: Optional[str] = None,
+    user_id: Optional[str] = None,
+    action: Optional[str] = None,
+    limit: int = 100
+) -> List[models.AuditLog]:
+    """Получить логи аудита с фильтрацией"""
+    query = db.query(models.AuditLog).order_by(models.AuditLog.timestamp.desc())
+    
+    if entity_type:
+        query = query.filter(models.AuditLog.entity_type == entity_type)
+    if entity_id:
+        query = query.filter(models.AuditLog.entity_id == entity_id)
+    if user_id:
+        query = query.filter(models.AuditLog.user_id == user_id)
+    if action:
+        query = query.filter(models.AuditLog.action == action)
+    
+    return query.limit(limit).all()

@@ -46,27 +46,12 @@ export function CoursesManagement() {
   // Загрузка курсов
   const { data: coursesData, loading, error, refetch } = useApiQuery(
     () => adminAPI.courses.getAll(),
-    { 
-      queryKey: 'courses', // Явный ключ кэша для курсов
-      cacheTime: 2 * 60 * 1000,
-      onSuccess: (data) => {
-        console.log('[CoursesManagement] Courses loaded:', data);
-      },
-      onError: (err) => {
-        console.error('[CoursesManagement] Error loading courses:', err);
-      }
-    }
+    { cacheTime: 2 * 60 * 1000 }
   );
 
   // Фильтруем только фиксированные курсы (4 курса)
   // Пустой массив [] - это валидные данные (нет курсов), а не отсутствие данных
-  const courses = useMemo(() => {
-    const allCourses = Array.isArray(coursesData) ? coursesData : [];
-    console.log('[CoursesManagement] All courses from API:', allCourses);
-    const filtered = filterFixedCourses(allCourses);
-    console.log('[CoursesManagement] Filtered courses (fixed only):', filtered);
-    return filtered;
-  }, [coursesData]);
+  const courses = filterFixedCourses(Array.isArray(coursesData) ? coursesData : []);
 
   // Фильтрация и поиск
   const filteredCourses = useMemo(() => {
@@ -226,8 +211,9 @@ export function CoursesManagement() {
 
   // Показываем загрузку пока идет загрузка данных
   // Пустой массив [] означает "нет данных", а не "данные не загружены"
-  // Проверяем только loading, так как пустой массив - это валидные данные
-  if (loading) {
+  const isLoading = loading;
+
+  if (isLoading) {
     return <LoadingState message="Загрузка курсов..." />;
   }
 

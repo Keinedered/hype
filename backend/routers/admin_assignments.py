@@ -5,6 +5,7 @@ from database import get_db
 import models
 import schemas
 from auth import get_current_admin
+from exceptions import ResourceNotFound, DuplicateResource, DatabaseError
 
 router = APIRouter()
 
@@ -18,16 +19,22 @@ def create_assignment(
     current_user: models.User = Depends(get_current_admin)
 ):
     """Создать новое задание"""
-    # Проверяем, что для урока еще нет задания
-    existing = db.query(models.Assignment).filter(models.Assignment.lesson_id == assignment.lesson_id).first()
-    if existing:
-        raise HTTPException(status_code=400, detail='Assignment already exists for this lesson')
-    
-    new_assignment = models.Assignment(**assignment.dict())
-    db.add(new_assignment)
-    db.commit()
-    db.refresh(new_assignment)
-    return new_assignment
+    try:
+        # Проверяем, что для урока еще нет задания
+        existing = db.query(models.Assignment).filter(models.Assignment.lesson_id == assignment.lesson_id).first()
+        if existing:
+            raise DuplicateResource("Assignment", "lesson_id", assignment.lesson_id)
+        
+        new_assignment = models.Assignment(**assignment.dict())
+        db.add(new_assignment)
+        db.commit()
+        db.refresh(new_assignment)
+        return new_assignment
+    except Exception as e:
+        db.rollback()
+        if isinstance(e, DuplicateResource):
+            raise
+        raise DatabaseError(f"Failed to create assignment: {str(e)}")
 
 
 @router.get('/admin/assignments', response_model=List[schemas.Assignment])
@@ -64,17 +71,23 @@ def update_assignment(
     current_user: models.User = Depends(get_current_admin)
 ):
     """Обновить задание"""
-    db_assignment = db.query(models.Assignment).filter(models.Assignment.id == assignment_id).first()
-    if not db_assignment:
-        raise HTTPException(status_code=404, detail='Assignment not found')
-    
-    update_data = assignment.dict(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(db_assignment, key, value)
-    
-    db.commit()
-    db.refresh(db_assignment)
-    return db_assignment
+    try:
+        db_assignment = db.query(models.Assignment).filter(models.Assignment.id == assignment_id).first()
+        if not db_assignment:
+            raise ResourceNotFound("Assignment", assignment_id)
+        
+        update_data = assignment.dict(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(db_assignment, key, value)
+        
+        db.commit()
+        db.refresh(db_assignment)
+        return db_assignment
+    except Exception as e:
+        db.rollback()
+        if isinstance(e, ResourceNotFound):
+            raise
+        raise DatabaseError(f"Failed to update assignment: {str(e)}")
 
 
 @router.delete('/admin/assignments/{assignment_id}', status_code=status.HTTP_204_NO_CONTENT)
@@ -84,13 +97,19 @@ def delete_assignment(
     current_user: models.User = Depends(get_current_admin)
 ):
     """Удалить задание"""
-    assignment = db.query(models.Assignment).filter(models.Assignment.id == assignment_id).first()
-    if not assignment:
-        raise HTTPException(status_code=404, detail='Assignment not found')
-    
-    db.delete(assignment)
-    db.commit()
-    return None
+    try:
+        assignment = db.query(models.Assignment).filter(models.Assignment.id == assignment_id).first()
+        if not assignment:
+            raise ResourceNotFound("Assignment", assignment_id)
+        
+        db.delete(assignment)
+        db.commit()
+        return None
+    except Exception as e:
+        db.rollback()
+        if isinstance(e, ResourceNotFound):
+            raise
+        raise DatabaseError(f"Failed to delete assignment: {str(e)}")
 
 
 # ==================== SUBMISSIONS REVIEW ====================
@@ -140,16 +159,22 @@ def grade_submission(
     """Оценить работу студента"""
     from datetime import datetime
     
-    submission = db.query(models.Submission).filter(models.Submission.id == submission_id).first()
-    if not submission:
-        raise HTTPException(status_code=404, detail='Submission not found')
-    
-    submission.status = status
-    if curator_comment:
-        submission.curator_comment = curator_comment
-    submission.reviewed_at = datetime.now()
-    
-    db.commit()
-    db.refresh(submission)
-    
-    return {'message': 'Submission graded successfully', 'submission': submission}
+    try:
+        submission = db.query(models.Submission).filter(models.Submission.id == submission_id).first()
+        if not submission:
+            raise ResourceNotFound("Submission", submission_id)
+        
+        submission.status = status
+        if curator_comment:
+            submission.curator_comment = curator_comment
+        submission.reviewed_at = datetime.utcnow()
+        
+        db.commit()
+        db.refresh(submission)
+        
+        return {'message': 'Submission graded successfully', 'submission': submission}
+    except Exception as e:
+        db.rollback()
+        if isinstance(e, ResourceNotFound):
+            raise
+        raise DatabaseError(f"Failed to grade submission: {str(e)}")

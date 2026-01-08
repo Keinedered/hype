@@ -11,17 +11,7 @@ export const FIXED_COURSE_IDS = FIXED_COURSES.map(c => c.id);
 
 // Функция для фильтрации курсов - возвращает только фиксированные
 export function filterFixedCourses<T extends { id: string }>(courses: T[]): T[] {
-  console.log('[filterFixedCourses] Input courses:', courses);
-  console.log('[filterFixedCourses] Fixed course IDs:', FIXED_COURSE_IDS);
-  const filtered = courses.filter(course => {
-    const isFixed = FIXED_COURSE_IDS.includes(course.id);
-    if (!isFixed) {
-      console.log(`[filterFixedCourses] Course ${course.id} (${course.title}) is not in fixed courses list`);
-    }
-    return isFixed;
-  });
-  console.log('[filterFixedCourses] Filtered courses:', filtered);
-  return filtered;
+  return courses.filter(course => FIXED_COURSE_IDS.includes(course.id));
 }
 
 // Функция для проверки, является ли курс фиксированным

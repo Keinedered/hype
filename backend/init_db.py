@@ -11,6 +11,210 @@ import uuid
 # Создаем таблицы
 Base.metadata.create_all(bind=engine)
 
+# Создаем триггеры для синхронизации счетчиков
+def create_triggers(engine):
+    """Создание триггеров БД для автоматического обновления счетчиков"""
+    with engine.connect() as connection:
+        # Триггер при добавлении модуля
+        connection.execute(text("""
+        CREATE OR REPLACE FUNCTION update_course_module_count_insert()
+        RETURNS TRIGGER AS $$
+        BEGIN
+            UPDATE courses 
+            SET module_count = (SELECT COUNT(*) FROM modules WHERE course_id = NEW.course_id)
+            WHERE id = NEW.course_id;
+            RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+        """))
+        
+        # Триггер при удалении модуля
+        connection.execute(text("""
+        CREATE OR REPLACE FUNCTION update_course_module_count_delete()
+        RETURNS TRIGGER AS $$
+        BEGIN
+            UPDATE courses 
+            SET module_count = (SELECT COUNT(*) FROM modules WHERE course_id = OLD.course_id)
+            WHERE id = OLD.course_id;
+            RETURN OLD;
+        END;
+        $$ LANGUAGE plpgsql;
+        """))
+        
+        # Триггер при добавлении урока
+        connection.execute(text("""
+        CREATE OR REPLACE FUNCTION update_course_lesson_count_insert()
+        RETURNS TRIGGER AS $$
+        BEGIN
+            UPDATE courses 
+            SET lesson_count = (
+                SELECT COUNT(*) FROM lessons l 
+                INNER JOIN modules m ON l.module_id = m.id 
+                WHERE m.course_id = (SELECT course_id FROM modules WHERE id = NEW.module_id LIMIT 1)
+            )
+            WHERE id = (SELECT course_id FROM modules WHERE id = NEW.module_id LIMIT 1);
+            RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+        """))
+        
+        # Триггер при удалении урока
+        connection.execute(text("""
+        CREATE OR REPLACE FUNCTION update_course_lesson_count_delete()
+        RETURNS TRIGGER AS $$
+        BEGIN
+            UPDATE courses 
+            SET lesson_count = (
+                SELECT COUNT(*) FROM lessons l 
+                INNER JOIN modules m ON l.module_id = m.id 
+                WHERE m.course_id = (SELECT course_id FROM modules WHERE id = OLD.module_id LIMIT 1)
+            )
+            WHERE id = (SELECT course_id FROM modules WHERE id = OLD.module_id LIMIT 1);
+            RETURN OLD;
+        END;
+        $$ LANGUAGE plpgsql;
+        """))
+        
+        # Триггер при добавлении задания (assignment)
+        connection.execute(text("""
+        CREATE OR REPLACE FUNCTION update_course_task_count_insert()
+        RETURNS TRIGGER AS $$
+        BEGIN
+            UPDATE courses 
+            SET task_count = (
+                SELECT COUNT(*) FROM assignments a 
+                INNER JOIN lessons l ON a.lesson_id = l.id 
+                INNER JOIN modules m ON l.module_id = m.id 
+                WHERE m.course_id = (
+                    SELECT m2.course_id FROM modules m2 
+                    INNER JOIN lessons l2 ON m2.id = l2.module_id 
+                    WHERE l2.id = NEW.lesson_id LIMIT 1
+                )
+            )
+            WHERE id = (
+                SELECT m.course_id FROM modules m 
+                INNER JOIN lessons l ON m.id = l.module_id 
+                WHERE l.id = NEW.lesson_id LIMIT 1
+            );
+            RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+        """))
+        
+        # Триггер при удалении задания
+        connection.execute(text("""
+        CREATE OR REPLACE FUNCTION update_course_task_count_delete()
+        RETURNS TRIGGER AS $$
+        BEGIN
+            UPDATE courses 
+            SET task_count = (
+                SELECT COUNT(*) FROM assignments a 
+                INNER JOIN lessons l ON a.lesson_id = l.id 
+                INNER JOIN modules m ON l.module_id = m.id 
+                WHERE m.course_id = (
+                    SELECT m2.course_id FROM modules m2 
+                    INNER JOIN lessons l2 ON m2.id = l2.module_id 
+                    WHERE l2.id = OLD.lesson_id LIMIT 1
+                )
+            )
+            WHERE id = (
+                SELECT m.course_id FROM modules m 
+                INNER JOIN lessons l ON m.id = l.module_id 
+                WHERE l.id = OLD.lesson_id LIMIT 1
+            );
+            RETURN OLD;
+        END;
+        $$ LANGUAGE plpgsql;
+        """))
+        
+        # Создаем сами триггеры (если их еще нет)
+        try:
+            connection.execute(text("""
+            DROP TRIGGER IF EXISTS trigger_update_module_count_insert ON modules;
+            """))
+        except:
+            pass
+        
+        connection.execute(text("""
+        CREATE TRIGGER trigger_update_module_count_insert
+        AFTER INSERT ON modules
+        FOR EACH ROW
+        EXECUTE FUNCTION update_course_module_count_insert();
+        """))
+        
+        try:
+            connection.execute(text("""
+            DROP TRIGGER IF EXISTS trigger_update_module_count_delete ON modules;
+            """))
+        except:
+            pass
+        
+        connection.execute(text("""
+        CREATE TRIGGER trigger_update_module_count_delete
+        AFTER DELETE ON modules
+        FOR EACH ROW
+        EXECUTE FUNCTION update_course_module_count_delete();
+        """))
+        
+        try:
+            connection.execute(text("""
+            DROP TRIGGER IF EXISTS trigger_update_lesson_count_insert ON lessons;
+            """))
+        except:
+            pass
+        
+        connection.execute(text("""
+        CREATE TRIGGER trigger_update_lesson_count_insert
+        AFTER INSERT ON lessons
+        FOR EACH ROW
+        EXECUTE FUNCTION update_course_lesson_count_insert();
+        """))
+        
+        try:
+            connection.execute(text("""
+            DROP TRIGGER IF EXISTS trigger_update_lesson_count_delete ON lessons;
+            """))
+        except:
+            pass
+        
+        connection.execute(text("""
+        CREATE TRIGGER trigger_update_lesson_count_delete
+        AFTER DELETE ON lessons
+        FOR EACH ROW
+        EXECUTE FUNCTION update_course_lesson_count_delete();
+        """))
+        
+        try:
+            connection.execute(text("""
+            DROP TRIGGER IF EXISTS trigger_update_task_count_insert ON assignments;
+            """))
+        except:
+            pass
+        
+        connection.execute(text("""
+        CREATE TRIGGER trigger_update_task_count_insert
+        AFTER INSERT ON assignments
+        FOR EACH ROW
+        EXECUTE FUNCTION update_course_task_count_insert();
+        """))
+        
+        try:
+            connection.execute(text("""
+            DROP TRIGGER IF EXISTS trigger_update_task_count_delete ON assignments;
+            """))
+        except:
+            pass
+        
+        connection.execute(text("""
+        CREATE TRIGGER trigger_update_task_count_delete
+        AFTER DELETE ON assignments
+        FOR EACH ROW
+        EXECUTE FUNCTION update_course_task_count_delete();
+        """))
+        
+        connection.commit()
+        print("✓ Триггеры БД созданы")
+
 
 def init_tracks(db: Session):
     """Инициализация треков"""
@@ -1095,6 +1299,10 @@ def main():
         # Таблицы уже созданы в main.py, но убедимся
         Base.metadata.create_all(bind=engine)
         print("✅ Таблицы готовы")
+        
+        print("\n⚙️ Создание триггеров БД...")
+        create_triggers(engine)
+        print("✅ Триггеры готовы")
         
         print("\n📚 Инициализация данных...")
         init_tracks(db)

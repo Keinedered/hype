@@ -354,10 +354,10 @@ export function ModuleEditor() {
                       onValueChange={(value) => setFormData(prev => ({ ...prev, course_id: value }))}
                       disabled={isEditMode}
                     >
-                      <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                      <SelectTrigger className="bg-white border-gray-300 text-black">
                         <SelectValue placeholder="Выберите курс" />
                       </SelectTrigger>
-                      <SelectContent className="bg-gray-800 border-gray-700">
+                      <SelectContent className="!bg-gray-800 border-gray-700 text-white">
                         {courses.map((course: Course) => (
                           <SelectItem 
                             key={course.id} 

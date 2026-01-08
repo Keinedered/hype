@@ -84,6 +84,7 @@ class User(Base):
     user_courses = relationship("UserCourse", back_populates="user")
     user_lessons = relationship("UserLesson", back_populates="user")
     created_courses = relationship("Course", foreign_keys="Course.created_by_id")
+    refresh_tokens = relationship("RefreshToken", back_populates="user")
 
 
 class Track(Base):
@@ -378,6 +379,36 @@ class GraphEdge(Base):
         # Уникальная связь между двумя узлами (один source -> один target)
         UniqueConstraint('source_id', 'target_id', name='unique_graph_edge'),
     )
+
+
+class RefreshToken(Base):
+    """Токены для обновления JWT"""
+    __tablename__ = "refresh_tokens"
+    
+    id = Column(String, primary_key=True, index=True)
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    token_hash = Column(String, unique=True, nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    is_revoked = Column(Boolean, default=False, index=True)
+
+
+class AuditLog(Base):
+    """Логи аудита для отслеживания изменений"""
+    __tablename__ = "audit_logs"
+    
+    id = Column(String, primary_key=True, index=True)
+    user_id = Column(String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    action = Column(String, nullable=False, index=True)  # CREATE, UPDATE, DELETE
+    entity_type = Column(String, nullable=False, index=True)  # Course, Module, Lesson, etc.
+    entity_id = Column(String, nullable=False, index=True)
+    old_data = Column(Text)  # JSON
+    new_data = Column(Text)  # JSON
+    timestamp = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    ip_address = Column(String)
+    
+    # Relationships
+    user = relationship("User")
 
 
 class Notification(Base):

@@ -80,27 +80,20 @@ export function LessonsManagement() {
   // Загрузка данных через useApiQuery
   const { data: coursesData, loading: coursesLoading, error: coursesError, refetch: refetchCourses } = useApiQuery(
     () => adminAPI.courses.getAll(),
-    { 
-      queryKey: 'courses', // Явный ключ кэша для курсов
-      cacheTime: 5 * 60 * 1000 
-    }
+    { cacheTime: 5 * 60 * 1000 }
   );
 
   const { data: modulesData, loading: modulesLoading, error: modulesError, refetch: refetchModules } = useApiQuery(
-    () => adminAPI.modules.getAll(), // Загружаем все модули сразу
+    () => adminAPI.modules.getAll(selectedCourseId || undefined),
     { 
-      queryKey: 'modules', // Явный ключ кэша для модулей
       cacheTime: 2 * 60 * 1000,
-      enabled: true, // Всегда загружаем модули
+      enabled: !!selectedCourseId, // Загружаем только если выбран курс
     }
   );
 
   const { data: lessonsData, loading: lessonsLoading, error: lessonsError, refetch: refetchLessons } = useApiQuery(
     () => adminAPI.lessons.getAll(),
-    { 
-      queryKey: 'lessons', // Явный ключ кэша для уроков
-      cacheTime: 2 * 60 * 1000 
-    }
+    { cacheTime: 2 * 60 * 1000 }
   );
 
   // Фильтруем только фиксированные курсы (4 курса)
@@ -144,11 +137,10 @@ export function LessonsManagement() {
   const createMutation = useApiMutation(
     (data: { lessonData: any; options?: any }) => adminAPI.lessons.create(data.lessonData, data.options),
     {
-      invalidateQueries: ['lessons', 'modules'], // Инвалидируем и уроки, и модули (т.к. модули могут содержать информацию об уроках)
+      invalidateQueries: ['lessons'],
       successMessage: 'Урок успешно создан',
       onSuccess: () => {
         refetchLessons();
-        refetchModules(); // Обновляем модули тоже
         setIsCreateDialogOpen(false);
         resetForm();
       },
@@ -158,11 +150,10 @@ export function LessonsManagement() {
   const updateMutation = useApiMutation(
     (data: { id: string; data: any }) => adminAPI.lessons.update(data.id, data.data),
     {
-      invalidateQueries: ['lessons', 'modules'], // Инвалидируем и уроки, и модули
+      invalidateQueries: ['lessons'],
       successMessage: 'Урок успешно обновлен',
       onSuccess: () => {
         refetchLessons();
-        refetchModules(); // Обновляем модули тоже
         setEditingLesson(null);
         setIsEditDialogOpen(false);
         resetForm();
@@ -173,11 +164,10 @@ export function LessonsManagement() {
   const deleteMutation = useApiMutation(
     (id: string) => adminAPI.lessons.delete(id),
     {
-      invalidateQueries: ['lessons', 'modules'], // Инвалидируем и уроки, и модули
+      invalidateQueries: ['lessons'],
       successMessage: 'Урок успешно удален',
       onSuccess: () => {
         refetchLessons();
-        refetchModules(); // Обновляем модули тоже
       },
     }
   );
@@ -233,20 +223,6 @@ export function LessonsManagement() {
   const handleUpdate = async () => {
     if (!editingLesson) return;
 
-    // Валидация обязательных полей при обновлении
-    if (!formData.title || !formData.title.trim()) {
-      toast.error('Введите название урока');
-      return;
-    }
-    if (!formData.description || !formData.description.trim()) {
-      toast.error('Введите описание урока');
-      return;
-    }
-    if (!formData.content || !formData.content.trim()) {
-      toast.error('Введите контент урока');
-      return;
-    }
-
     const updateData = {
       title: formData.title.trim(),
       description: formData.description.trim(),
@@ -254,11 +230,9 @@ export function LessonsManagement() {
       video_url: formData.video_url?.trim() || null,
       video_duration: formData.video_duration?.trim() || null,
       order_index: formData.order_index,
-      content_type: formData.content_type || 'text',
+      content_type: formData.content_type,
       tags: formData.tags?.trim() || null,
       estimated_time: formData.estimated_time || 0,
-      // module_id можно изменить, но проверяется на бэкенде
-      module_id: formData.module_id || editingLesson.module_id,
     };
     
     await updateMutation.mutate({ id: editingLesson.id, data: updateData });
@@ -356,7 +330,7 @@ export function LessonsManagement() {
     return <ErrorState error={coursesError} title="Ошибка загрузки курсов" onRetry={refetchCourses} />;
   }
   
-  if (modulesError) {
+  if (modulesError && selectedCourseId) {
     return <ErrorState error={modulesError} title="Ошибка загрузки модулей" onRetry={refetchModules} />;
   }
   
@@ -365,7 +339,6 @@ export function LessonsManagement() {
   }
 
   // Показываем загрузку до тех пор, пока все данные не будут загружены
-  // Проверяем только loading, так как пустой массив - это валидные данные
   if (loading) {
     return <LoadingState message="Загрузка данных..." />;
   }

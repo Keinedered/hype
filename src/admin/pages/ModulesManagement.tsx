@@ -51,94 +51,46 @@ export function ModulesManagement() {
   );
 
   const { data: modulesData, loading: modulesLoading, error, refetch } = useApiQuery(
-    () => {
-      console.log('[ModulesManagement] Calling adminAPI.modules.getAll()');
-      return adminAPI.modules.getAll(); // GET /admin/modules - получает модули из БД
-    },
+    () => adminAPI.modules.getAll(), // GET /admin/modules - получает модули из БД
     { 
-      queryKey: 'modules', // Явный ключ кэша для модулей
       cacheTime: 2 * 60 * 1000,
       enabled: true,
-      onSuccess: (data) => {
-        console.log('[ModulesManagement] Modules loaded successfully in onSuccess:', data, 'Count:', Array.isArray(data) ? data.length : 'N/A');
-      },
-      onError: (err) => {
-        console.error('[ModulesManagement] Error loading modules:', err);
-      }
     }
   );
 
   // Фильтруем только фиксированные курсы (4 курса)
   // Пустой массив [] - это валидные данные (нет курсов/модулей), а не отсутствие данных
-  const courses = useMemo(() => {
-    const allCourses = Array.isArray(coursesData) ? coursesData : [];
-    console.log('[ModulesManagement] All courses from API:', allCourses);
-    const filtered = filterFixedCourses(allCourses);
-    console.log('[ModulesManagement] Filtered courses (fixed only):', filtered);
-    return filtered;
-  }, [coursesData]);
-  const modules = useMemo(() => {
-    const allModules = Array.isArray(modulesData) ? modulesData : [];
-    console.log('[ModulesManagement] All modules from API:', allModules, 'Count:', allModules.length);
-    console.log('[ModulesManagement] Modules data type:', typeof modulesData, 'Is array:', Array.isArray(modulesData));
-    if (modulesData && !Array.isArray(modulesData)) {
-      console.warn('[ModulesManagement] modulesData is not an array!', modulesData);
-    }
-    return allModules;
-  }, [modulesData]);
+  const courses = filterFixedCourses(Array.isArray(coursesData) ? coursesData : []);
+  const modules = Array.isArray(modulesData) ? modulesData : [];
 
   // Группировка модулей по курсам
   // На площадке всего 4 фиксированных курса, каждый содержит модули (образуют граф)
   type CourseGroup = { course: Course; modules: Module[] };
   const modulesByCourse = useMemo(() => {
-    console.log('[ModulesManagement] Grouping modules by course. Courses:', courses, 'Modules:', modules);
     const grouped: { [courseId: string]: CourseGroup } = {};
     
-    // Сначала группируем все модули по их course_id
+    // Группируем все модули по их course_id
     const modulesByCourseId: { [courseId: string]: Module[] } = {};
     modules.forEach((module: Module) => {
-      if (!module.course_id) {
-        console.warn('[ModulesManagement] Module without course_id:', module);
-        return;
-      }
       if (!modulesByCourseId[module.course_id]) {
         modulesByCourseId[module.course_id] = [];
       }
       modulesByCourseId[module.course_id].push(module);
     });
     
-    console.log('[ModulesManagement] Modules grouped by course_id:', modulesByCourseId);
-    
     // Группируем модули по всем курсам (на площадке всего 4 курса)
-    // Если курсы еще не загрузились, используем course_id из модулей
-    if (courses.length > 0) {
-      courses.forEach((course: Course) => {
-        grouped[course.id] = {
-          course,
-          modules: modulesByCourseId[course.id] || [],
-        };
-      });
-    } else {
-      // Если курсы еще не загрузились, создаем группы на основе course_id из модулей
-      Object.keys(modulesByCourseId).forEach((courseId) => {
-        // Находим курс по ID или создаем временный объект
-        const course = courses.find(c => c.id === courseId) || {
-          id: courseId,
-          title: courseId, // Временное название
-        } as Course;
-        grouped[courseId] = {
-          course,
-          modules: modulesByCourseId[courseId] || [],
-        };
-      });
-    }
+    courses.forEach((course: Course) => {
+      grouped[course.id] = {
+        course,
+        modules: modulesByCourseId[course.id] || [],
+      };
+    });
 
     // Сортируем модули по order_index
     Object.values(grouped).forEach((group: CourseGroup) => {
       group.modules.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
     });
 
-    console.log('[ModulesManagement] Final grouped modules by course:', grouped);
     return grouped;
   }, [courses, modules]);
 
@@ -205,7 +157,7 @@ export function ModulesManagement() {
   const createMutation = useApiMutation(
     (data: any) => adminAPI.modules.create(data), // POST /admin/modules - создает модуль в БД
     {
-      invalidateQueries: ['modules', 'courses'], // Инвалидируем модули и курсы (т.к. курсы могут содержать информацию о модулях)
+      invalidateQueries: ['modules'],
       successMessage: 'Модуль успешно создан',
       onSuccess: () => {
         refetch(); // Перезагружаем данные из БД после создания
@@ -216,7 +168,7 @@ export function ModulesManagement() {
   const updateMutation = useApiMutation(
     (data: { id: string; data: any }) => adminAPI.modules.update(data.id, data.data), // PUT /admin/modules/{id} - обновляет модуль в БД
     {
-      invalidateQueries: ['modules', 'courses'], // Инвалидируем модули и курсы (т.к. курсы могут содержать информацию о модулях)
+      invalidateQueries: ['modules'],
       successMessage: 'Модуль успешно обновлен',
       onSuccess: () => {
         refetch(); // Перезагружаем данные из БД после обновления
@@ -227,7 +179,7 @@ export function ModulesManagement() {
   const deleteMutation = useApiMutation(
     (id: string) => adminAPI.modules.delete(id), // DELETE /admin/modules/{id} - удаляет модуль из БД
     {
-      invalidateQueries: ['modules', 'courses'], // Инвалидируем модули и курсы (т.к. курсы могут содержать информацию о модулях)
+      invalidateQueries: ['modules'],
       successMessage: 'Модуль успешно удален',
       onSuccess: () => {
         refetch(); // Перезагружаем данные из БД после удаления
@@ -275,33 +227,20 @@ export function ModulesManagement() {
 
   const handleTitleChange = (value: string) => {
     setFieldValue('title', value);
-    if (!formData.id) {
+    if (!editingModule && !formData.id) {
       const generatedId = generateIdFromTitle(value);
       setFieldValue('id', generatedId);
     }
   };
 
-  // Показываем загрузку только если модули еще не загрузились
-  // Курсы могут загружаться параллельно, но модули должны отображаться сразу
+  // Показываем загрузку пока идет загрузка данных
+  // Пустой массив [] означает "нет данных", а не "данные не загружены"
+  const loading = coursesLoading || modulesLoading;
   const courseGroups: CourseGroup[] = Object.values(filteredModulesByCourse);
   const totalModules = courseGroups.reduce((sum, group) => sum + group.modules.length, 0);
 
-  // Логируем состояние для отладки
-  console.log('[ModulesManagement] Render state:', {
-    coursesLoading,
-    modulesLoading,
-    coursesCount: courses.length,
-    modulesCount: modules.length,
-    courseGroupsCount: courseGroups.length,
-    totalModules,
-    coursesData: coursesData,
-    modulesData: modulesData,
-    error
-  });
-
-  // Показываем загрузку только если модули еще загружаются
-  // Курсы могут загружаться параллельно, модули отобразятся как только загрузятся
-  if (modulesLoading) {
+  // Показываем загрузку до тех пор, пока все данные не будут загружены
+  if (loading) {
     return <LoadingState message="Загрузка модулей..." />;
   }
 

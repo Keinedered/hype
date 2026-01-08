@@ -4,10 +4,17 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from config import settings
 from database import engine, Base
 import models
+from exceptions import GraphException
 import os
+
+# Инициализация Rate Limiter
+limiter = Limiter(key_func=get_remote_address)
 
 # Создание таблиц
 try:
@@ -39,6 +46,13 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
+# Добавляем rate limiter к приложению
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, lambda request, exc: JSONResponse(
+    status_code=429,
+    content={"detail": "Too many requests. Please try again later."}
+))
+
 # CORS - должен быть добавлен ПЕРЕД другими middleware
 # Используем конкретные origins из настроек
 cors_origins = settings.BACKEND_CORS_ORIGINS if settings.BACKEND_CORS_ORIGINS else ["*"]
@@ -50,6 +64,28 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["*"],
 )
+
+# Обработчик для кастомных исключений GraphException
+@app.exception_handler(GraphException)
+async def graph_exception_handler(request: Request, exc: GraphException):
+    origin = request.headers.get("origin")
+    if origin and origin in settings.BACKEND_CORS_ORIGINS:
+        cors_origin = origin
+    elif settings.BACKEND_CORS_ORIGINS:
+        cors_origin = settings.BACKEND_CORS_ORIGINS[0]
+    else:
+        cors_origin = "*"
+    
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+        headers={
+            "Access-Control-Allow-Origin": cors_origin,
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Allow-Methods": "*",
+            "Access-Control-Allow-Headers": "*",
+        }
+    )
 
 # Обработчик исключений для добавления CORS заголовков при ошибках
 # Обрабатываем как StarletteHTTPException, так и FastAPI HTTPException

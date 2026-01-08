@@ -19,7 +19,7 @@ def get_analytics(
     from datetime import datetime, timedelta
     
     # Определяем временной диапазон
-    now = datetime.now()
+    now = datetime.utcnow()
     if time_range == 'day':
         start_date = now - timedelta(days=1)
     elif time_range == 'week':
