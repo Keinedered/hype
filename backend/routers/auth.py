@@ -1,5 +1,5 @@
 from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -25,7 +25,7 @@ limiter = Limiter(key_func=get_remote_address)
 
 @router.post("/register", response_model=schemas.User)
 @limiter.limit("5/minute")  # Максимум 5 попыток регистрации в минуту
-def register(request, user: schemas.UserCreate, db: Session = Depends(get_db)):
+def register(request: Request, user: schemas.UserCreate, db: Session = Depends(get_db)):
     """Регистрация нового пользователя"""
     # Проверка существования username
     db_user = get_user_by_username(db, username=user.username)
@@ -42,7 +42,7 @@ def register(request, user: schemas.UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=schemas.TokenResponse)
 @limiter.limit("10/minute")  # Максимум 10 попыток входа в минуту
-def login(request, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     """Вход пользователя - возвращает access и refresh токены"""
     try:
         user = authenticate_user(db, form_data.username, form_data.password)
@@ -78,7 +78,7 @@ def login(request, form_data: OAuth2PasswordRequestForm = Depends(), db: Session
 
 @router.post("/refresh", response_model=schemas.RefreshTokenResponse)
 @limiter.limit("20/minute")  # Максимум 20 обновлений токена в минуту
-def refresh_token_endpoint(request, 
+def refresh_token_endpoint(request: Request, 
     request_data: schemas.RefreshTokenRequest,
     db: Session = Depends(get_db)
 ):

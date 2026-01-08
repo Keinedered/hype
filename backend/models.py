@@ -391,6 +391,9 @@ class RefreshToken(Base):
     expires_at = Column(DateTime(timezone=True), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     is_revoked = Column(Boolean, default=False, index=True)
+    
+    # Relationships
+    user = relationship("User", back_populates="refresh_tokens")
 
 
 class AuditLog(Base):
