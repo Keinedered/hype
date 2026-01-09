@@ -16,29 +16,40 @@ import os
 # Инициализация Rate Limiter
 limiter = Limiter(key_func=get_remote_address)
 
-# Создание таблиц
-try:
-    Base.metadata.create_all(bind=engine)
-    # Добавляем колонки status и published_at в таблицу lessons, если их нет
+def run_migrations():
+    """Запуск миграций и создание таблиц"""
     try:
-        from add_lesson_status_columns import add_lesson_status_columns
-        add_lesson_status_columns()
+        # 1. Создание базовых таблиц
+        Base.metadata.create_all(bind=engine)
+        
+        # 2. Миграции схемы (для существующих БД)
+        try:
+            from add_lesson_status_columns import add_lesson_status_columns
+            add_lesson_status_columns()
+        except ImportError:
+            pass # Скрипт отсутствует
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Migration warning (columns): {e}")
+
+        # 3. Миграции констрейнтов
+        try:
+            from fix_lesson_module_constraint import fix_lesson_module_constraint
+            fix_lesson_module_constraint()
+        except ImportError:
+            pass
+        except Exception as e:
+            # Игнорируем ошибку, если констрейнт уже существует
+            import logging
+            logging.getLogger(__name__).warning(f"Migration warning (constraints): {e}")
+            
     except Exception as e:
-        # Логируем ошибку, но не прерываем запуск
         import logging
-        logger = logging.getLogger(__name__)
-        logger.warning(f"Migration warning: {e}")
-    # Исправляем структуру БД для соблюдения КУРС → МОДУЛИ → УРОКИ
-    try:
-        from fix_lesson_module_constraint import fix_lesson_module_constraint
-        fix_lesson_module_constraint()
-    except Exception as e:
-        # Логируем ошибку, но не прерываем запуск (возможно, миграция уже выполнена)
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.warning(f"Migration warning (fix_lesson_module_constraint): {e}")
-except Exception as e:
-    raise
+        logging.getLogger(__name__).error(f"Critical Database Initialization Error: {e}")
+        raise
+
+# Запуск инициализации БД
+run_migrations()
 
 # Создание приложения
 app = FastAPI(

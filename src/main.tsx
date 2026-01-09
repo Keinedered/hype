@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import App from './App.tsx';
 import './index.css';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { AuthPage } from './components/AuthPage';
 import { AdminLayout } from './admin/components/AdminLayout';
 import { Dashboard } from './admin/pages/Dashboard';
@@ -24,11 +24,17 @@ import { Toaster } from './components/ui/sonner';
 
 // Protected Route Component
 function ProtectedAdminRoute({ children }: { children: React.ReactNode }) {
-  const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
-  // В реальном приложении нужно проверять роль пользователя
-  if (!token) {
-    return <Navigate to="/" />;
+  const { user, loading } = useAuth();
+  
+  if (loading) {
+    return <div className="flex h-screen items-center justify-center">Loading...</div>;
   }
+  
+  // Проверяем роль пользователя (должен быть admin)
+  if (!user || user.role !== 'admin') {
+    return <Navigate to="/" replace />;
+  }
+  
   return <>{children}</>;
 }
 

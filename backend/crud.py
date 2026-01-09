@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import func
 from typing import List, Optional
 from datetime import datetime
@@ -131,7 +131,10 @@ def get_course(db: Session, course_id: str, user_id: Optional[str] = None, publi
 # Modules
 def get_modules(db: Session, course_id: str) -> List[models.Module]:
     """Получить все модули курса"""
-    return db.query(models.Module).filter(
+    return db.query(models.Module).options(
+        # Оптимизация N+1: загружаем уроки сразу
+        selectinload(models.Module.lessons)
+    ).filter(
         models.Module.course_id == course_id
     ).order_by(models.Module.order_index).all()
 
