@@ -1,0 +1,33 @@
+name: Codex PR Review
+
+on:
+  pull_request:
+    types: [labeled] # add synchronize if you want to trigger the action when the PR is synchronized
+
+jobs:
+  review:
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    runs-on: ubuntu-latest
+    if: github.event.label.name == 'codex-review'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+      - uses: p2achAI/codex-reviewer@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          label: 'codex-review'
+          model: "o4-mini"
+          language: "korean"
+          custom_prompt: "Please review the code"
+          enable_multi_agent: "true"
+          agents_path: "agents.json"
+          clickup_api_token: ${{ secrets.CLICKUP_API_TOKEN }}
+          clickup_url: "https://app.clickup.com/t/ABC-123"
+          clickup_team_id: "90144302619"
+          clickup_custom_task_ids: "true"
+          spec_comment_marker: "SPEC:"
