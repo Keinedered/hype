@@ -1,6 +1,6 @@
 # GRAPH Educational Platform — Production Deployment Guide
 
-> Deploy to **graph.ranepa.ru** on a clean Ubuntu server with Docker.
+> Deploy to **graph-ranepe.ru** on a clean Ubuntu server with Docker.
 
 ---
 
@@ -94,24 +94,24 @@ It is **safe to re-run** — it skips initialization if data already exists.
 
 ### 5a. Get the initial certificate
 
-Make sure DNS for `graph.ranepa.ru` points to this server's IP, then:
+Make sure DNS for `graph-ranepe.ru` points to this server's IP, then:
 
 ```bash
 # Request certificate (HTTP-01 challenge via the running nginx)
 docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm certbot \
   certonly --webroot -w /var/www/certbot \
-  -d graph.ranepa.ru \
-  --email YOUR_EMAIL@example.com \
+  -d graph-ranepe.ru \
+  --email reply@graph-ranepa.ru \
   --agree-tos --no-eff-email
 ```
 
-Replace `YOUR_EMAIL@example.com` with the email from your `.env.prod` (`CERTBOT_EMAIL`).
+Replace with your actual email if different from `.env.prod` (`CERTBOT_EMAIL`).
 
 ### 5b. Switch to the SSL nginx config
 
 ```bash
 # Copy the SSL config into the running container
-docker cp deploy/nginx/graph.ranepa.ru.ssl.conf \
+docker cp deploy/nginx/graph-ranepe.ru.ssl.conf \
   graph_nginx_prod:/etc/nginx/conf.d/default.conf
 
 # Reload nginx
@@ -133,19 +133,19 @@ echo "0 5 * * * docker exec graph_nginx_prod nginx -s reload" | crontab -
 
 ```bash
 # Backend health
-curl -s http://graph.ranepa.ru/health
+curl -s http://graph-ranepe.ru/health
 # Expected: {"status":"ok"}
 
 # API root
-curl -s http://graph.ranepa.ru/api/v1/tracks/
+curl -s http://graph-ranepe.ru/api/v1/tracks/
 # Expected: JSON array of tracks
 
 # Frontend
-curl -s -o /dev/null -w "%{http_code}" http://graph.ranepa.ru/
+curl -s -o /dev/null -w "%{http_code}" http://graph-ranepe.ru/
 # Expected: 200
 
 # Swagger docs
-curl -s -o /dev/null -w "%{http_code}" http://graph.ranepa.ru/docs
+curl -s -o /dev/null -w "%{http_code}" http://graph-ranepe.ru/docs
 # Expected: 200
 ```
 

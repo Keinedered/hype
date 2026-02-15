@@ -22,7 +22,7 @@ RUN rm /etc/nginx/conf.d/default.conf
 
 # Copy our nginx configs
 COPY deploy/nginx/nginx.conf /etc/nginx/nginx.conf
-COPY deploy/nginx/graph.ranepa.ru.conf /etc/nginx/conf.d/default.conf
+COPY deploy/nginx/graph-ranepe.ru.conf /etc/nginx/conf.d/default.conf
 
 # Copy built frontend from builder stage
 COPY --from=builder /app/build /usr/share/nginx/html

@@ -652,7 +652,7 @@ docker-compose exec backend python init_db.py
 
 ## 🚀 Production Deployment
 
-Full production deployment guide for **graph.ranepa.ru** is available in **[DEPLOYMENT.md](./DEPLOYMENT.md)**.
+Full production deployment guide for **graph-ranepe.ru** is available in **[DEPLOYMENT.md](./DEPLOYMENT.md)**.
 
 Quick overview:
 
