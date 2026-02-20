@@ -18,7 +18,10 @@ pnpm-debug.log*
 
 # env
 .env
-.env.*
+.env.prod
+.env.local
+!.env.example
+!.env.prod.example
 
 # debug and editor files
 .cursor/
