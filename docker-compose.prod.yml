@@ -52,7 +52,7 @@ services:
     container_name: graph_nginx_prod
     restart: unless-stopped
     ports:
-      - "8080:80"
+      - "808:80"
       - "8443:443"
     volumes:
       - certbot_conf:/etc/letsencrypt
