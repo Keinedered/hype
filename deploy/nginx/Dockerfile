@@ -24,12 +24,25 @@ RUN rm /etc/nginx/conf.d/default.conf
 COPY deploy/nginx/nginx.conf /etc/nginx/nginx.conf
 COPY deploy/nginx/graph-ranepe.ru.conf /etc/nginx/conf.d/default.conf
 
+# Generate self-signed placeholder certificate
+# (will be replaced by certbot real cert via mounted volume)
+RUN mkdir -p /etc/nginx/ssl && \
+    apk add --no-cache openssl && \
+    openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+      -keyout /etc/nginx/ssl/privkey.pem \
+      -out /etc/nginx/ssl/fullchain.pem \
+      -subj "/CN=graph-ranepa.ru" && \
+    apk del openssl
+
 # Copy built frontend from builder stage
 COPY --from=builder /app/build /usr/share/nginx/html
 
 # Create certbot webroot directory
 RUN mkdir -p /var/www/certbot
 
+# Entrypoint: swap in Let's Encrypt cert if available
+COPY deploy/nginx/entrypoint.sh /entrypoint.sh
+
 EXPOSE 80 443
 
-CMD ["nginx", "-g", "daemon off;"]
+ENTRYPOINT ["/entrypoint.sh"]
