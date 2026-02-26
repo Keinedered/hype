@@ -20,6 +20,7 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const hasInitializedPosition = useRef(false);
 
   // Calculate viewBox based on nodes with text blocks
   const calculateViewBox = () => {
@@ -291,6 +292,26 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
       container.removeEventListener('touchend', handleTouchEnd);
     };
   }, [zoom, pan]);
+
+  // Initialize pan to center the graph content on first render
+  useEffect(() => {
+    if (hasInitializedPosition.current) return;
+    const container = containerRef.current;
+    if (!container) return;
+
+    const vb = calculateViewBox().split(' ').map(Number);
+    if (vb.length !== 4 || vb.some((n) => Number.isNaN(n))) return;
+    const [minX, minY, width, height] = vb;
+    const centerX = minX + width / 2;
+    const centerY = minY + height / 2;
+
+    // Based on the SVG transform: translate(pan + containerCenter) scale(zoom) translate(-800,-500)
+    // We want the graph center to map to container center, so solve for pan:
+    // pan.x = (800 - centerX) * zoom
+    // pan.y = (500 - centerY) * zoom
+    setPan({ x: (800 - centerX) * zoom, y: (500 - centerY) * zoom });
+    hasInitializedPosition.current = true;
+  }, [nodes]);
 
   return (
     <div 
