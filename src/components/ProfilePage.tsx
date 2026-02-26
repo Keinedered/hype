@@ -13,7 +13,7 @@ import {
   AlertDialogTrigger,
 } from './ui/alert-dialog';
 import { Check, Clock, X, Bell, ArrowRight, Settings, HelpCircle, MessageSquare, Facebook, Twitter, Instagram } from 'lucide-react';
-import profileAvatar from '../public/images/викс.png';
+const profileAvatar = '/images/викс.png';
 
 interface ProfilePageProps {
   onNavigateToLesson?: (lessonId: string) => void;

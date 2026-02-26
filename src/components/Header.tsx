@@ -125,12 +125,12 @@ export function Header({ currentPage = 'home', onNavigate }: HeaderProps) {
             </div>
           </button>
           
-          <nav className="hidden md:flex items-center gap-8">
+          <nav className="hidden md:flex items-center gap-6 md:gap-2 lg:gap-8">
             {navigation.map((item, index) => (
               <div key={item.id} className="relative">
                 <button
                   onClick={() => onNavigate?.(item.id)}
-                  className={`font-mono text-sm tracking-wide transition-all hover:bg-black hover:text-white px-3 py-1 ${
+                  className={`font-mono md:text-[11px] lg:text-sm md:tracking-normal lg:tracking-wide transition-all hover:bg-black hover:text-white md:px-1 lg:px-3 px-3 py-1 ${
                     currentPage === item.id 
                       ? 'bg-black text-white' 
                       : 'text-black'

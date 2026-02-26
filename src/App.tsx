@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { HomePage } from './components/HomePage';
 import { HeroSection } from './components/HeroSection';
@@ -120,6 +120,12 @@ export default function App() {
     ? courses.find(c => c.id === selectedCourseId)
     : null;
   const selectedTrack = selectedCourse ? tracks.find(t => t.id === selectedCourse.trackId) : null;
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    }
+  }, [currentPage, selectedCourseId, selectedLessonId]);
 
   return (
     <div className="min-h-screen bg-background relative selection:bg-black selection:text-white">

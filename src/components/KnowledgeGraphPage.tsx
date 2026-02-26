@@ -27,7 +27,7 @@ export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGra
           <div className="absolute -bottom-2 -right-2 w-5 h-5 border-r-2 border-b-2 border-black" />
         </div>
 
-        <div className="grid lg:grid-cols-[380px_1fr] gap-6 h-[calc(100vh-12rem)]">
+        <div className="grid lg:grid-cols-[380px_1fr] gap-6 min-h-[calc(100vh-12rem)] pb-20">
           {/* Left panel */}
           <div className="space-y-6 overflow-y-auto">
             {/* Course card */}
@@ -181,7 +181,7 @@ export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGra
           </div>
 
           {/* Right panel - Graph */}
-          <div className="h-full relative">
+          <div className="h-full relative pb-20">
             <KnowledgeGraph 
               nodes={graphNodes}
               edges={graphEdges}
