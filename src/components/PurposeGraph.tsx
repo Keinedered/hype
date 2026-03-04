@@ -76,10 +76,10 @@ export function PurposeGraph() {
   const id = useId();
 
   return (
-    <div className="w-full overflow-x-auto">
+    <div className="w-full overflow-x-auto flex justify-center">
       <svg
         viewBox="70 20 800 420"
-        className="w-full min-w-[760px] h-auto text-foreground"
+        className="w-full max-w-[800px] min-w-0 h-auto text-foreground"
         role="img"
         aria-label="Ориентированный граф причин, зачем нужен GRAPH"
         preserveAspectRatio="xMidYMid meet"

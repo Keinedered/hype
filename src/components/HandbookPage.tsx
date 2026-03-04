@@ -750,13 +750,13 @@ export function HandbookPage({ onBack, courseId }: HandbookPageProps) {
         <div className="max-w-6xl mx-auto space-y-8">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 sm:w-5 sm:h-5 text-gray-400 shrink-0" aria-hidden />
             <Input
               type="text"
               placeholder="Поиск по хендбуку..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-12 rounded-none border-2 border-black focus:border-black focus:ring-0 h-14 font-mono"
+              className="pl-11 sm:pl-12 rounded-none border-2 border-black focus:border-black focus:ring-0 h-12 sm:h-14 font-mono"
             />
           </div>
 

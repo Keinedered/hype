@@ -180,8 +180,8 @@ export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGra
             </Card>
           </div>
 
-          {/* Right panel - Graph */}
-          <div className="h-full relative">
+          {/* Right panel - Graph: отступ снизу для карточки узла */}
+          <div className="h-full relative pb-4 md:pb-6">
             <KnowledgeGraph 
               nodes={graphNodes}
               edges={graphEdges}

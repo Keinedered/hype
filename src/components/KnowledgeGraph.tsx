@@ -12,6 +12,10 @@ interface KnowledgeGraphProps {
   onNodeClick?: (nodeId: string) => void;
 }
 
+// Центр графа в координатах данных (root узел)
+const GRAPH_CENTER_X = 800;
+const GRAPH_CENTER_Y = 500;
+
 export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: KnowledgeGraphProps) {
   const [zoom, setZoom] = useState(0.8);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -20,6 +24,19 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Начальная позиция и масштаб по размеру контейнера: центр графа совпадает с центром вида
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    if (width <= 0 || height <= 0) return;
+    // На узких экранах чуть увеличиваем масштаб, чтобы граф был крупнее
+    const initialZoom = width < 640 ? 0.95 : width < 1024 ? 0.9 : 0.8;
+    setZoom(initialZoom);
+    setPan({ x: 0, y: 0 });
+  }, []);
 
   // Calculate viewBox based on nodes with text blocks
   const calculateViewBox = () => {
@@ -103,7 +120,11 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
   };
 
   const handleReset = () => {
-    setZoom(0.8);
+    const container = containerRef.current;
+    const w = container?.clientWidth ?? 0;
+    const h = container?.clientHeight ?? 0;
+    const initialZoom = w > 0 && w < 640 ? 0.95 : w < 1024 ? 0.9 : 0.8;
+    setZoom(initialZoom);
     setPan({ x: 0, y: 0 });
   };
 
@@ -401,7 +422,7 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
           </pattern>
         </defs>
 
-        <g transform={`translate(${pan.x + (containerRef.current?.clientWidth || 0) / 2}, ${pan.y + (containerRef.current?.clientHeight || 0) / 2}) scale(${zoom}) translate(${-800}, ${-500})`}>
+        <g transform={`translate(${pan.x + (containerRef.current?.clientWidth || 0) / 2}, ${pan.y + (containerRef.current?.clientHeight || 0) / 2}) scale(${zoom}) translate(${-GRAPH_CENTER_X}, ${-GRAPH_CENTER_Y})`}>
           {/* Background decorative circles */}
           {Array.from({ length: 15 }).map((_, i) => (
             <circle
@@ -537,8 +558,8 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
                     const blockWidth = maxLineWidth + padding * 2;
                     
                     // Calculate angle from center to determine best label position
-                    const centerX = 800;
-                    const centerY = 500;
+                    const centerX = GRAPH_CENTER_X;
+                    const centerY = GRAPH_CENTER_Y;
                     const dx = node.x - centerX;
                     const dy = node.y - centerY;
                     const angle = Math.atan2(dy, dx);
@@ -622,7 +643,7 @@ export function KnowledgeGraph({ nodes, edges, filter = 'all', onNodeClick }: Kn
 
       {/* Node details card */}
       {selectedNode && (
-        <Card className="absolute bottom-6 left-6 right-6 md:right-auto md:w-96 p-6 bg-white border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+        <Card className="absolute bottom-6 left-4 right-4 md:left-6 md:right-auto md:w-96 p-6 bg-white border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
           <div className="space-y-4">
             <div className="bg-black text-white px-3 py-2 inline-block font-mono text-sm tracking-wide">
               {selectedNode.title.replace(/\n/g, ' ').toUpperCase()}

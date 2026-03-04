@@ -29,20 +29,21 @@ export function HomePage() {
                   Проект разработан командой образовательного продукта: дизайн, разработка, методология и кураторская
                   поддержка.
                 </p>
-                <div className="grid sm:grid-cols-2 gap-4 text-sm">
-                  <div className="border border-black/20 p-3">
+                {/* Адаптивная сетка: на мобилке 2×2, центрирование ячеек, отступ между строками */}
+                <div className="grid grid-cols-2 gap-x-4 gap-y-4 sm:gap-4 text-sm max-w-full mx-auto justify-items-center text-center">
+                  <div className="border border-black/20 p-3 w-full">
                     <div className="font-bold uppercase tracking-wide">Product</div>
                     <div className="text-muted-foreground">Концепция, программа, метрики</div>
                   </div>
-                  <div className="border border-black/20 p-3">
+                  <div className="border border-black/20 p-3 w-full">
                     <div className="font-bold uppercase tracking-wide">Design</div>
                     <div className="text-muted-foreground">UX/UI, визуальная система</div>
                   </div>
-                  <div className="border border-black/20 p-3">
+                  <div className="border border-black/20 p-3 w-full">
                     <div className="font-bold uppercase tracking-wide">Engineering</div>
                     <div className="text-muted-foreground">Фронтенд, интерактивная карта</div>
                   </div>
-                  <div className="border border-black/20 p-3">
+                  <div className="border border-black/20 p-3 w-full">
                     <div className="font-bold uppercase tracking-wide">Mentors</div>
                     <div className="text-muted-foreground">Проверка заданий, обратная связь</div>
                   </div>

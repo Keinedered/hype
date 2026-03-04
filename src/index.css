@@ -3110,6 +3110,16 @@
   }
 }
 
+/* Планшет (768–1024px): меньший шрифт навигации, чтобы пункты в одну строку */
+@media (width >= 48rem) and (width < 64rem) {
+  .nav-tablet-sm {
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    padding-left: 0.4rem;
+    padding-right: 0.4rem;
+  }
+}
+
 .dark {
   --background: #000;
   --foreground: #fff;

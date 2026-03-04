@@ -137,18 +137,16 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings' }: Pro
             <div className="absolute -top-2 -left-2 w-5 h-5 border-l-2 border-t-2 border-black" />
             <div className="absolute -bottom-2 -right-2 w-5 h-5 border-r-2 border-b-2 border-black" />
           </div>
-          
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <div className="font-mono font-bold uppercase text-sm sm:text-base">Анна Петрова</div>
-                <div className="text-xs sm:text-sm text-gray-500 font-mono">
-                  Level 4 <span className="mx-1">/</span> Студент
-                </div>
+          {/* Блок с именем и аватаром: аватар справа */}
+          <div className="flex items-center gap-4 w-full md:w-auto justify-end md:justify-end">
+            <div className="text-right">
+              <div className="font-mono font-bold uppercase text-sm sm:text-base">Анна Петрова</div>
+              <div className="text-xs sm:text-sm text-gray-500 font-mono">
+                Level 4 <span className="mx-1">/</span> Студент
               </div>
-              <div className="w-16 h-16 border-2 border-black overflow-hidden bg-white relative">
-                <img src={profileAvatar} alt="Аватар профиля" className="w-full h-full object-cover" />
-              </div>
+            </div>
+            <div className="w-16 h-16 border-2 border-black overflow-hidden bg-white relative shrink-0">
+              <img src={profileAvatar} alt="Аватар профиля" className="w-full h-full object-cover" />
             </div>
           </div>
         </div>

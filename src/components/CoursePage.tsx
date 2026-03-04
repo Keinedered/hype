@@ -100,20 +100,20 @@ export function CoursePage({
               </p>
             </div>
 
-            {/* Course stats */}
-            <div className="flex flex-wrap gap-8 border-y-2 border-black py-4">
-              <div className="flex items-center gap-3 font-mono">
-                <BookOpen className="w-5 h-5" />
+            {/* Course stats: на узких экранах в два ряда, без съезда */}
+            <div className="flex flex-wrap gap-4 sm:gap-8 border-y-2 border-black py-4 items-center justify-center sm:justify-start">
+              <div className="flex items-center gap-3 font-mono text-sm sm:text-base">
+                <BookOpen className="w-5 h-5 shrink-0" />
                 <span>{course.moduleCount} МОДУЛЕЙ</span>
               </div>
-              <div className="w-px h-6 bg-black" />
-              <div className="flex items-center gap-3 font-mono">
-                <Play className="w-5 h-5" />
+              <div className="hidden sm:block w-px h-6 bg-black" />
+              <div className="flex items-center gap-3 font-mono text-sm sm:text-base">
+                <Play className="w-5 h-5 shrink-0" />
                 <span>{course.lessonCount} ВИДЕОЛЕКЦИЙ</span>
               </div>
-              <div className="w-px h-6 bg-black" />
-              <div className="flex items-center gap-3 font-mono">
-                <CheckCircle2 className="w-5 h-5" />
+              <div className="hidden sm:block w-px h-6 bg-black" />
+              <div className="flex items-center gap-3 font-mono text-sm sm:text-base">
+                <CheckCircle2 className="w-5 h-5 shrink-0" />
                 <span>{course.taskCount} ЗАДАЧ</span>
               </div>
             </div>
