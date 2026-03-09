@@ -291,3 +291,13 @@ def update_user(db: Session, user_id: str, user_update: schemas.UserUpdate) -> O
     db.commit()
     db.refresh(db_user)
     return db_user
+
+def delete_user(db: Session, user_id: str) -> bool:
+    """Delete user by id."""
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not db_user:
+        return False
+
+    db.delete(db_user)
+    db.commit()
+    return True

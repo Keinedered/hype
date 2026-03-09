@@ -13,6 +13,18 @@ export function clearAuthToken() {
   localStorage.removeItem('auth_token');
 }
 
+export function clearClientAuthState() {
+  clearAuthToken();
+  sessionStorage.removeItem('auth_token');
+
+  // Best-effort cookie cleanup for common auth cookie names.
+  const cookieNames = ['auth_token', 'token', 'access_token', 'refresh_token'];
+  for (const name of cookieNames) {
+    document.cookie = `${name}=; Max-Age=0; path=/`;
+    document.cookie = `${name}=; Max-Age=0; path=/; SameSite=Lax`;
+  }
+}
+
 export function getAuthToken(): string | null {
   return authToken;
 }
@@ -34,8 +46,8 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
   });
 
   if (response.status === 401) {
-    clearAuthToken();
-    window.location.href = '/';
+    clearClientAuthState();
+    window.location.href = '/login';
     throw new Error('Unauthorized');
   }
 
@@ -79,7 +91,7 @@ export const authAPI = {
   },
 
   logout() {
-    clearAuthToken();
+    clearClientAuthState();
   },
 };
 
@@ -191,4 +203,3 @@ export const notificationsAPI = {
     });
   },
 };
-

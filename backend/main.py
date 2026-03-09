@@ -1,16 +1,35 @@
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from config import settings
-from database import engine, Base
-import models
+from fastapi.staticfiles import StaticFiles
+from sqlalchemy import inspect, text
 
-# Создание таблиц
+import models
+from config import settings
+from database import Base, engine
+
+# Create tables if they do not exist
 Base.metadata.create_all(bind=engine)
 
-# Создание приложения
+
+def ensure_user_avatar_column() -> None:
+    """Backfill avatar_url column for existing DBs without migrations."""
+    inspector = inspect(engine)
+    columns = {column["name"] for column in inspector.get_columns("users")}
+    if "avatar_url" in columns:
+        return
+
+    with engine.begin() as connection:
+        connection.execute(text("ALTER TABLE users ADD COLUMN avatar_url VARCHAR"))
+
+
+ensure_user_avatar_column()
+
+# Create app
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
 )
 
 # CORS
@@ -22,10 +41,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Импорт роутеров
-from routers import auth, tracks, courses, modules, lessons, graph, submissions, notifications, users
+# Static uploads
+uploads_dir = Path(settings.UPLOAD_DIR)
+uploads_dir.mkdir(parents=True, exist_ok=True)
+app.mount(settings.PUBLIC_UPLOADS_URL_PREFIX, StaticFiles(directory=str(uploads_dir)), name="uploads")
 
-# Подключение роутеров
+# Routers
+from routers import auth, courses, graph, lessons, modules, notifications, submissions, tracks, users
+
 app.include_router(auth.router, prefix=settings.API_V1_STR, tags=["auth"])
 app.include_router(tracks.router, prefix=settings.API_V1_STR, tags=["tracks"])
 app.include_router(courses.router, prefix=settings.API_V1_STR, tags=["courses"])
@@ -42,11 +65,10 @@ def read_root():
     return {
         "message": "GRAPH Educational Platform API",
         "version": "1.0.0",
-        "docs": "/docs"
+        "docs": "/docs",
     }
 
 
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
-

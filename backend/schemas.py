@@ -266,6 +266,7 @@ class User(UserBase):
     id: str
     is_active: bool
     created_at: datetime
+    avatar_url: Optional[str] = None
     
     class Config:
         from_attributes = True
@@ -278,6 +279,7 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: Optional[str] = None
+
 
 
 

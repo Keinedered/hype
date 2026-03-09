@@ -1,9 +1,9 @@
-import { FormEvent, useState, useEffect } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
 import { AxiosError } from 'axios';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { useUserProfile } from '../hooks/useUserProfile';
-import { updateMyProfile } from '../api/profile';
+import { deleteMyAccount, deleteMyAvatar, updateMyProfile, uploadMyAvatar } from '../api/profile';
 import { ApiErrorResponse } from '../types/user-profile';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Button } from './ui/button';
@@ -19,7 +19,7 @@ import {
   AlertDialogTrigger,
 } from './ui/alert-dialog';
 import { Check, Clock, X, Bell, ArrowRight, Settings, HelpCircle, MessageSquare, Facebook, Twitter, Instagram } from 'lucide-react';
-import profileAvatar from '../public/images/викс.png';
+import { clearClientAuthState } from '../api/client';
 
 interface ProfilePageProps {
   onNavigateToLesson?: (lessonId: string) => void;
@@ -48,6 +48,9 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
   const [formEmail, setFormEmail] = useState('');
   const [formAbout, setFormAbout] = useState('');
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [avatarMessage, setAvatarMessage] = useState<string | null>(null);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
+  const avatarPreviewObjectUrlRef = useRef<string | null>(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -85,6 +88,106 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
     },
   });
 
+  const runLogoutFlow = () => {
+    logout();
+    clearClientAuthState();
+    queryClient.clear();
+
+    if (onUnauthorized) {
+      onUnauthorized();
+      return;
+    }
+
+    window.location.href = '/login';
+  };
+
+  const uploadAvatarMutation = useMutation({
+    mutationFn: (file: File) => uploadMyAvatar(file),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+      setAvatarPreviewUrl(null);
+      setAvatarMessage('Photo updated successfully.');
+    },
+    onError: (mutationError: AxiosError<ApiErrorResponse>) => {
+      setAvatarPreviewUrl(null);
+      const message = mutationError.response?.data?.message || mutationError.response?.data?.detail || 'Failed to upload photo.';
+      setAvatarMessage(message);
+    },
+  });
+
+  const deleteAvatarMutation = useMutation({
+    mutationFn: () => deleteMyAvatar(),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+      setAvatarPreviewUrl(null);
+      setAvatarMessage('Photo removed.');
+    },
+    onError: (mutationError: AxiosError<ApiErrorResponse>) => {
+      const message = mutationError.response?.data?.message || mutationError.response?.data?.detail || 'Failed to remove photo.';
+      setAvatarMessage(message);
+    },
+  });
+
+  const deleteAccountMutation = useMutation({
+    mutationFn: () => deleteMyAccount(),
+    onSuccess: () => {
+      runLogoutFlow();
+    },
+    onError: (mutationError: AxiosError<ApiErrorResponse>) => {
+      const message = mutationError.response?.data?.message || mutationError.response?.data?.detail || 'Failed to delete account.';
+      setSaveMessage(message);
+    },
+  });
+
+  const handleAvatarFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (!selectedFile) {
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(selectedFile);
+    if (avatarPreviewObjectUrlRef.current) {
+      URL.revokeObjectURL(avatarPreviewObjectUrlRef.current);
+    }
+
+    avatarPreviewObjectUrlRef.current = previewUrl;
+    setAvatarPreviewUrl(previewUrl);
+    setAvatarMessage(null);
+
+    try {
+      await uploadAvatarMutation.mutateAsync(selectedFile);
+    } catch {
+      // message is set in mutation onError
+    } finally {
+      event.target.value = '';
+    }
+  };
+
+  const handleDeleteAvatar = async () => {
+    setAvatarMessage(null);
+    try {
+      await deleteAvatarMutation.mutateAsync();
+    } catch {
+      // message is set in mutation onError
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+      await deleteAccountMutation.mutateAsync();
+    } catch {
+      // message is set in mutation onError
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (avatarPreviewObjectUrlRef.current) {
+        URL.revokeObjectURL(avatarPreviewObjectUrlRef.current);
+      }
+    };
+  }, []);
+
   useEffect(() => {
     if (!error) {
       return;
@@ -92,10 +195,9 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
 
     const status = (error as AxiosError<ApiErrorResponse>).response?.status;
     if (status === 401) {
-      logout();
-      onUnauthorized?.();
+      runLogoutFlow();
     }
-  }, [error, logout, onUnauthorized]);
+  }, [error]);
 
   const mockNotifications = [
     {
@@ -231,6 +333,13 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
   const registeredAt = data.createdAt ? formatDate(data.createdAt) : '-';
   const registrationDateValue = data.createdAt ? data.createdAt.slice(0, 10) : '';
   const aboutText = `User ${data.username || 'unknown'}`;
+  const currentAvatarSrc = avatarPreviewUrl || data.avatarUrl;
+  const avatarInitials = displayName
+    .split(' ')
+    .map((namePart) => namePart[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
   return (
     <div className="min-h-screen bg-transparent text-black">
       <div className="container mx-auto px-6 py-12 relative z-10">
@@ -249,7 +358,13 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
               <div className="text-xs sm:text-sm text-gray-500 font-mono">Registered: {registeredAt}</div>
             </div>
             <div className="w-16 h-16 border-2 border-black overflow-hidden bg-white relative shrink-0">
-              <img src={profileAvatar} alt={displayName} className="w-full h-full object-cover" />
+              {currentAvatarSrc ? (
+                <img src={currentAvatarSrc} alt={displayName} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gray-100 font-mono text-xs uppercase tracking-wide">
+                  {avatarInitials || 'N/A'}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -301,6 +416,46 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
               <div className="bg-black text-white px-3 py-2 inline-block mb-6 font-mono text-sm tracking-wide">
                 ПРОФИЛЬ
               </div>
+
+              <div className="mb-6 p-4 border-2 border-black bg-gray-50">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                  <div className="w-20 h-20 border-2 border-black overflow-hidden bg-white">
+                    {currentAvatarSrc ? (
+                      <img src={currentAvatarSrc} alt={displayName} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gray-100 font-mono text-xs uppercase tracking-wide">
+                        {avatarInitials || 'N/A'}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <label className="inline-flex">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleAvatarFileChange}
+                        disabled={uploadAvatarMutation.isPending || deleteAvatarMutation.isPending}
+                      />
+                      <span className="inline-flex items-center border-2 border-black bg-white px-4 py-2 font-mono text-xs uppercase tracking-wide cursor-pointer hover:bg-black hover:text-white transition-colors">
+                        {uploadAvatarMutation.isPending ? 'Uploading...' : 'Upload photo'}
+                      </span>
+                    </label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="border-2 border-black rounded-none font-mono uppercase tracking-wide"
+                      disabled={deleteAvatarMutation.isPending || uploadAvatarMutation.isPending || (!data.avatarUrl && !avatarPreviewUrl)}
+                      onClick={handleDeleteAvatar}
+                    >
+                      {deleteAvatarMutation.isPending ? 'Removing...' : 'Delete photo'}
+                    </Button>
+                  </div>
+                </div>
+                {avatarMessage && <p className="mt-3 font-mono text-xs">{avatarMessage}</p>}
+              </div>
+
               <form className="space-y-4" onSubmit={handleProfileSave}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -429,12 +584,26 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
               </div>
               <div className="space-y-4">
                 <div className="p-4 border-2 border-black bg-gray-50">
+                  <div className="font-mono font-bold text-sm uppercase mb-2">Log out</div>
+                  <p className="text-xs font-mono text-gray-600 mb-4">End the current session on this device.</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-2 border-black bg-white text-black hover:bg-black hover:text-white font-mono uppercase tracking-wide"
+                    onClick={runLogoutFlow}
+                  >
+                    Log out
+                  </Button>
+                </div>
+
+                <div className="p-4 border-2 border-black bg-gray-50">
                   <div className="font-mono font-bold text-sm uppercase mb-2">Удалить аккаунт</div>
                   <p className="text-xs font-mono text-gray-600 mb-4">Это действие нельзя отменить. Все ваши данные будут удалены навсегда.</p>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
                         variant="outline"
+                        disabled={deleteAccountMutation.isPending}
                         className="border-2 border-black bg-white text-red-700 hover:bg-red-100 hover:text-red-900 font-mono uppercase tracking-wide cursor-pointer"
                       >
                         Удалить аккаунт
@@ -456,10 +625,8 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
                         </AlertDialogCancel>
                         <AlertDialogAction
                           className="border-2 border-black rounded-none bg-red-100 text-black hover:bg-red-200 font-mono uppercase tracking-wide"
-                          onClick={() => {
-                            // demo action: wire to backend when available
-                            console.log('Delete account confirmed');
-                          }}
+                          disabled={deleteAccountMutation.isPending}
+                          onClick={handleDeleteAccount}
                         >
                           Удалить
                         </AlertDialogAction>
@@ -644,3 +811,4 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
     </div>
   );
 }
+
