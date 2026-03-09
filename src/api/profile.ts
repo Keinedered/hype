@@ -13,6 +13,12 @@ interface RawUserProfile {
   updated_at?: string;
 }
 
+export interface UpdateUserProfilePayload {
+  email?: string;
+  username?: string;
+  full_name?: string;
+}
+
 function normalizeUserProfile(raw: RawUserProfile): UserProfile {
   const createdAt = raw.createdAt ?? raw.created_at ?? '';
   const updatedAt = raw.updatedAt ?? raw.updated_at ?? createdAt;
@@ -29,5 +35,10 @@ function normalizeUserProfile(raw: RawUserProfile): UserProfile {
 
 export async function getMyProfile(): Promise<UserProfile> {
   const response = await axiosClient.get<RawUserProfile>('/users/me');
+  return normalizeUserProfile(response.data);
+}
+
+export async function updateMyProfile(payload: UpdateUserProfilePayload): Promise<UserProfile> {
+  const response = await axiosClient.patch<RawUserProfile>('/users/me', payload);
   return normalizeUserProfile(response.data);
 }

@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { FormEvent, useState, useEffect } from 'react';
 import { AxiosError } from 'axios';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { useUserProfile } from '../hooks/useUserProfile';
+import { updateMyProfile } from '../api/profile';
 import { ApiErrorResponse } from '../types/user-profile';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Button } from './ui/button';
@@ -42,6 +44,11 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
   const [activeTab, setActiveTab] = useState(initialTab);
   const [isProfileVisible, setIsProfileVisible] = useState(true);
   const [isProgressVisible, setIsProgressVisible] = useState(false);
+  const [formName, setFormName] = useState('');
+  const [formEmail, setFormEmail] = useState('');
+  const [formAbout, setFormAbout] = useState('');
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     setActiveTab(initialTab);
@@ -49,6 +56,34 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
 
   const { isAuthenticated, logout } = useAuth();
   const { data, isLoading, error } = useUserProfile(isAuthenticated);
+
+  useEffect(() => {
+    if (!data) {
+      return;
+    }
+
+    setFormName(data.fullName || data.username || '');
+    setFormEmail(data.email || '');
+    setFormAbout(`User ${data.username || 'unknown'}`);
+  }, [data]);
+
+  const saveProfileMutation = useMutation({
+    mutationFn: () => {
+      const fullName = formName.trim();
+      return updateMyProfile({
+        email: formEmail.trim(),
+        full_name: fullName.length > 0 ? fullName : '',
+      });
+    },
+    onSuccess: async (updatedUser) => {
+      await queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+      setSaveMessage('Changes saved successfully.');
+    },
+    onError: (mutationError: AxiosError<ApiErrorResponse>) => {
+      const message = mutationError.response?.data?.message || mutationError.response?.data?.detail || 'Failed to save changes.';
+      setSaveMessage(message);
+    },
+  });
 
   useEffect(() => {
     if (!error) {
@@ -150,6 +185,11 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
     }
   ];
 
+  const handleProfileSave = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSaveMessage(null);
+    await saveProfileMutation.mutateAsync();
+  };
   const getStatusText = (status: string) => {
      switch (status) {
       case 'pending': return 'НА ПРОВЕРКЕ';
@@ -261,13 +301,14 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
               <div className="bg-black text-white px-3 py-2 inline-block mb-6 font-mono text-sm tracking-wide">
                 ПРОФИЛЬ
               </div>
-              <div className="space-y-4">
+              <form className="space-y-4" onSubmit={handleProfileSave}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-mono uppercase tracking-wide mb-2">Имя</label>
                     <input 
                       type="text" 
-                      defaultValue={displayName} 
+                      value={formName} 
+                      onChange={(event) => setFormName(event.target.value)} 
                       className="w-full px-3 py-2 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-black"
                     />
                   </div>
@@ -275,7 +316,8 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
                     <label className="block text-xs font-mono uppercase tracking-wide mb-2">Email</label>
                     <input 
                       type="email" 
-                      defaultValue={data.email} 
+                      value={formEmail} 
+                      onChange={(event) => setFormEmail(event.target.value)} 
                       className="w-full px-3 py-2 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-black"
                     />
                   </div>
@@ -283,7 +325,8 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
                     <label className="block text-xs font-mono uppercase tracking-wide mb-2">ID участника</label>
                     <input 
                       type="text" 
-                      defaultValue={userId} 
+                      value={userId} 
+                      readOnly 
                       disabled
                       className="w-full px-3 py-2 border-2 border-black font-mono bg-gray-100 text-gray-600"
                     />
@@ -292,7 +335,8 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
                     <label className="block text-xs font-mono uppercase tracking-wide mb-2">Дата рождения</label>
                     <input 
                       type="date" 
-                      defaultValue={registrationDateValue} 
+                      value={registrationDateValue} 
+                      readOnly 
                       className="w-full px-3 py-2 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-black"
                     />
                   </div>
@@ -300,15 +344,19 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
                 <div>
                   <label className="block text-xs font-mono uppercase tracking-wide mb-2">О себе</label>
                   <textarea 
-                    defaultValue={aboutText} 
+                    value={formAbout} 
+                    onChange={(event) => setFormAbout(event.target.value)} 
                     rows={3}
                     className="w-full px-3 py-2 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-black resize-none"
                   />
                 </div>
-                <Button className="border-2 border-black bg-white text-black hover:bg-black hover:text-white font-mono uppercase tracking-wide mt-4">
-                  Сохранить изменения
+                {saveMessage && (
+                  <p className="font-mono text-xs">{saveMessage}</p>
+                )}
+                <Button type="submit" disabled={saveProfileMutation.isPending} className="border-2 border-black bg-white text-black hover:bg-black hover:text-white font-mono uppercase tracking-wide mt-4">
+                  {saveProfileMutation.isPending ? 'Saving...' : 'Save changes'}
                 </Button>
-              </div>
+              </form>
             </div>
 
             {/* Privacy Settings */}
@@ -596,6 +644,12 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
     </div>
   );
 }
+
+
+
+
+
+
 
 
 

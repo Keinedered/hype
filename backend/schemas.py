@@ -251,6 +251,12 @@ class UserCreate(UserBase):
     password: str
 
 
+class UserUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+    username: Optional[str] = None
+    full_name: Optional[str] = None
+
+
 class UserLogin(BaseModel):
     username: str
     password: str
@@ -272,4 +278,6 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     username: Optional[str] = None
+
+
 

@@ -273,3 +273,21 @@ def update_lesson_progress(db: Session, user_id: str, lesson_id: str, status: st
     db.commit()
     return user_lesson
 
+
+
+def update_user(db: Session, user_id: str, user_update: schemas.UserUpdate) -> Optional[models.User]:
+    """Update user profile fields"""
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not db_user:
+        return None
+
+    if user_update.email is not None:
+        db_user.email = user_update.email
+    if user_update.username is not None:
+        db_user.username = user_update.username
+    if user_update.full_name is not None:
+        db_user.full_name = user_update.full_name
+
+    db.commit()
+    db.refresh(db_user)
+    return db_user
