@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Header } from './components/Header';
 import { HomePage } from './components/HomePage';
 import { HeroSection } from './components/HeroSection';
@@ -9,11 +9,12 @@ import { MyCoursesPage } from './components/MyCoursesPage';
 import { ProfilePage } from './components/ProfilePage';
 import { KnowledgeGraphPage } from './components/KnowledgeGraphPage';
 import { HandbookPage } from './components/HandbookPage';
+import { LoginPage } from './components/LoginPage';
 import { courses, tracks } from './data/mockData';
 import { SmoothLinesBackground } from './components/ui/SmoothLinesBackground';
 import { TrackId } from './types';
 
-type Page = 'home' | 'catalog' | 'path' | 'courses' | 'about' | 'profile' | 'course' | 'lesson' | 'handbook';
+type Page = 'home' | 'catalog' | 'path' | 'courses' | 'about' | 'profile' | 'course' | 'lesson' | 'handbook' | 'login';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
@@ -22,6 +23,22 @@ export default function App() {
   const [catalogSelectedTrack, setCatalogSelectedTrack] = useState<TrackId | 'all'>('all');
 
   const [profileTab, setProfileTab] = useState<'settings' | 'submissions' | 'faq' | 'notifications'>('settings');
+  useEffect(() => {
+    if (window.location.pathname === '/login') {
+      setCurrentPage('login');
+    }
+
+    const handlePopState = () => {
+      if (window.location.pathname === '/login') {
+        setCurrentPage('login');
+      } else {
+        setCurrentPage('home');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const handleNavigate = (page: string) => {
     if (page.startsWith('lesson/')) {
@@ -43,10 +60,22 @@ export default function App() {
        return;
     }
     
+    if (page === 'login') {
+      setCurrentPage('login');
+      if (window.location.pathname !== '/login') {
+        window.history.pushState({}, '', '/login');
+      }
+      return;
+    }
+
     if (page === 'profile-notifications') {
       setCurrentPage('profile');
       setProfileTab('notifications');
       return;
+    }
+
+    if (window.location.pathname === '/login' && page !== 'login') {
+      window.history.pushState({}, '', '/');
     }
 
     switch (page) {
@@ -131,7 +160,11 @@ export default function App() {
       />
       
       <main className="relative z-10">
-        {currentPage === 'home' && <HomePage />}
+        {currentPage === 'login' && (
+          <LoginPage onAuthSuccess={() => handleNavigate('profile')} />
+        )}
+
+        {currentPage === 'home' && <HomePage onOpenProfile={() => handleNavigate('login')} />}
 
         {currentPage === 'catalog' && (
           <>

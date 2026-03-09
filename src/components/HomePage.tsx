@@ -1,10 +1,24 @@
 import { HeroSection } from './HeroSection';
 import { PurposeGraph } from './PurposeGraph';
+import { Button } from './ui/button';
 
-export function HomePage() {
+interface HomePageProps {
+  onOpenProfile?: () => void;
+}
+
+export function HomePage({ onOpenProfile }: HomePageProps) {
   return (
     <div>
       <HeroSection />
+      <section className="container mx-auto px-6 pt-6">
+        <Button
+          type="button"
+          onClick={onOpenProfile}
+          className="border-2 border-black bg-black text-white hover:bg-white hover:text-black font-mono uppercase tracking-wide"
+        >
+          {"\u041f\u0440\u043e\u0444\u0438\u043b\u044c"}
+        </Button>
+      </section>
 
       <section className="container mx-auto px-6 py-12">
         <div className="max-w-5xl mx-auto space-y-12">
@@ -96,5 +110,8 @@ export function HomePage() {
     </div>
   );
 }
+
+
+
 
 

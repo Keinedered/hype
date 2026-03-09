@@ -175,7 +175,7 @@ export function Header({ currentPage = 'home', onNavigate }: HeaderProps) {
                   </DropdownMenuItem>
                 ))}
                 <DropdownMenuSeparator className="bg-black/20" />
-                <DropdownMenuItem onSelect={() => handleNav('profile')} className="font-mono uppercase tracking-wide">
+                <DropdownMenuItem onSelect={() => handleNav('login')} className="font-mono uppercase tracking-wide">
                   Профиль
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -255,7 +255,7 @@ export function Header({ currentPage = 'home', onNavigate }: HeaderProps) {
             variant="ghost" 
             size="icon" 
             className="border-2 border-black hover:bg-black hover:text-white transition-all"
-            onClick={() => handleNav('profile')}
+            onClick={() => handleNav('login')}
           >
             <User className="h-5 w-5" />
           </Button>
