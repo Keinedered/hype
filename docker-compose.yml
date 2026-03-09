@@ -49,6 +49,8 @@ services:
       - ./public:/app/public
       - ./index.html:/app/index.html
       - ./vite.config.ts:/app/vite.config.ts
+      - ./package.json:/app/package.json
+      - ./package-lock.json:/app/package-lock.json
     depends_on:
       - backend
 
