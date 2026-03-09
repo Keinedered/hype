@@ -2,6 +2,7 @@ import { Bell, Menu, User } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { useState, useRef, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +20,7 @@ interface HeaderProps {
 export function Header({ currentPage = 'home', onNavigate }: HeaderProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
+  const { isAuthenticated, user } = useAuth();
   
   const navigation = [
     { id: 'catalog', label: 'КАТАЛОГ' },
@@ -175,7 +177,7 @@ export function Header({ currentPage = 'home', onNavigate }: HeaderProps) {
                   </DropdownMenuItem>
                 ))}
                 <DropdownMenuSeparator className="bg-black/20" />
-                <DropdownMenuItem onSelect={() => handleNav('login')} className="font-mono uppercase tracking-wide">
+                <DropdownMenuItem onSelect={() => handleNav(isAuthenticated ? 'profile' : 'login')} className="font-mono uppercase tracking-wide">
                   Профиль
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -251,11 +253,14 @@ export function Header({ currentPage = 'home', onNavigate }: HeaderProps) {
               </div>
             )}
           </div>
+          {isAuthenticated && user && (
+            <span className="hidden md:inline font-mono text-xs uppercase tracking-wide">{user.username}</span>
+          )}
           <Button 
             variant="ghost" 
             size="icon" 
             className="border-2 border-black hover:bg-black hover:text-white transition-all"
-            onClick={() => handleNav('login')}
+            onClick={() => handleNav(isAuthenticated ? 'profile' : 'login')}
           >
             <User className="h-5 w-5" />
           </Button>
@@ -264,3 +269,7 @@ export function Header({ currentPage = 'home', onNavigate }: HeaderProps) {
     </header>
   );
 }
+
+
+
+

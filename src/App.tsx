@@ -6,10 +6,12 @@ import { CourseCatalog } from './components/CourseCatalog';
 import { CoursePage } from './components/CoursePage';
 import { LessonPage } from './components/LessonPage';
 import { MyCoursesPage } from './components/MyCoursesPage';
-import { ProfilePage } from './components/ProfilePage';
 import { KnowledgeGraphPage } from './components/KnowledgeGraphPage';
 import { HandbookPage } from './components/HandbookPage';
 import { LoginPage } from './components/LoginPage';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { ProfileRoutePage } from './components/ProfileRoutePage';
+import { useAuth } from './context/AuthContext';
 import { courses, tracks } from './data/mockData';
 import { SmoothLinesBackground } from './components/ui/SmoothLinesBackground';
 import { TrackId } from './types';
@@ -22,16 +24,20 @@ export default function App() {
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [catalogSelectedTrack, setCatalogSelectedTrack] = useState<TrackId | 'all'>('all');
 
-  const [profileTab, setProfileTab] = useState<'settings' | 'submissions' | 'faq' | 'notifications'>('settings');
+  const { isAuthenticated, loading: authLoading } = useAuth();
   useEffect(() => {
     if (window.location.pathname === '/login') {
       setCurrentPage('login');
+    } else if (window.location.pathname === '/profile') {
+      setCurrentPage('profile');
     }
 
     const handlePopState = () => {
       if (window.location.pathname === '/login') {
-        setCurrentPage('login');
-      } else {
+      setCurrentPage('login');
+    } else if (window.location.pathname === '/profile') {
+      setCurrentPage('profile');
+    } else {
         setCurrentPage('home');
       }
     };
@@ -70,11 +76,13 @@ export default function App() {
 
     if (page === 'profile-notifications') {
       setCurrentPage('profile');
-      setProfileTab('notifications');
+      if (window.location.pathname !== '/profile') {
+        window.history.pushState({}, '', '/profile');
+      }
       return;
     }
 
-    if (window.location.pathname === '/login' && page !== 'login') {
+    if ((window.location.pathname === '/login' && page !== 'login') || (window.location.pathname === '/profile' && page !== 'profile')) {
       window.history.pushState({}, '', '/');
     }
 
@@ -101,7 +109,9 @@ export default function App() {
         break;
       case 'profile':
         setCurrentPage('profile');
-        setProfileTab('settings');
+        if (window.location.pathname !== '/profile') {
+          window.history.pushState({}, '', '/profile');
+        }
         break;
       case 'handbook':
         setCurrentPage('handbook');
@@ -164,7 +174,7 @@ export default function App() {
           <LoginPage onAuthSuccess={() => handleNavigate('profile')} />
         )}
 
-        {currentPage === 'home' && <HomePage onOpenProfile={() => handleNavigate('login')} />}
+        {currentPage === 'home' && <HomePage onOpenProfile={() => handleNavigate(isAuthenticated ? 'profile' : 'login')} />}
 
         {currentPage === 'catalog' && (
           <>
@@ -326,14 +336,14 @@ export default function App() {
       )}
 
       {currentPage === 'profile' && (
-        <ProfilePage 
-          initialTab={profileTab}
-          onNavigateToLesson={(lessonId) => {
-            console.log('Navigate to lesson:', lessonId);
-            setSelectedLessonId(lessonId);
-            setCurrentPage('lesson');
-          }}
-        />
+        <ProtectedRoute
+          isAuthenticated={isAuthenticated}
+          isAuthLoading={authLoading}
+          onUnauthorized={() => handleNavigate('login')}
+          fallback={null}
+        >
+          <ProfileRoutePage onUnauthorized={() => handleNavigate('login')} />
+        </ProtectedRoute>
       )}
 
       {currentPage === 'course' && selectedCourse && (
@@ -388,3 +398,5 @@ export default function App() {
     </div>
   );
 }
+
+

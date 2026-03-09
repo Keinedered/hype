@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -11,7 +11,7 @@ interface LoginPageProps {
 type AuthMode = 'login' | 'signup';
 
 export function LoginPage({ onAuthSuccess }: LoginPageProps) {
-  const { login, register } = useAuth();
+  const { login, register, isAuthenticated } = useAuth();
   const [mode, setMode] = useState<AuthMode>('login');
 
   const [username, setUsername] = useState('');
@@ -23,6 +23,12 @@ export function LoginPage({ onAuthSuccess }: LoginPageProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isLogin = mode === 'login';
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      onAuthSuccess?.();
+    }
+  }, [isAuthenticated, onAuthSuccess]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -155,3 +161,4 @@ export function LoginPage({ onAuthSuccess }: LoginPageProps) {
     </div>
   );
 }
+
