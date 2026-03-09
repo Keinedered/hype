@@ -1,8 +1,33 @@
 import { axiosClient } from './axiosClient';
 import { UserProfile } from '../types/user-profile';
 
-export async function getMyProfile(): Promise<UserProfile> {
-  const response = await axiosClient.get<UserProfile>('/users/me');
-  return response.data;
+interface RawUserProfile {
+  id?: string | number;
+  username?: string;
+  email?: string;
+  fullName?: string | null;
+  full_name?: string | null;
+  createdAt?: string;
+  created_at?: string;
+  updatedAt?: string;
+  updated_at?: string;
 }
 
+function normalizeUserProfile(raw: RawUserProfile): UserProfile {
+  const createdAt = raw.createdAt ?? raw.created_at ?? '';
+  const updatedAt = raw.updatedAt ?? raw.updated_at ?? createdAt;
+
+  return {
+    id: String(raw.id ?? ''),
+    username: raw.username ?? '',
+    email: raw.email ?? '',
+    fullName: raw.fullName ?? raw.full_name ?? null,
+    createdAt,
+    updatedAt,
+  };
+}
+
+export async function getMyProfile(): Promise<UserProfile> {
+  const response = await axiosClient.get<RawUserProfile>('/users/me');
+  return normalizeUserProfile(response.data);
+}

@@ -10,7 +10,7 @@ import { KnowledgeGraphPage } from './components/KnowledgeGraphPage';
 import { HandbookPage } from './components/HandbookPage';
 import { LoginPage } from './components/LoginPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { ProfileRoutePage } from './components/ProfileRoutePage';
+import { ProfilePage } from './components/ProfilePage';
 import { useAuth } from './context/AuthContext';
 import { courses, tracks } from './data/mockData';
 import { SmoothLinesBackground } from './components/ui/SmoothLinesBackground';
@@ -342,7 +342,7 @@ export default function App() {
           onUnauthorized={() => handleNavigate('login')}
           fallback={null}
         >
-          <ProfileRoutePage onUnauthorized={() => handleNavigate('login')} />
+          <ProfilePage onUnauthorized={() => handleNavigate('login')} onNavigateToLesson={(lessonId) => { setSelectedLessonId(lessonId); setCurrentPage('lesson'); }} />
         </ProtectedRoute>
       )}
 
@@ -398,5 +398,6 @@ export default function App() {
     </div>
   );
 }
+
 
 

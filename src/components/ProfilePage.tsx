@@ -1,4 +1,8 @@
 import { useState, useEffect } from 'react';
+import { AxiosError } from 'axios';
+import { useAuth } from '../context/AuthContext';
+import { useUserProfile } from '../hooks/useUserProfile';
+import { ApiErrorResponse } from '../types/user-profile';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Button } from './ui/button';
 import {
@@ -18,9 +22,23 @@ import profileAvatar from '../public/images/викс.png';
 interface ProfilePageProps {
   onNavigateToLesson?: (lessonId: string) => void;
   initialTab?: 'settings' | 'submissions' | 'faq' | 'notifications';
+  onUnauthorized?: () => void;
 }
 
-export function ProfilePage({ onNavigateToLesson, initialTab = 'settings' }: ProfilePageProps) {
+function formatDate(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat('ru-RU', {
+    year: 'numeric',
+    month: 'long',
+    day: '2-digit',
+  }).format(date);
+}
+
+export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUnauthorized }: ProfilePageProps) {
   const [activeTab, setActiveTab] = useState(initialTab);
   const [isProfileVisible, setIsProfileVisible] = useState(true);
   const [isProgressVisible, setIsProgressVisible] = useState(false);
@@ -28,6 +46,21 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings' }: Pro
   useEffect(() => {
     setActiveTab(initialTab);
   }, [initialTab]);
+
+  const { isAuthenticated, logout } = useAuth();
+  const { data, isLoading, error } = useUserProfile(isAuthenticated);
+
+  useEffect(() => {
+    if (!error) {
+      return;
+    }
+
+    const status = (error as AxiosError<ApiErrorResponse>).response?.status;
+    if (status === 401) {
+      logout();
+      onUnauthorized?.();
+    }
+  }, [error, logout, onUnauthorized]);
 
   const mockNotifications = [
     {
@@ -126,6 +159,38 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings' }: Pro
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-6 py-12">
+        <div className="mx-auto max-w-xl border-2 border-black bg-white p-6">
+          <p className="font-mono text-sm uppercase tracking-wide">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    const message = error.response?.data?.message || error.response?.data?.detail || 'Failed to load profile.';
+    return (
+      <div className="container mx-auto px-6 py-12">
+        <div className="mx-auto max-w-xl border-2 border-black bg-white p-6 space-y-4">
+          <p className="font-mono text-sm uppercase tracking-wide text-red-600">Profile request error</p>
+          <p className="font-mono text-sm">{message}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  const displayName = data.fullName || data.username || 'User';
+  const idSuffix = String(data.id || '').slice(-8).toUpperCase();
+  const userId = `GRP-${idSuffix || 'UNKNOWN'}`;
+  const registeredAt = data.createdAt ? formatDate(data.createdAt) : '-';
+  const registrationDateValue = data.createdAt ? data.createdAt.slice(0, 10) : '';
+  const aboutText = `User ${data.username || 'unknown'}`;
   return (
     <div className="min-h-screen bg-transparent text-black">
       <div className="container mx-auto px-6 py-12 relative z-10">
@@ -140,13 +205,11 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings' }: Pro
           {/* Блок с именем и аватаром: аватар справа */}
           <div className="flex items-center gap-4 w-full md:w-auto justify-end md:justify-end">
             <div className="text-right">
-              <div className="font-mono font-bold uppercase text-sm sm:text-base">Анна Петрова</div>
-              <div className="text-xs sm:text-sm text-gray-500 font-mono">
-                Level 4 <span className="mx-1">/</span> Студент
-              </div>
+              <div className="font-mono font-bold uppercase text-sm sm:text-base">{displayName}</div>
+              <div className="text-xs sm:text-sm text-gray-500 font-mono">Registered: {registeredAt}</div>
             </div>
             <div className="w-16 h-16 border-2 border-black overflow-hidden bg-white relative shrink-0">
-              <img src={profileAvatar} alt="Аватар профиля" className="w-full h-full object-cover" />
+              <img src={profileAvatar} alt={displayName} className="w-full h-full object-cover" />
             </div>
           </div>
         </div>
@@ -204,7 +267,7 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings' }: Pro
                     <label className="block text-xs font-mono uppercase tracking-wide mb-2">Имя</label>
                     <input 
                       type="text" 
-                      defaultValue="Анна Петрова" 
+                      defaultValue={displayName} 
                       className="w-full px-3 py-2 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-black"
                     />
                   </div>
@@ -212,7 +275,7 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings' }: Pro
                     <label className="block text-xs font-mono uppercase tracking-wide mb-2">Email</label>
                     <input 
                       type="email" 
-                      defaultValue="anna@example.com" 
+                      defaultValue={data.email} 
                       className="w-full px-3 py-2 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-black"
                     />
                   </div>
@@ -220,7 +283,7 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings' }: Pro
                     <label className="block text-xs font-mono uppercase tracking-wide mb-2">ID участника</label>
                     <input 
                       type="text" 
-                      defaultValue="GRP-2025-4892" 
+                      defaultValue={userId} 
                       disabled
                       className="w-full px-3 py-2 border-2 border-black font-mono bg-gray-100 text-gray-600"
                     />
@@ -229,7 +292,7 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings' }: Pro
                     <label className="block text-xs font-mono uppercase tracking-wide mb-2">Дата рождения</label>
                     <input 
                       type="date" 
-                      defaultValue="1998-05-15" 
+                      defaultValue={registrationDateValue} 
                       className="w-full px-3 py-2 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-black"
                     />
                   </div>
@@ -237,7 +300,7 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings' }: Pro
                 <div>
                   <label className="block text-xs font-mono uppercase tracking-wide mb-2">О себе</label>
                   <textarea 
-                    defaultValue="Студент курсов по продуктовому менеджменту" 
+                    defaultValue={aboutText} 
                     rows={3}
                     className="w-full px-3 py-2 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-black resize-none"
                   />
@@ -533,3 +596,8 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings' }: Pro
     </div>
   );
 }
+
+
+
+
+
