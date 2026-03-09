@@ -644,14 +644,3 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
