@@ -69,7 +69,9 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     full_name = Column(String)
     avatar_url = Column(String, nullable=True)
+    role = Column(String, nullable=False, default="user", server_default="user")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_login_at = Column(DateTime(timezone=True), nullable=True)
     is_active = Column(Boolean, default=True)
     
     # Relationships
@@ -295,5 +297,10 @@ class Notification(Base):
     
     # Relationships
     user = relationship("User", back_populates="notifications")
+
+
+
+
+
 
 

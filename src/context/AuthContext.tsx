@@ -1,17 +1,24 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authAPI, usersAPI, getAuthToken } from '../api/client';
 
+export type UserRole = 'user' | 'admin';
+
 interface User {
   id: string;
   username: string;
   email: string;
   full_name?: string;
+  role: UserRole;
+}
+
+interface LoginOptions {
+  asAdmin?: boolean;
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string, options?: LoginOptions) => Promise<void>;
   register: (username: string, email: string, password: string, fullName?: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
@@ -24,7 +31,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is already authenticated
     const token = getAuthToken();
     if (token) {
       usersAPI.getCurrentUser()
@@ -36,15 +42,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = async (username: string, password: string) => {
-    await authAPI.login(username, password);
+  const login = async (username: string, password: string, options?: LoginOptions) => {
+    if (options?.asAdmin) {
+      await authAPI.adminLogin(username, password);
+    } else {
+      await authAPI.login(username, password);
+    }
+
     const currentUser = await usersAPI.getCurrentUser();
     setUser(currentUser);
   };
 
   const register = async (username: string, email: string, password: string, fullName?: string) => {
-    const newUser = await authAPI.register(username, email, password, fullName);
-    // Auto-login after registration
+    await authAPI.register(username, email, password, fullName);
     await login(username, password);
   };
 
@@ -76,4 +86,3 @@ export function useAuth() {
   }
   return context;
 }
-

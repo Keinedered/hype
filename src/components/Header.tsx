@@ -23,11 +23,15 @@ export function Header({ currentPage = 'home', onNavigate }: HeaderProps) {
   const { isAuthenticated, user } = useAuth();
   
   const navigation = [
-    { id: 'catalog', label: 'КАТАЛОГ' },
-    { id: 'path', label: 'МОЙ ПУТЬ' },
-    { id: 'courses', label: 'МОИ КУРСЫ' },
-    { id: 'about', label: 'О ПЛАТФОРМЕ' }
+    { id: 'catalog', label: 'CATALOG' },
+    { id: 'path', label: 'MY PATH' },
+    { id: 'courses', label: 'MY COURSES' },
+    { id: 'about', label: 'ABOUT' }
   ];
+
+  const navigationItems = user?.role === 'admin'
+    ? [...navigation, { id: 'admin', label: 'ADMIN' }]
+    : navigation;
 
   const mockNotifications = [
     {
@@ -128,7 +132,7 @@ export function Header({ currentPage = 'home', onNavigate }: HeaderProps) {
           </button>
           
           <nav className="hidden md:flex items-center gap-4 lg:gap-8">
-            {navigation.map((item, index) => (
+            {navigationItems.map((item, index) => (
               <div key={item.id} className="relative">
                 <button
                   onClick={() => onNavigate?.(item.id)}
@@ -140,7 +144,7 @@ export function Header({ currentPage = 'home', onNavigate }: HeaderProps) {
                 >
                   {item.label}
                 </button>
-                {index < navigation.length - 1 && (
+                {index < navigationItems.length - 1 && (
                   <div className="absolute -right-4 top-1/2 -translate-y-1/2 w-px h-4 bg-black opacity-20" />
                 )}
               </div>
@@ -167,7 +171,7 @@ export function Header({ currentPage = 'home', onNavigate }: HeaderProps) {
                   Навигация
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-black/20" />
-                {navigation.map((item) => (
+                {navigationItems.map((item) => (
                   <DropdownMenuItem
                     key={item.id}
                     onSelect={() => handleNav(item.id)}
@@ -269,6 +273,9 @@ export function Header({ currentPage = 'home', onNavigate }: HeaderProps) {
     </header>
   );
 }
+
+
+
 
 
 

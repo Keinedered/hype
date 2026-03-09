@@ -1,4 +1,5 @@
 import { ReactNode, useEffect } from 'react';
+import type { UserRole } from '../context/AuthContext';
 
 interface ProtectedRouteProps {
   isAuthenticated: boolean;
@@ -6,6 +7,9 @@ interface ProtectedRouteProps {
   onUnauthorized?: () => void;
   fallback?: ReactNode;
   children: ReactNode;
+  requireRole?: UserRole;
+  userRole?: UserRole;
+  onForbidden?: () => void;
 }
 
 export function ProtectedRoute({
@@ -14,12 +18,22 @@ export function ProtectedRoute({
   onUnauthorized,
   fallback = null,
   children,
+  requireRole,
+  userRole,
+  onForbidden,
 }: ProtectedRouteProps) {
+  const lacksRole = !!requireRole && userRole !== requireRole;
+
   useEffect(() => {
     if (!isAuthLoading && !isAuthenticated) {
       onUnauthorized?.();
+      return;
     }
-  }, [isAuthLoading, isAuthenticated, onUnauthorized]);
+
+    if (!isAuthLoading && isAuthenticated && lacksRole) {
+      onForbidden?.();
+    }
+  }, [isAuthLoading, isAuthenticated, lacksRole, onUnauthorized, onForbidden]);
 
   if (isAuthLoading) {
     return (
@@ -31,9 +45,10 @@ export function ProtectedRoute({
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || lacksRole) {
     return <>{fallback}</>;
   }
 
   return <>{children}</>;
 }
+

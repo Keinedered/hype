@@ -9,6 +9,7 @@ interface RawUserProfile {
   full_name?: string | null;
   avatarUrl?: string | null;
   avatar_url?: string | null;
+  role?: 'user' | 'admin';
   createdAt?: string;
   created_at?: string;
   updatedAt?: string;
@@ -45,6 +46,7 @@ function normalizeUserProfile(raw: RawUserProfile): UserProfile {
     email: raw.email ?? '',
     fullName: raw.fullName ?? raw.full_name ?? null,
     avatarUrl: toAbsoluteAvatarUrl(raw.avatarUrl ?? raw.avatar_url),
+    role: raw.role === 'admin' ? 'admin' : 'user',
     createdAt,
     updatedAt,
   };

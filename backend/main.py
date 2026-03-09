@@ -13,18 +13,21 @@ from database import Base, engine
 Base.metadata.create_all(bind=engine)
 
 
-def ensure_user_avatar_column() -> None:
-    """Backfill avatar_url column for existing DBs without migrations."""
+def ensure_user_columns() -> None:
+    """Backfill user columns for existing DBs without migrations."""
     inspector = inspect(engine)
     columns = {column["name"] for column in inspector.get_columns("users")}
-    if "avatar_url" in columns:
-        return
 
     with engine.begin() as connection:
-        connection.execute(text("ALTER TABLE users ADD COLUMN avatar_url VARCHAR"))
+        if "avatar_url" not in columns:
+            connection.execute(text("ALTER TABLE users ADD COLUMN avatar_url VARCHAR"))
+        if "role" not in columns:
+            connection.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR DEFAULT 'user' NOT NULL"))
+        if "last_login_at" not in columns:
+            connection.execute(text("ALTER TABLE users ADD COLUMN last_login_at TIMESTAMP WITH TIME ZONE NULL"))
 
 
-ensure_user_avatar_column()
+ensure_user_columns()
 
 # Create app
 app = FastAPI(
@@ -47,7 +50,7 @@ uploads_dir.mkdir(parents=True, exist_ok=True)
 app.mount(settings.PUBLIC_UPLOADS_URL_PREFIX, StaticFiles(directory=str(uploads_dir)), name="uploads")
 
 # Routers
-from routers import auth, courses, graph, lessons, modules, notifications, submissions, tracks, users
+from routers import admin, auth, courses, graph, lessons, modules, notifications, submissions, tracks, users
 
 app.include_router(auth.router, prefix=settings.API_V1_STR, tags=["auth"])
 app.include_router(tracks.router, prefix=settings.API_V1_STR, tags=["tracks"])
@@ -58,6 +61,7 @@ app.include_router(graph.router, prefix=settings.API_V1_STR, tags=["graph"])
 app.include_router(submissions.router, prefix=settings.API_V1_STR, tags=["submissions"])
 app.include_router(notifications.router, prefix=settings.API_V1_STR, tags=["notifications"])
 app.include_router(users.router, prefix=settings.API_V1_STR, tags=["users"])
+app.include_router(admin.router, prefix=settings.API_V1_STR, tags=["admin"])
 
 
 @app.get("/")

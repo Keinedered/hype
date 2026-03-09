@@ -89,6 +89,28 @@ export const authAPI = {
     setAuthToken(data.access_token);
     return data;
   },
+  async adminLogin(username: string, password: string) {
+    const formData = new URLSearchParams();
+    formData.append('username', username);
+    formData.append('password', password);
+
+    const response = await fetch(`${API_BASE_URL}/auth/admin-login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Admin login failed' }));
+      throw new Error(error.detail || 'Admin login failed');
+    }
+
+    const data = await response.json();
+    setAuthToken(data.access_token);
+    return data;
+  },
 
   logout() {
     clearClientAuthState();
@@ -203,3 +225,5 @@ export const notificationsAPI = {
     });
   },
 };
+
+

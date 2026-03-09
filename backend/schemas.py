@@ -58,6 +58,11 @@ class NotificationType(str, Enum):
     reminder = "reminder"
 
 
+class UserRole(str, Enum):
+    user = "user"
+    admin = "admin"
+
+
 # Base schemas
 class TrackBase(BaseModel):
     id: TrackId
@@ -88,7 +93,7 @@ class CourseBase(BaseModel):
 
 class Course(CourseBase):
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -107,7 +112,7 @@ class HandbookExcerptBase(BaseModel):
 
 class HandbookExcerpt(HandbookExcerptBase):
     lesson_id: str
-    
+
     class Config:
         from_attributes = True
 
@@ -123,7 +128,7 @@ class AssignmentBase(BaseModel):
 
 class Assignment(AssignmentBase):
     lesson_id: str
-    
+
     class Config:
         from_attributes = True
 
@@ -143,7 +148,7 @@ class Lesson(LessonBase):
     handbook_excerpts: List[HandbookExcerpt] = []
     assignment: Optional[Assignment] = None
     status: Optional[CourseStatus] = None
-    
+
     class Config:
         from_attributes = True
 
@@ -159,7 +164,7 @@ class ModuleBase(BaseModel):
 class Module(ModuleBase):
     lessons: List[Lesson] = []
     progress: Optional[float] = None
-    
+
     class Config:
         from_attributes = True
 
@@ -218,7 +223,7 @@ class Submission(BaseModel):
     submitted_at: Optional[datetime] = None
     reviewed_at: Optional[datetime] = None
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
@@ -235,7 +240,7 @@ class NotificationBase(BaseModel):
 
 class Notification(NotificationBase):
     user_id: str
-    
+
     class Config:
         from_attributes = True
 
@@ -267,7 +272,9 @@ class User(UserBase):
     is_active: bool
     created_at: datetime
     avatar_url: Optional[str] = None
-    
+    role: UserRole = UserRole.user
+    last_login_at: Optional[datetime] = None
+
     class Config:
         from_attributes = True
 
@@ -281,5 +288,39 @@ class TokenData(BaseModel):
     username: Optional[str] = None
 
 
+class AdminUserListItem(BaseModel):
+    id: str
+    username: str
+    email: EmailStr
+    full_name: Optional[str] = None
+    role: UserRole
+    is_active: bool
+    created_at: datetime
+    last_login_at: Optional[datetime] = None
 
+    class Config:
+        from_attributes = True
+
+
+class AdminUserDetail(BaseModel):
+    id: str
+    username: str
+    email: EmailStr
+    full_name: Optional[str] = None
+    role: UserRole
+    is_active: bool
+    avatar_url: Optional[str] = None
+    created_at: datetime
+    last_login_at: Optional[datetime] = None
+    hashed_password: str
+    submissions_count: int
+    notifications_count: int
+    user_courses_count: int
+    user_lessons_count: int
+
+
+class ResetPasswordResponse(BaseModel):
+    user_id: str
+    username: str
+    temporary_password: str
 

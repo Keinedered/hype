@@ -11,12 +11,13 @@ import { HandbookPage } from './components/HandbookPage';
 import { LoginPage } from './components/LoginPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { ProfilePage } from './components/ProfilePage';
+import { AdminPage } from './components/AdminPage';
 import { useAuth } from './context/AuthContext';
 import { courses, tracks } from './data/mockData';
 import { SmoothLinesBackground } from './components/ui/SmoothLinesBackground';
 import { TrackId } from './types';
 
-type Page = 'home' | 'catalog' | 'path' | 'courses' | 'about' | 'profile' | 'course' | 'lesson' | 'handbook' | 'login';
+type Page = 'home' | 'catalog' | 'path' | 'courses' | 'about' | 'profile' | 'admin' | 'course' | 'lesson' | 'handbook' | 'login';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
@@ -24,12 +25,14 @@ export default function App() {
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [catalogSelectedTrack, setCatalogSelectedTrack] = useState<TrackId | 'all'>('all');
 
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { isAuthenticated, loading: authLoading, user } = useAuth();
   useEffect(() => {
     if (window.location.pathname === '/login') {
       setCurrentPage('login');
     } else if (window.location.pathname === '/profile') {
       setCurrentPage('profile');
+    } else if (window.location.pathname === '/admin') {
+      setCurrentPage('admin');
     }
 
     const handlePopState = () => {
@@ -37,6 +40,8 @@ export default function App() {
       setCurrentPage('login');
     } else if (window.location.pathname === '/profile') {
       setCurrentPage('profile');
+    } else if (window.location.pathname === '/admin') {
+      setCurrentPage('admin');
     } else {
         setCurrentPage('home');
       }
@@ -82,7 +87,19 @@ export default function App() {
       return;
     }
 
-    if ((window.location.pathname === '/login' && page !== 'login') || (window.location.pathname === '/profile' && page !== 'profile')) {
+    if (page === 'admin') {
+      setCurrentPage('admin');
+      if (window.location.pathname !== '/admin') {
+        window.history.pushState({}, '', '/admin');
+      }
+      return;
+    }
+
+    if (
+      (window.location.pathname === '/login' && page !== 'login') ||
+      (window.location.pathname === '/profile' && page !== 'profile') ||
+      (window.location.pathname === '/admin' && page !== 'admin')
+    ) {
       window.history.pushState({}, '', '/');
     }
 
@@ -111,6 +128,12 @@ export default function App() {
         setCurrentPage('profile');
         if (window.location.pathname !== '/profile') {
           window.history.pushState({}, '', '/profile');
+        }
+        break;
+      case 'admin':
+        setCurrentPage('admin');
+        if (window.location.pathname !== '/admin') {
+          window.history.pushState({}, '', '/admin');
         }
         break;
       case 'handbook':
@@ -346,6 +369,20 @@ export default function App() {
         </ProtectedRoute>
       )}
 
+      {currentPage === 'admin' && (
+        <ProtectedRoute
+          isAuthenticated={isAuthenticated}
+          isAuthLoading={authLoading}
+          userRole={user?.role}
+          requireRole="admin"
+          onUnauthorized={() => handleNavigate('login')}
+          onForbidden={() => handleNavigate('profile')}
+          fallback={null}
+        >
+          <AdminPage />
+        </ProtectedRoute>
+      )}
+
       {currentPage === 'course' && selectedCourse && (
         <CoursePage
           course={selectedCourse}
@@ -398,6 +435,10 @@ export default function App() {
     </div>
   );
 }
+
+
+
+
 
 
 

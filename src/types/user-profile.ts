@@ -4,6 +4,7 @@ export interface UserProfile {
   email: string;
   fullName: string | null;
   avatarUrl: string | null;
+  role: 'user' | 'admin';
   createdAt: string;
   updatedAt: string;
 }

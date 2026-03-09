@@ -15,7 +15,8 @@ def create_user(db: Session, user: schemas.UserCreate) -> models.User:
         email=user.email,
         username=user.username,
         full_name=user.full_name,
-        hashed_password=get_password_hash(user.password)
+        hashed_password=get_password_hash(user.password),
+        role="user"
     )
     db.add(db_user)
     db.commit()
@@ -301,3 +302,5 @@ def delete_user(db: Session, user_id: str) -> bool:
     db.delete(db_user)
     db.commit()
     return True
+
+
