@@ -47,26 +47,3 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     db.commit()
 
     return _issue_token_for_user(user)
-
-
-@router.post("/admin-login", response_model=schemas.Token)
-def admin_login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = authenticate_user(db, form_data.username, form_data.password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    if user.role != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required",
-        )
-
-    user.last_login_at = datetime.now(timezone.utc)
-    db.add(user)
-    db.commit()
-
-    return _issue_token_for_user(user)

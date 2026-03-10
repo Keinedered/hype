@@ -9,12 +9,10 @@ interface LoginPageProps {
 }
 
 type AuthMode = 'login' | 'signup';
-type LoginTarget = 'user' | 'admin';
 
 export function LoginPage({ onAuthSuccess }: LoginPageProps) {
   const { login, register, isAuthenticated } = useAuth();
   const [mode, setMode] = useState<AuthMode>('login');
-  const [loginTarget, setLoginTarget] = useState<LoginTarget>('user');
 
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -25,7 +23,6 @@ export function LoginPage({ onAuthSuccess }: LoginPageProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isLogin = mode === 'login';
-  const isAdminLogin = isLogin && loginTarget === 'admin';
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -40,7 +37,7 @@ export function LoginPage({ onAuthSuccess }: LoginPageProps) {
 
     try {
       if (isLogin) {
-        await login(username, password, { asAdmin: isAdminLogin });
+        await login(username, password);
       } else {
         await register(username, email, password, fullName || undefined);
       }
@@ -57,43 +54,12 @@ export function LoginPage({ onAuthSuccess }: LoginPageProps) {
       <div className="mx-auto max-w-md border-2 border-black bg-white p-6">
         <div className="mb-6">
           <h1 className="font-mono text-2xl uppercase tracking-wide">
-            {isAdminLogin ? 'Admin Access' : 'Profile'}
+            Profile
           </h1>
           <p className="mt-2 font-mono text-sm text-muted-foreground">
-            {isAdminLogin
-              ? 'Use administrator credentials to enter the admin panel.'
-              : 'Log in to your account or create a new one.'}
+            Log in to your account or create a new one.
           </p>
         </div>
-
-        {isLogin && (
-          <div className="mb-4 grid grid-cols-2 border-2 border-black">
-            <button
-              type="button"
-              onClick={() => {
-                setLoginTarget('user');
-                setError('');
-              }}
-              className={`px-4 py-2 font-mono text-sm uppercase transition-colors ${
-                loginTarget === 'user' ? 'bg-black text-white' : 'bg-white text-black hover:bg-black hover:text-white'
-              }`}
-            >
-              User
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setLoginTarget('admin');
-                setError('');
-              }}
-              className={`px-4 py-2 font-mono text-sm uppercase transition-colors ${
-                loginTarget === 'admin' ? 'bg-black text-white' : 'bg-white text-black hover:bg-black hover:text-white'
-              }`}
-            >
-              Administrator
-            </button>
-          </div>
-        )}
 
         <div className="mb-6 grid grid-cols-2 border-2 border-black">
           <button
@@ -194,9 +160,7 @@ export function LoginPage({ onAuthSuccess }: LoginPageProps) {
             {isSubmitting
               ? 'Loading...'
               : isLogin
-                ? isAdminLogin
-                  ? 'Log in as admin'
-                  : 'Log in'
+                ? 'Log in'
                 : 'Sign up'}
           </Button>
         </form>

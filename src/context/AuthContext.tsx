@@ -11,14 +11,10 @@ interface User {
   role: UserRole;
 }
 
-interface LoginOptions {
-  asAdmin?: boolean;
-}
-
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (username: string, password: string, options?: LoginOptions) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string, fullName?: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
@@ -42,12 +38,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = async (username: string, password: string, options?: LoginOptions) => {
-    if (options?.asAdmin) {
-      await authAPI.adminLogin(username, password);
-    } else {
-      await authAPI.login(username, password);
-    }
+  const login = async (username: string, password: string) => {
+    await authAPI.login(username, password);
 
     const currentUser = await usersAPI.getCurrentUser();
     setUser(currentUser);
