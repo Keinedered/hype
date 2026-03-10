@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+import crud
 import models
 import schemas
 from auth import get_current_admin_user, get_password_hash
@@ -112,6 +113,8 @@ def delete_user(
         raise HTTPException(status_code=404, detail="User not found")
 
     _delete_avatar_file(user.avatar_url)
-    db.delete(user)
-    db.commit()
+    deleted = crud.delete_user(db, user_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="User not found")
+
     return None
