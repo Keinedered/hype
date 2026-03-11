@@ -4,8 +4,7 @@ import path from 'path';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  const apiUrl = env.VITE_API_URL || 'http://localhost:8000/api/v1';
-  const backendOrigin = apiUrl.replace(/\/api\/v1\/?$/, '');
+  const backendOrigin = env.VITE_BACKEND_ORIGIN || 'http://backend:8000';
 
   return {
     plugins: [react()],
