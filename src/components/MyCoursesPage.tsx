@@ -89,10 +89,6 @@ export function MyCoursesPage({ onCourseSelect }: MyCoursesPageProps) {
     }, {});
   }, [tracks]);
 
-  const enrolledCourses = useMemo(
-    () => courses.filter((course) => course.status && course.status !== 'not_started'),
-    [courses]
-  );
   const inProgressCourses = useMemo(
     () => courses.filter((course) => course.status === 'in_progress'),
     [courses]
@@ -103,23 +99,23 @@ export function MyCoursesPage({ onCourseSelect }: MyCoursesPageProps) {
   );
 
   const averageProgress = useMemo(() => {
-    const progressValues = enrolledCourses
+    const progressValues = courses
       .map((course) => course.progress)
       .filter((value): value is number => typeof value === 'number');
     if (progressValues.length === 0) return 0;
     return Math.round(progressValues.reduce((sum, value) => sum + value, 0) / progressValues.length);
-  }, [enrolledCourses]);
+  }, [courses]);
 
   const filteredCourses = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     const byQuery = normalizedQuery.length
-      ? enrolledCourses.filter((course) => {
+      ? courses.filter((course) => {
           return (
             course.title.toLowerCase().includes(normalizedQuery) ||
             course.shortDescription.toLowerCase().includes(normalizedQuery)
           );
         })
-      : enrolledCourses;
+      : courses;
 
     const sorted = [...byQuery].sort((a, b) => {
       if (sortKey === 'title') {
@@ -131,7 +127,7 @@ export function MyCoursesPage({ onCourseSelect }: MyCoursesPageProps) {
     });
 
     return sorted;
-  }, [enrolledCourses, query, sortKey]);
+  }, [courses, query, sortKey]);
 
   const filteredInProgress = useMemo(
     () => filteredCourses.filter((course) => course.status === 'in_progress'),
@@ -222,14 +218,14 @@ export function MyCoursesPage({ onCourseSelect }: MyCoursesPageProps) {
             <div className="h-1 border border-black/20 bg-gray-100">
               <div className="h-full bg-black transition-all" style={{ width: `${averageProgress}%` }} />
             </div>
-            <div className="text-xs font-mono text-muted-foreground">Считается по активным курсам</div>
+            <div className="text-xs font-mono text-muted-foreground">Считается по всем курсам</div>
           </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <div className="border-2 border-black bg-white p-4">
-            <div className="text-xs font-mono tracking-widest uppercase text-muted-foreground">Всего активных</div>
-            <div className="text-3xl font-mono font-bold">{enrolledCourses.length}</div>
+            <div className="text-xs font-mono tracking-widest uppercase text-muted-foreground">Всего курсов</div>
+            <div className="text-3xl font-mono font-bold">{courses.length}</div>
           </div>
           <div className="border-2 border-black bg-white p-4">
             <div className="text-xs font-mono tracking-widest uppercase text-muted-foreground">В процессе</div>
@@ -275,7 +271,7 @@ export function MyCoursesPage({ onCourseSelect }: MyCoursesPageProps) {
               value="all" 
               className="font-mono tracking-wide data-[state=active]:bg-black data-[state=active]:text-white border-2 border-transparent data-[state=active]:border-black"
             >
-              ВСЕ АКТИВНЫЕ ({enrolledCourses.length})
+              ВСЕ КУРСЫ ({courses.length})
             </TabsTrigger>
             <TabsTrigger 
               value="in-progress"
@@ -294,8 +290,8 @@ export function MyCoursesPage({ onCourseSelect }: MyCoursesPageProps) {
           <TabsContent value="all" className="space-y-6">
             {renderCourseGrid(
               filteredCourses,
-              'НЕТ АКТИВНЫХ КУРСОВ',
-              'Вы пока не записаны ни на один курс или все они уже завершены.'
+              'НЕТ КУРСОВ',
+              'Курсы пока не доступны.'
             )}
           </TabsContent>
 
