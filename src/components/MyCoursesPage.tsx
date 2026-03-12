@@ -70,7 +70,7 @@ export function MyCoursesPage({ onCourseSelect }: MyCoursesPageProps) {
         setTracks(rawTracks as Track[]);
       } catch (err) {
         if (!isMounted) return;
-        setError(err instanceof Error ? err.message : 'Unable to load courses');
+        setError(err instanceof Error ? err.message : 'Не удалось загрузить курсы');
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -163,10 +163,10 @@ export function MyCoursesPage({ onCourseSelect }: MyCoursesPageProps) {
       return (
         <div className="border-2 border-black bg-white p-8 text-center space-y-3">
           <div className="inline-flex items-center gap-2 bg-black text-white px-4 py-2 font-mono text-xs tracking-widest">
-            DATA ISSUE
+            ПРОБЛЕМА С ДАННЫМИ
           </div>
           <p className="font-mono text-sm text-muted-foreground">{error}</p>
-          <p className="font-mono text-xs text-muted-foreground">Try refreshing the page or logging in again.</p>
+          <p className="font-mono text-xs text-muted-foreground">Попробуйте обновить страницу или войти снова.</p>
         </div>
       );
     }
@@ -203,7 +203,7 @@ export function MyCoursesPage({ onCourseSelect }: MyCoursesPageProps) {
           <div className="space-y-4">
             <div className="relative inline-block">
               <div className="bg-black text-white px-6 py-3 inline-block font-mono tracking-wider">
-                <h1 className="mb-0">MY COURSES</h1>
+                <h1 className="mb-0">МОИ КУРСЫ</h1>
               </div>
               <div className="absolute -top-2 -left-2 w-5 h-5 border-l-2 border-t-2 border-black" />
               <div className="absolute -bottom-2 -right-2 w-5 h-5 border-r-2 border-b-2 border-black" />
@@ -211,59 +211,59 @@ export function MyCoursesPage({ onCourseSelect }: MyCoursesPageProps) {
 
             <div className="border-l-4 border-black pl-6">
               <p className="text-muted-foreground font-mono leading-relaxed">
-                A personalized learning dashboard with progress, focus, and quick access to active courses.
+                Персональный дашборд обучения: прогресс, фокус на актуальных курсах и быстрый доступ к занятиям.
               </p>
             </div>
           </div>
 
           <div className="border-2 border-black bg-white p-4 space-y-3">
-            <div className="text-xs font-mono tracking-widest uppercase text-muted-foreground">Average progress</div>
+            <div className="text-xs font-mono tracking-widest uppercase text-muted-foreground">Средний прогресс</div>
             <div className="text-4xl font-mono font-bold">{averageProgress}%</div>
             <div className="h-1 border border-black/20 bg-gray-100">
               <div className="h-full bg-black transition-all" style={{ width: `${averageProgress}%` }} />
             </div>
-            <div className="text-xs font-mono text-muted-foreground">Based on active courses</div>
+            <div className="text-xs font-mono text-muted-foreground">Считается по активным курсам</div>
           </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <div className="border-2 border-black bg-white p-4">
-            <div className="text-xs font-mono tracking-widest uppercase text-muted-foreground">Active total</div>
+            <div className="text-xs font-mono tracking-widest uppercase text-muted-foreground">Всего активных</div>
             <div className="text-3xl font-mono font-bold">{enrolledCourses.length}</div>
           </div>
           <div className="border-2 border-black bg-white p-4">
-            <div className="text-xs font-mono tracking-widest uppercase text-muted-foreground">In progress</div>
+            <div className="text-xs font-mono tracking-widest uppercase text-muted-foreground">В процессе</div>
             <div className="text-3xl font-mono font-bold">{inProgressCourses.length}</div>
           </div>
           <div className="border-2 border-black bg-white p-4">
-            <div className="text-xs font-mono tracking-widest uppercase text-muted-foreground">Completed</div>
+            <div className="text-xs font-mono tracking-widest uppercase text-muted-foreground">Завершено</div>
             <div className="text-3xl font-mono font-bold">{completedCourses.length}</div>
           </div>
           <div className="border-2 border-black bg-white p-4">
-            <div className="text-xs font-mono tracking-widest uppercase text-muted-foreground">Today focus</div>
-            <div className="text-sm font-mono">Resume something from the In Progress tab.</div>
+            <div className="text-xs font-mono tracking-widest uppercase text-muted-foreground">Фокус на сегодня</div>
+            <div className="text-sm font-mono">Продолжайте курсы из вкладки «В процессе».</div>
           </div>
         </div>
 
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between border-2 border-black bg-white p-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center">
-            <div className="font-mono text-xs tracking-widest uppercase text-muted-foreground">Search</div>
+            <div className="font-mono text-xs tracking-widest uppercase text-muted-foreground">Поиск</div>
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Course title or description"
+              placeholder="Название или описание курса"
               className="h-10 border-2 border-black font-mono text-sm"
             />
           </div>
           <div className="flex flex-col gap-3 md:flex-row md:items-center">
-            <div className="font-mono text-xs tracking-widest uppercase text-muted-foreground">Sort</div>
+            <div className="font-mono text-xs tracking-widest uppercase text-muted-foreground">Сортировка</div>
             <Select value={sortKey} onValueChange={(value) => setSortKey(value as 'progress' | 'title')}>
               <SelectTrigger className="h-10 border-2 border-black font-mono text-sm">
-                <SelectValue placeholder="Pick one" />
+                <SelectValue placeholder="Выберите" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="progress">By progress</SelectItem>
-                <SelectItem value="title">By title</SelectItem>
+                <SelectItem value="progress">По прогрессу</SelectItem>
+                <SelectItem value="title">По названию</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -275,43 +275,43 @@ export function MyCoursesPage({ onCourseSelect }: MyCoursesPageProps) {
               value="all" 
               className="font-mono tracking-wide data-[state=active]:bg-black data-[state=active]:text-white border-2 border-transparent data-[state=active]:border-black"
             >
-              ALL ACTIVE ({enrolledCourses.length})
+              ВСЕ АКТИВНЫЕ ({enrolledCourses.length})
             </TabsTrigger>
             <TabsTrigger 
               value="in-progress"
               className="font-mono tracking-wide data-[state=active]:bg-black data-[state=active]:text-white border-2 border-transparent data-[state=active]:border-black"
             >
-              IN PROGRESS ({inProgressCourses.length})
+              В ПРОЦЕССЕ ({inProgressCourses.length})
             </TabsTrigger>
             <TabsTrigger 
               value="completed"
               className="font-mono tracking-wide data-[state=active]:bg-black data-[state=active]:text-white border-2 border-transparent data-[state=active]:border-black"
             >
-              COMPLETED ({completedCourses.length})
+              ЗАВЕРШЁННЫЕ ({completedCourses.length})
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="all" className="space-y-6">
             {renderCourseGrid(
               filteredCourses,
-              'NO ACTIVE COURSES',
-              'You are not enrolled in any courses yet, or they are all completed.'
+              'НЕТ АКТИВНЫХ КУРСОВ',
+              'Вы пока не записаны ни на один курс или все они уже завершены.'
             )}
           </TabsContent>
 
           <TabsContent value="in-progress" className="space-y-6">
             {renderCourseGrid(
               filteredInProgress,
-              'NO COURSES IN PROGRESS',
-              'Keep learning to see courses here.'
+              'НЕТ КУРСОВ В ПРОЦЕССЕ',
+              'Продолжайте обучение, чтобы увидеть курсы здесь.'
             )}
           </TabsContent>
 
           <TabsContent value="completed" className="space-y-6">
             {renderCourseGrid(
               filteredCompleted,
-              'NO COMPLETED COURSES',
-              'Completed courses will appear here.'
+              'НЕТ ЗАВЕРШЁННЫХ КУРСОВ',
+              'Завершённые курсы появятся в этом разделе.'
             )}
           </TabsContent>
         </Tabs>

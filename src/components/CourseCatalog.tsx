@@ -66,10 +66,10 @@ export function CourseCatalog({ onCourseSelect, selectedTrack, onSelectedTrackCh
       {filteredCourses.length === 0 && (
         <div className="text-center py-20 border-2 border-black">
           <div className="bg-black text-white px-6 py-3 inline-block font-mono tracking-wide mb-4">
-            NOT FOUND
+            НЕ НАЙДЕНО
           </div>
           <p className="text-muted-foreground font-mono">
-            Courses matching the selected filters were not found.
+            Курсы с выбранными фильтрами не найдены.
           </p>
         </div>
       )}
