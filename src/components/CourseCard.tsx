@@ -1,23 +1,24 @@
-import { Course } from '../types';
-import { tracks } from '../data/mockData';
+﻿import { Course } from '../types';
 import { Button } from './ui/button';
-import { BookOpen, Video, CheckCircle2 } from 'lucide-react';
 
 interface CourseCardProps {
   course: Course;
   onSelect?: (courseId: string) => void;
+  track?: {
+    name: string;
+    color: string;
+  };
 }
 
-export function CourseCard({ course, onSelect }: CourseCardProps) {
-  const track = tracks.find((t) => t.id === course.trackId);
+export function CourseCard({ course, onSelect, track }: CourseCardProps) {
   const trackColor = track?.color || '#000';
-  const trackName = track?.name || 'Общее';
+  const trackName = track?.name || 'General';
 
   const getLevelLabel = (level: Course['level']) => {
     switch (level) {
-      case 'beginner': return 'НАЧАЛЬНЫЙ';
-      case 'intermediate': return 'СРЕДНИЙ';
-      case 'advanced': return 'ПРОДВИНУТЫЙ';
+      case 'beginner': return 'BEGINNER';
+      case 'intermediate': return 'INTERMEDIATE';
+      case 'advanced': return 'ADVANCED';
     }
   };
 
@@ -26,11 +27,13 @@ export function CourseCard({ course, onSelect }: CourseCardProps) {
     fetch('http://127.0.0.1:7242/ingest/f934cd13-d56f-4483-86ce-e2102f0bc81b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CourseCard.tsx:24',message:'getStatusLabel called',data:{status, courseId:course.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
     // #endregion
     switch (status) {
-      case 'in_progress': return 'В ПРОЦЕССЕ';
-      case 'completed': return 'ЗАВЕРШЁН';
+      case 'in_progress': return 'IN PROGRESS';
+      case 'completed': return 'COMPLETED';
       default: return null;
     }
   };
+
+  const statusLabel = getStatusLabel(course.status);
 
   return (
     <div 
@@ -51,13 +54,18 @@ export function CourseCard({ course, onSelect }: CourseCardProps) {
           >
             {trackName}
           </span>
+          {statusLabel && (
+            <span className="px-3 py-1 text-[10px] font-mono tracking-widest uppercase border border-black rounded-full bg-black text-white">
+              {statusLabel}
+            </span>
+          )}
         </div>
 
-        {/* Recruitment Status - moved down from top, but kept prominent if needed, or simplified */}
+        {/* Enrollment status */}
         {course.enrollmentDeadline && (
           <div className="inline-flex items-center gap-2 text-xs font-mono">
             <div className="w-2 h-2 rounded-full bg-black animate-pulse" />
-            <span className="uppercase tracking-wide">Набор открыт до {course.enrollmentDeadline}</span>
+            <span className="uppercase tracking-wide">Enrollment open until {course.enrollmentDeadline}</span>
           </div>
         )}
 
@@ -74,12 +82,12 @@ export function CourseCard({ course, onSelect }: CourseCardProps) {
         {/* Meta Info */}
         <div className="grid grid-cols-2 gap-4 text-xs font-mono py-4 border-t border-black/10">
           <div>
-            <div className="font-bold mb-1">ФОРМАТ:</div>
-            <div>ОНЛАЙН</div>
+            <div className="font-bold mb-1">FORMAT:</div>
+            <div>ONLINE</div>
           </div>
           <div>
-            <div className="font-bold mb-1">ДЛЯ КОГО:</div>
-            <div>{course.level === 'beginner' ? 'ДЛЯ ВСЕХ' : 'ДЛЯ СПЕЦИАЛИСТОВ'}</div>
+            <div className="font-bold mb-1">AUDIENCE:</div>
+            <div>{course.level === 'beginner' ? 'FOR EVERYONE' : 'FOR SPECIALISTS'}</div>
           </div>
         </div>
 
@@ -88,7 +96,7 @@ export function CourseCard({ course, onSelect }: CourseCardProps) {
           {course.progress !== undefined ? (
              <div className="space-y-2">
                <div className="flex justify-between text-xs font-mono">
-                 <span className="uppercase tracking-wide">Прогресс</span>
+                 <span className="uppercase tracking-wide">Progress</span>
                  <span className="font-bold text-black">{course.progress}%</span>
                </div>
                <div className="relative h-1 bg-gray-100 border border-black/20">
@@ -113,7 +121,7 @@ export function CourseCard({ course, onSelect }: CourseCardProps) {
               onSelect?.(course.id);
             }}
           >
-            {course.status === 'in_progress' ? 'Продолжить' : 'Подробнее'}
+            {course.status === 'in_progress' ? 'Continue' : 'Details'}
           </Button>
         </div>
       </div>
