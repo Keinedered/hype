@@ -1,4 +1,4 @@
-# 🎓 GRAPH — Образовательная платформа
+﻿# 🎓 GRAPH — Образовательная платформа
 
 Современная образовательная платформа с интерактивной визуализацией знаний в виде графа.
 
@@ -184,12 +184,8 @@ Backend будет доступен на: http://localhost:8000
 # 1. Установить зависимости
 npm install
 
-# 2. Создать файл .env.local
-echo "VITE_API_URL=http://localhost:8000/api/v1" > .env.local
-
-# 3. Запустить dev-сервер
+# 2. Запустить dev-сервер
 npm run dev
-```
 
 Frontend будет доступен на: http://localhost:3000
 
@@ -487,15 +483,9 @@ BACKEND_CORS_ORIGINS=["http://localhost:3000", "http://localhost:5173"]
 
 **Примечание:** В Docker эти переменные уже настроены в `docker-compose.yml`
 
-### Frontend (.env.local)
+### Frontend
 
-Создайте файл `.env.local` в корне проекта:
-
-```env
-VITE_API_URL=http://localhost:8000/api/v1
-```
-
-**Примечание:** В Docker эта переменная уже настроена в `docker-compose.yml`
+API base URL derives from the frontend URL: <url>/api/v1.
 
 ---
 
@@ -695,3 +685,7 @@ MIT License - используйте свободно для любых целе
 ---
 
 **Сделано с ❤️ для образования**
+
+
+
+

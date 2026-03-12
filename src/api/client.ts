@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+const API_BASE_URL = `${window.location.origin}/api/v1`;
 
 // Token management
 let authToken: string | null = localStorage.getItem('auth_token');
@@ -203,5 +203,3 @@ export const notificationsAPI = {
     });
   },
 };
-
-
