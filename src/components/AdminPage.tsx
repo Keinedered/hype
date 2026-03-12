@@ -44,6 +44,7 @@ export function AdminPage() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailsLoadingUserId, setDetailsLoadingUserId] = useState<string | null>(null);
   const [selectedDetails, setSelectedDetails] = useState<AdminUserDetail | null>(null);
+  const [detailsError, setDetailsError] = useState<string | null>(null);
 
   const [resetLoadingUserId, setResetLoadingUserId] = useState<string | null>(null);
   const [tempPasswordData, setTempPasswordData] = useState<ResetPasswordResponse | null>(null);
@@ -51,6 +52,7 @@ export function AdminPage() {
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteCandidate, setDeleteCandidate] = useState<AdminUserListItem | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteConfirmed, setDeleteConfirmed] = useState(false);
   const [deleteLoadingUserId, setDeleteLoadingUserId] = useState<string | null>(null);
 
@@ -77,6 +79,7 @@ export function AdminPage() {
 
   const openDetails = async (userId: string) => {
     setActionError(null);
+    setDetailsError(null);
     setDetailsOpen(true);
     setDetailsLoadingUserId(userId);
     setSelectedDetails(null);
@@ -85,8 +88,9 @@ export function AdminPage() {
       const details = await getAdminUserDetails(userId);
       setSelectedDetails(details);
     } catch (error) {
-      setActionError(getErrorMessage(error, 'Failed to load user details.'));
-      setDetailsOpen(false);
+      const message = getErrorMessage(error, 'Failed to load user details.');
+      setDetailsError(message);
+      setActionError(message);
     } finally {
       setDetailsLoadingUserId(null);
     }
@@ -130,7 +134,9 @@ export function AdminPage() {
       setDeleteCandidate(null);
       setDeleteConfirmed(false);
     } catch (error) {
-      setActionError(getErrorMessage(error, 'Failed to delete user.'));
+      const message = getErrorMessage(error, 'Failed to delete user.');
+      setDeleteError(message);
+      setActionError(message);
     } finally {
       setDeleteLoadingUserId(null);
     }
@@ -177,6 +183,91 @@ export function AdminPage() {
         )}        {actionError && (
           <div className="border-2 border-red-600 bg-red-50 p-3">
             <p className="font-mono text-sm text-red-700">{actionError}</p>
+          </div>
+        )}
+
+        {detailsOpen && (
+          <div className="border-2 border-black bg-white p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="font-mono text-sm uppercase tracking-wide">User details</p>
+              <Button
+                type="button"
+                variant="outline"
+                className="border-2 border-black rounded-none"
+                onClick={() => {
+                  setDetailsOpen(false);
+                  setSelectedDetails(null);
+                  setDetailsError(null);
+                }}
+              >
+                Close
+              </Button>
+            </div>
+
+            {detailsError ? (
+              <p className="font-mono text-sm text-red-700">{detailsError}</p>
+            ) : selectedDetails ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-xs">
+                <div><strong>ID:</strong> {selectedDetails.id}</div>
+                <div><strong>Username:</strong> {selectedDetails.username}</div>
+                <div><strong>Email:</strong> {selectedDetails.email}</div>
+                <div><strong>Role:</strong> {selectedDetails.role}</div>
+                <div><strong>Active:</strong> {String(selectedDetails.is_active)}</div>
+                <div><strong>Avatar:</strong> {selectedDetails.avatar_url ?? '-'}</div>
+                <div><strong>Created:</strong> {formatDate(selectedDetails.created_at)}</div>
+                <div><strong>Last login:</strong> {formatDate(selectedDetails.last_login_at)}</div>
+                <div className="md:col-span-2"><strong>Hashed password:</strong> {selectedDetails.hashed_password}</div>
+                <div><strong>Submissions:</strong> {selectedDetails.submissions_count}</div>
+                <div><strong>Notifications:</strong> {selectedDetails.notifications_count}</div>
+                <div><strong>User courses:</strong> {selectedDetails.user_courses_count}</div>
+                <div><strong>User lessons:</strong> {selectedDetails.user_lessons_count}</div>
+              </div>
+            ) : (
+              <p className="font-mono text-sm">Loading details...</p>
+            )}
+          </div>
+        )}
+
+        {deleteDialogOpen && deleteCandidate && (
+          <div className="border-2 border-black bg-red-50 p-4 space-y-3">
+            <p className="font-mono text-sm uppercase tracking-wide">Delete user?</p>
+            <p className="font-mono text-sm">
+              Target: <strong>{deleteCandidate.username}</strong>
+            </p>
+            {deleteError && (
+              <p className="font-mono text-sm text-red-700">{deleteError}</p>
+            )}
+            <label className="flex items-center gap-2 text-xs uppercase tracking-wide">
+              <input
+                type="checkbox"
+                checked={deleteConfirmed}
+                onChange={(event) => setDeleteConfirmed(event.target.checked)}
+              />
+              I am sure
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="border-2 border-black rounded-none"
+                onClick={() => {
+                  setDeleteDialogOpen(false);
+                  setDeleteCandidate(null);
+                  setDeleteConfirmed(false);
+                  setDeleteError(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                className="border-2 border-black rounded-none bg-red-100 text-black hover:bg-red-200"
+                disabled={!deleteConfirmed || deleteLoadingUserId === deleteCandidate.id}
+                onClick={() => void confirmDelete()}
+              >
+                {deleteLoadingUserId === deleteCandidate.id ? 'Deleting...' : 'Delete'}
+              </Button>
+            </div>
           </div>
         )}
 
@@ -252,46 +343,8 @@ export function AdminPage() {
           </div>
         )}
       </div>
-
-      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="border-2 border-black rounded-none max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-wide">User Details</DialogTitle>
-            <DialogDescription className="font-mono text-sm">
-              Full database-level user payload for admin diagnostics.
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedDetails ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-xs">
-              <div><strong>ID:</strong> {selectedDetails.id}</div>
-              <div><strong>Username:</strong> {selectedDetails.username}</div>
-              <div><strong>Email:</strong> {selectedDetails.email}</div>
-              <div><strong>Role:</strong> {selectedDetails.role}</div>
-              <div><strong>Active:</strong> {String(selectedDetails.is_active)}</div>
-              <div><strong>Avatar:</strong> {selectedDetails.avatar_url ?? '-'}</div>
-              <div><strong>Created:</strong> {formatDate(selectedDetails.created_at)}</div>
-              <div><strong>Last login:</strong> {formatDate(selectedDetails.last_login_at)}</div>
-              <div className="md:col-span-2"><strong>Hashed password:</strong> {selectedDetails.hashed_password}</div>
-              <div><strong>Submissions:</strong> {selectedDetails.submissions_count}</div>
-              <div><strong>Notifications:</strong> {selectedDetails.notifications_count}</div>
-              <div><strong>User courses:</strong> {selectedDetails.user_courses_count}</div>
-              <div><strong>User lessons:</strong> {selectedDetails.user_lessons_count}</div>
-            </div>
-          ) : (
-            <p className="font-mono text-sm">Loading details...</p>
-          )}
-
-          <DialogFooter>
-            <Button type="button" variant="outline" className="border-2 border-black rounded-none" onClick={() => setDetailsOpen(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <Dialog open={tempPasswordOpen} onOpenChange={(open) => { setTempPasswordOpen(open); if (!open) { setTempPasswordData(null); } }}>
-        <DialogContent className="border-2 border-black rounded-none">
+        <DialogContent className="border-2 border-black rounded-none" onInteractOutside={(event) => event.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="font-mono uppercase tracking-wide">Temporary Password</DialogTitle>
             <DialogDescription className="font-mono text-sm">
@@ -323,48 +376,8 @@ export function AdminPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="border-2 border-black rounded-none">
-          <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-wide">Delete user?</DialogTitle>
-            <DialogDescription className="font-mono text-sm">
-              This action is destructive and cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3 font-mono text-sm">
-            <p>
-              Target: <strong>{deleteCandidate?.username}</strong>
-            </p>
-            <label className="flex items-center gap-2 text-xs uppercase tracking-wide">
-              <input
-                type="checkbox"
-                checked={deleteConfirmed}
-                onChange={(event) => setDeleteConfirmed(event.target.checked)}
-              />
-              I am sure
-            </label>
-          </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" className="border-2 border-black rounded-none" onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              className="border-2 border-black rounded-none bg-red-100 text-black hover:bg-red-200"
-              disabled={!deleteConfirmed || deleteLoadingUserId === deleteCandidate?.id}
-              onClick={() => void confirmDelete()}
-            >
-              {deleteLoadingUserId === deleteCandidate?.id ? 'Deleting...' : 'Delete'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+      </div>
   );
 }
-
 
 
