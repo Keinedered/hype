@@ -47,6 +47,7 @@ export function AdminPage() {
 
   const [resetLoadingUserId, setResetLoadingUserId] = useState<string | null>(null);
   const [tempPasswordData, setTempPasswordData] = useState<ResetPasswordResponse | null>(null);
+  const [tempPasswordOpen, setTempPasswordOpen] = useState(false);
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteCandidate, setDeleteCandidate] = useState<AdminUserListItem | null>(null);
@@ -93,10 +94,12 @@ export function AdminPage() {
 
   const handleResetPassword = async (userId: string) => {
     setActionError(null);
+    setTempPasswordOpen(false);
+    setTempPasswordData(null);
     setResetLoadingUserId(userId);
 
     try {
-      const response = await resetAdminUserPassword(userId);
+      const response = await resetAdminUserPassword(userId)
       setTempPasswordData(response);
     } catch (error) {
       setActionError(getErrorMessage(error, 'Failed to reset password.'));
@@ -141,7 +144,37 @@ export function AdminPage() {
           Manage users, inspect system fields, reset passwords, and remove accounts.
         </p>
 
-        {actionError && (
+        {tempPasswordData && (
+          <div className="border-2 border-black bg-amber-50 p-3">
+            <p className="font-mono text-xs mb-1">Temporary password for <strong>{tempPasswordData.username}</strong>:</p>
+            <p className="font-mono text-lg tracking-wide break-all">{tempPasswordData.temporary_password}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="border-2 border-black rounded-none"
+                onClick={async () => {
+                  if (tempPasswordData?.temporary_password) {
+                    await navigator.clipboard.writeText(tempPasswordData.temporary_password);
+                  }
+                }}
+              >
+                Copy
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="border-2 border-black rounded-none"
+                onClick={() => {
+                  setTempPasswordOpen(false);
+                  setTempPasswordData(null);
+                }}
+              >
+                Dismiss
+              </Button>
+            </div>
+          </div>
+        )}        {actionError && (
           <div className="border-2 border-red-600 bg-red-50 p-3">
             <p className="font-mono text-sm text-red-700">{actionError}</p>
           </div>
@@ -257,7 +290,7 @@ export function AdminPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!tempPasswordData} onOpenChange={(open) => !open && setTempPasswordData(null)}>
+      <Dialog open={tempPasswordOpen} onOpenChange={(open) => { setTempPasswordOpen(open); if (!open) { setTempPasswordData(null); } }}>
         <DialogContent className="border-2 border-black rounded-none">
           <DialogHeader>
             <DialogTitle className="font-mono uppercase tracking-wide">Temporary Password</DialogTitle>
@@ -332,3 +365,6 @@ export function AdminPage() {
     </div>
   );
 }
+
+
+
