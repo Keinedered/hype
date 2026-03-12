@@ -1,11 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Button } from './ui/button';
-import { Card } from './ui/card';
 import { Textarea } from './ui/textarea';
 import { Input } from './ui/input';
-import { Badge } from './ui/badge';
-import { ArrowLeft, ArrowRight, Upload, Link as LinkIcon, Check, Clock, X, Circle, PlayCircle, FileText } from 'lucide-react';
-import { TrackId } from '../types';
+import { ArrowLeft, ArrowRight, Upload, Link as LinkIcon, Check, Clock, X, Circle, FileText } from 'lucide-react';
+import { TrackId, Lesson, Module, Track } from '../types';
+import { coursesAPI, lessonsAPI, modulesAPI, submissionsAPI, tracksAPI } from '../api/client';
+import { normalizeCourse, normalizeLesson, normalizeModule, normalizeTrack, RawCourse, RawLesson, RawModule, RawTrack } from '../api/normalizers';
+import { Skeleton } from './ui/skeleton';
 
 interface LessonPageProps {
   onBack?: () => void;
@@ -13,21 +16,109 @@ interface LessonPageProps {
   onOpenMap?: () => void;
   onGoToCatalog?: (trackId?: TrackId | 'all') => void;
   onOpenHandbook?: () => void;
-  trackId?: TrackId;
-  trackName?: string;
   lessonId?: string;
 }
 
-export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpenHandbook, trackId, trackName, lessonId }: LessonPageProps) {
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/f934cd13-d56f-4483-86ce-e2102f0bc81b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'LessonPage.tsx:20',message:'LessonPage mounted',data:{hasLessonId:!!lessonId, lessonId, trackId, trackName},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
-  // #endregion
+export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpenHandbook, lessonId }: LessonPageProps) {
+  const [lesson, setLesson] = useState<Lesson | null>(null);
+  const [module, setModule] = useState<Module | null>(null);
+  const [track, setTrack] = useState<Track | null>(null);
+  const [moduleLessons, setModuleLessons] = useState<Lesson[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [textAnswer, setTextAnswer] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   const [submissionStatus, setSubmissionStatus] = useState<'not_submitted' | 'pending' | 'accepted' | 'needs_revision'>('not_submitted');
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
 
-  const handleSubmit = () => {
-    setSubmissionStatus('pending');
+  useEffect(() => {
+    let isMounted = true;
+
+    const load = async () => {
+      if (!lessonId) {
+        setError('???? ?? ??????.');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        const rawLesson = (await lessonsAPI.getById(lessonId)) as RawLesson;
+        const normalizedLesson = normalizeLesson(rawLesson);
+
+        const rawModule = (await modulesAPI.getById(normalizedLesson.moduleId)) as RawModule;
+        const normalizedModule = normalizeModule(rawModule);
+
+        const rawCourse = (await coursesAPI.getById(normalizedModule.courseId)) as RawCourse;
+        const normalizedCourse = normalizeCourse(rawCourse);
+
+        const [rawTrack, rawModuleLessons] = await Promise.all([
+          tracksAPI.getById(normalizedCourse.trackId),
+          lessonsAPI.getByModuleId(normalizedModule.id),
+        ]);
+
+        const normalizedTrack = normalizeTrack(rawTrack as RawTrack);
+        const normalizedModuleLessons = (rawModuleLessons as RawLesson[]).map(normalizeLesson).sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
+
+        if (!isMounted) return;
+        setLesson(normalizedLesson);
+        setModule(normalizedModule);
+        setTrack(normalizedTrack);
+        setModuleLessons(normalizedModuleLessons);
+        setTextAnswer('');
+        setLinkUrl('');
+        setSubmissionStatus('not_submitted');
+        setSubmissionError(null);
+      } catch (err) {
+        if (!isMounted) return;
+        setError(err instanceof Error ? err.message : '?? ??????? ????????? ????');
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      isMounted = false;
+    };
+  }, [lessonId]);
+
+  const lessonIndex = useMemo(() => {
+    if (!lesson) return -1;
+    return moduleLessons.findIndex((item) => item.id === lesson.id);
+  }, [lesson, moduleLessons]);
+
+  const prevLesson = lessonIndex > 0 ? moduleLessons[lessonIndex - 1] : null;
+  const nextLesson = lessonIndex >= 0 && lessonIndex < moduleLessons.length - 1 ? moduleLessons[lessonIndex + 1] : null;
+
+  const canSubmit = useMemo(() => {
+    if (!lesson?.assignment) return false;
+    if (lesson.assignment.requiresFile) return false;
+    if (lesson.assignment.requiresText && !textAnswer.trim()) return false;
+    if (lesson.assignment.requiresLink && !linkUrl.trim()) return false;
+    return true;
+  }, [lesson, linkUrl, textAnswer]);
+
+  const handleSubmit = async () => {
+    if (!lesson?.assignment) return;
+    try {
+      setSubmissionError(null);
+      setSubmissionStatus('pending');
+      const response = await submissionsAPI.create({
+        assignment_id: lesson.assignment.id,
+        text_answer: textAnswer.trim() || undefined,
+        link_url: linkUrl.trim() || undefined,
+        file_urls: [],
+      });
+      const status = (response as { status?: string }).status as typeof submissionStatus | undefined;
+      setSubmissionStatus(status ?? 'pending');
+    } catch (err) {
+      setSubmissionStatus('not_submitted');
+      setSubmissionError(err instanceof Error ? err.message : '?? ??????? ????????? ???????');
+    }
   };
 
   const getStatusBadge = () => {
@@ -63,6 +154,33 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-transparent text-black font-sans">
+        <div className="container mx-auto px-6 py-12 space-y-6">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-12 w-3/4" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !lesson) {
+    return (
+      <div className="min-h-screen bg-transparent text-black font-sans">
+        <div className="container mx-auto px-6 py-12">
+          <div className="border-2 border-black bg-white p-8 text-center space-y-3">
+            <div className="inline-flex items-center gap-2 bg-black text-white px-4 py-2 font-mono text-xs tracking-widest">
+              ???????? ? ???????
+            </div>
+            <p className="font-mono text-sm text-muted-foreground">{error ?? '???? ?? ??????.'}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-transparent text-black font-sans">
       {/* Header */}
@@ -90,10 +208,10 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
                  <span className="mx-2 text-gray-300">/</span>
                  <button
                    type="button"
-                   onClick={() => onGoToCatalog?.(trackId)}
+                   onClick={() => onGoToCatalog?.(track?.id)}
                    className="text-gray-400 hover:text-black transition-colors cursor-pointer"
                  >
-                   {trackName ? trackName.toUpperCase() : 'ТРЕК'}
+                   {track?.name ? track.name.toUpperCase() : 'ТРЕК'}
                  </button>
                  <span className="mx-2 text-gray-300">/</span>
                  <button
@@ -101,10 +219,10 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
                    onClick={onBack}
                    className="text-gray-400 hover:text-black transition-colors cursor-pointer"
                  >
-                   МОДУЛЬ 1
+                   {module?.title ?? 'МОДУЛЬ'}
                  </button>
                  <span className="mx-2 text-gray-300">/</span>
-                 <span className="border-b-2 border-black pb-0.5 text-black">ЧТО ТАКОЕ ПРОДУКТ</span>
+                 <span className="border-b-2 border-black pb-0.5 text-black">{lesson.title.toUpperCase()}</span>
               </nav>
            </div>
 
@@ -123,162 +241,161 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
             {/* Title Section */}
             <div className="space-y-4">
                <div className="flex items-center gap-3">
-                  <span className="px-2 py-1 bg-black text-white font-mono text-xs uppercase tracking-wider">Урок 1</span>
-                  <span className="flex items-center gap-1 text-xs font-mono text-gray-500 uppercase">
-                     <Clock className="w-3 h-3" /> 15 минут
+                  <span className="px-2 py-1 bg-black text-white font-mono text-xs uppercase tracking-wider">
+                    {lessonIndex >= 0 ? `Урок ${lessonIndex + 1}` : 'Урок'}
                   </span>
+                  {lesson.videoDuration && (
+                    <span className="flex items-center gap-1 text-xs font-mono text-gray-500 uppercase">
+                       <Clock className="w-3 h-3" /> {lesson.videoDuration}
+                    </span>
+                  )}
                </div>
-               <h1 className="text-4xl md:text-5xl font-bold leading-tight tracking-tight">ЧТО ТАКОЕ ПРОДУКТ</h1>
+               <h1 className="text-4xl md:text-5xl font-bold leading-tight tracking-tight">{lesson.title.toUpperCase()}</h1>
                <p className="text-xl text-gray-600 font-light leading-relaxed max-w-2xl">
-                  Разберем определение продукта, его ключевые характеристики и отличия от проекта.
+                  {lesson.description}
                </p>
             </div>
 
-            {/* Video Player Placeholder */}
-            <div className="relative aspect-video bg-black w-full border-2 border-black shadow-[12px_12px_0px_0px_rgba(182,226,200,1)] group cursor-pointer overflow-hidden">
-               <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1200&q=80')] bg-cover bg-center opacity-40 group-hover:opacity-30 transition-opacity"></div>
-               <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                     <div className="w-0 h-0 border-t-[12px] border-t-transparent border-l-[20px] border-l-black border-b-[12px] border-b-transparent ml-1"></div>
-                  </div>
-               </div>
-               
-               <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent text-white">
-                  <div className="font-mono text-xs mb-1 opacity-70">ВИДЕО-ЛЕКЦИЯ</div>
-                  <div className="font-bold text-lg">Введение в продуктовую методологию</div>
-               </div>
-            </div>
+            {/* Video Player */}
+            {lesson.videoUrl ? (
+              <div className="relative aspect-video bg-black w-full border-2 border-black shadow-[12px_12px_0px_0px_rgba(182,226,200,1)] overflow-hidden">
+                <video controls className="w-full h-full">
+                  <source src={lesson.videoUrl} />
+                </video>
+              </div>
+            ) : (
+              <div className="relative aspect-video bg-black w-full border-2 border-black shadow-[12px_12px_0px_0px_rgba(182,226,200,1)] group overflow-hidden">
+                 <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1200&q=80')] bg-cover bg-center opacity-40"></div>
+                 <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg">
+                       <div className="w-0 h-0 border-t-[12px] border-t-transparent border-l-[20px] border-l-black border-b-[12px] border-b-transparent ml-1"></div>
+                    </div>
+                 </div>
+                 
+                 <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent text-white">
+                    <div className="font-mono text-xs mb-1 opacity-70">ВИДЕО-ЛЕКЦИЯ</div>
+                    <div className="font-bold text-lg">Видео не доступно</div>
+                 </div>
+              </div>
+            )}
 
             {/* Content Text */}
             <div className="prose prose-lg max-w-none font-light prose-headings:font-bold prose-headings:font-mono prose-headings:uppercase prose-p:text-gray-800 prose-strong:text-black prose-li:marker:text-black">
-               <h3>Конспект урока</h3>
-               <p>
-                  <strong className="bg-[#B6E2C8] px-1">Продукт</strong> — это средство решения проблемы пользователя, 
-                  которое приносит ценность как пользователю, так и бизнесу. В отличие от проекта, продукт не имеет фиксированной даты завершения, он живет, пока нужен пользователям.
-               </p>
-               <p>
-                  В контексте цифровых продуктов мы говорим о веб-сервисах, мобильных приложениях, 
-                  SaaS-платформах и других цифровых решениях.
-               </p>
-               
-               <div className="my-8 p-8 border-l-4 border-black bg-gray-50 italic">
-                  "Роль продакт-менеджера — обеспечить баланс между потребностями пользователей, 
-                  целями бизнеса и техническими возможностями команды."
-               </div>
-
-               <h4>Ключевые характеристики</h4>
-               <ul>
-                  <li>Решает конкретную проблему пользователя</li>
-                  <li>Приносит измеримую ценность (Value)</li>
-                  <li>Имеет чёткую целевую аудиторию (Segment)</li>
-                  <li>Постоянно развивается на основе обратной связи (Feedback Loop)</li>
-               </ul>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{lesson.content}</ReactMarkdown>
             </div>
 
             {/* Handbook Reference */}
-            <div className="border-2 border-black p-6 bg-[#B6C8E2]/20 relative overflow-hidden">
-               <div className="absolute -right-10 -top-10 w-32 h-32 bg-[#B6C8E2] rounded-full blur-2xl opacity-50"></div>
-               <div className="relative z-10 flex items-start gap-4">
-                  <div className="p-3 bg-white border border-black shrink-0">
-                     <FileText className="w-6 h-6" />
-                  </div>
-                  <div>
-                     <h4 className="font-mono font-bold text-lg uppercase mb-2">МАТЕРИАЛЫ ХЕНДБУКА</h4>
-                     <p className="text-sm text-gray-700 mb-4 max-w-md">
-                        Для углубленного изучения темы обратитесь к главе "Продуктовая стратегия" в нашем учебнике.
-                     </p>
-                     <Button 
-                       variant="link" 
-                       onClick={onOpenHandbook}
-                       className="p-0 h-auto font-mono text-xs uppercase border-b border-black rounded-none hover:no-underline hover:text-black/60"
-                     >
-                        Читать главу →
-                     </Button>
-                  </div>
-               </div>
-            </div>
+            {lesson.handbookExcerpts.length > 0 && (
+              <div className="border-2 border-black p-6 bg-[#B6C8E2]/20 relative overflow-hidden">
+                 <div className="absolute -right-10 -top-10 w-32 h-32 bg-[#B6C8E2] rounded-full blur-2xl opacity-50"></div>
+                 <div className="relative z-10 flex items-start gap-4">
+                    <div className="p-3 bg-white border border-black shrink-0">
+                       <FileText className="w-6 h-6" />
+                    </div>
+                    <div>
+                       <h4 className="font-mono font-bold text-lg uppercase mb-2">МАТЕРИАЛЫ ХЕНДБУКА</h4>
+                       <div className="space-y-3">
+                         {lesson.handbookExcerpts.map((excerpt) => (
+                           <div key={excerpt.id} className="text-sm text-gray-700">
+                             <div className="font-mono text-xs uppercase text-gray-500 mb-1">{excerpt.sectionTitle}</div>
+                             <p>{excerpt.excerpt}</p>
+                           </div>
+                         ))}
+                       </div>
+                       <Button 
+                         variant="link" 
+                         onClick={onOpenHandbook}
+                         className="p-0 h-auto font-mono text-xs uppercase border-b border-black rounded-none hover:no-underline hover:text-black/60 mt-4"
+                       >
+                          Читать главу →
+                       </Button>
+                    </div>
+                 </div>
+              </div>
+            )}
 
             {/* Assignment Section */}
-            <div className="mt-16 pt-16 border-t-2 border-black">
-               <h3 className="font-mono text-2xl font-bold uppercase mb-8 flex items-center gap-3">
-                  <span className="w-8 h-8 bg-black text-white flex items-center justify-center text-sm">?</span>
-                  Задание к уроку
-               </h3>
-               
-               <div className="bg-white border border-gray-200 p-8 shadow-sm">
-                  <p className="text-lg mb-8 font-light">
-                     Опишите продукт, с которым вы взаимодействуете ежедневно. 
-                     Какую проблему он решает? Какую ценность приносит вам?
-                  </p>
+            {lesson.assignment && (
+              <div className="mt-16 pt-16 border-t-2 border-black">
+                 <h3 className="font-mono text-2xl font-bold uppercase mb-8 flex items-center gap-3">
+                    <span className="w-8 h-8 bg-black text-white flex items-center justify-center text-sm">?</span>
+                    Задание к уроку
+                 </h3>
+                 
+                 <div className="bg-white border border-gray-200 p-8 shadow-sm">
+                    <p className="text-lg mb-8 font-light">
+                       {lesson.assignment.description}
+                    </p>
 
-                  <div className="space-y-6">
-                     <div>
-                        <label className="block font-mono text-xs uppercase text-gray-500 mb-2">Ваш ответ</label>
-                        <Textarea
-                           placeholder="Начните вводить текст..."
-                           rows={8}
-                           value={textAnswer}
-                           onChange={(e) => setTextAnswer(e.target.value)}
-                           disabled={submissionStatus === 'pending' || submissionStatus === 'accepted'}
-                           className="rounded-none border-2 border-gray-200 focus:border-black focus:ring-0 resize-none p-4 text-base"
-                        />
-                     </div>
+                    <div className="space-y-6">
+                       {lesson.assignment.requiresText && (
+                         <div>
+                            <label className="block font-mono text-xs uppercase text-gray-500 mb-2">Ваш ответ</label>
+                            <Textarea
+                               placeholder="Начните вводить текст..."
+                               rows={8}
+                               value={textAnswer}
+                               onChange={(e) => setTextAnswer(e.target.value)}
+                               disabled={submissionStatus === 'pending' || submissionStatus === 'accepted'}
+                               className="rounded-none border-2 border-gray-200 focus:border-black focus:ring-0 resize-none p-4 text-base"
+                            />
+                         </div>
+                       )}
 
-                     <div className="grid md:grid-cols-2 gap-6">
-                        <div>
-                           <label className="block font-mono text-xs uppercase text-gray-500 mb-2">Ссылка на материалы</label>
-                           <div className="relative">
-                              <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                              <Input
-                                 type="url"
-                                 placeholder="https://figma.com/..."
-                                 value={linkUrl}
-                                 onChange={(e) => setLinkUrl(e.target.value)}
-                                 className="pl-10 rounded-none border-2 border-gray-200 focus:border-black focus:ring-0 h-12"
-                                 disabled={submissionStatus === 'pending' || submissionStatus === 'accepted'}
-                              />
-                           </div>
-                        </div>
+                       <div className="grid md:grid-cols-2 gap-6">
+                          {lesson.assignment.requiresLink && (
+                            <div>
+                               <label className="block font-mono text-xs uppercase text-gray-500 mb-2">Ссылка на материалы</label>
+                               <div className="relative">
+                                  <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                  <Input
+                                     type="url"
+                                     placeholder="https://figma.com/..."
+                                     value={linkUrl}
+                                     onChange={(e) => setLinkUrl(e.target.value)}
+                                     className="pl-10 rounded-none border-2 border-gray-200 focus:border-black focus:ring-0 h-12"
+                                     disabled={submissionStatus === 'pending' || submissionStatus === 'accepted'}
+                                  />
+                               </div>
+                            </div>
+                          )}
 
-                        <div>
-                           <label className="block font-mono text-xs uppercase text-gray-500 mb-2">Файл</label>
-                           <div className="border-2 border-dashed border-gray-300 p-3 flex items-center justify-center gap-2 cursor-pointer hover:border-black hover:bg-gray-50 transition-colors h-12">
-                              <Upload className="w-4 h-4 text-gray-500" />
-                              <span className="text-sm text-gray-500">Загрузить файл</span>
-                           </div>
-                        </div>
-                     </div>
+                          {lesson.assignment.requiresFile && (
+                            <div>
+                               <label className="block font-mono text-xs uppercase text-gray-500 mb-2">Файл</label>
+                               <div className="border-2 border-dashed border-gray-300 p-3 flex items-center justify-center gap-2 cursor-not-allowed bg-gray-50 transition-colors h-12">
+                                  <Upload className="w-4 h-4 text-gray-500" />
+                                  <span className="text-sm text-gray-500">Загрузка файлов пока не поддерживается</span>
+                               </div>
+                            </div>
+                          )}
+                       </div>
 
-                     <div className="flex items-center justify-between pt-6 border-t border-gray-100 mt-6">
-                        {getStatusBadge()}
-                        
-                        <Button 
-                           onClick={handleSubmit}
-                           disabled={submissionStatus === 'pending' || submissionStatus === 'accepted' || !textAnswer.trim()}
-                           className="rounded-none bg-black text-white hover:bg-gray-800 h-12 px-8 font-mono uppercase tracking-wide disabled:opacity-50"
-                        >
-                           {submissionStatus === 'needs_revision' ? 'Отправить повторно' : 'Отправить на проверку'}
-                        </Button>
-                     </div>
-                  </div>
-                  
-                  {submissionStatus === 'needs_revision' && (
-                     <div className="mt-6 p-6 bg-[#E2B6C8]/20 border border-[#E2B6C8] flex gap-4">
-                        <div className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center shrink-0 font-mono text-xs">A</div>
-                        <div>
-                           <div className="font-mono text-xs uppercase text-gray-500 mb-1">Куратор Анна • 2 часа назад</div>
-                           <p>Хороший анализ, но попробуйте добавить больше деталей о том, какую конкретно ценность продукт приносит бизнесу.</p>
-                        </div>
-                     </div>
-                  )}
-               </div>
-            </div>
+                       <div className="flex items-center justify-between pt-6 border-t border-gray-100 mt-6">
+                          {getStatusBadge()}
+                          
+                          <Button 
+                             onClick={handleSubmit}
+                             disabled={submissionStatus === 'pending' || submissionStatus === 'accepted' || !canSubmit}
+                             className="rounded-none bg-black text-white hover:bg-gray-800 h-12 px-8 font-mono uppercase tracking-wide disabled:opacity-50"
+                          >
+                             {submissionStatus === 'needs_revision' ? 'Отправить повторно' : 'Отправить на проверку'}
+                          </Button>
+                       </div>
+                       {submissionError && (
+                         <p className="text-sm font-mono text-red-600">{submissionError}</p>
+                       )}
+                    </div>
+                 </div>
+              </div>
+            )}
 
             {/* Pagination */}
             <div className="flex justify-between pt-8">
                <Button 
                   variant="outline" 
                   onClick={() => onNavigate?.('prev')}
+                  disabled={!prevLesson}
                   className="rounded-none border-2 border-black/10 hover:border-black hover:bg-white h-12 px-6"
                >
                   <ArrowLeft className="w-4 h-4 mr-2" />
@@ -286,6 +403,7 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
                </Button>
                <Button 
                   onClick={() => onNavigate?.('next')}
+                  disabled={!nextLesson}
                   className="rounded-none bg-black text-white hover:bg-gray-800 h-12 px-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)] transition-all"
                >
                   <span className="font-mono text-xs uppercase">Следующий урок</span>
@@ -305,41 +423,32 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
                    {/* Vertical Line */}
                    <div className="absolute left-[15px] top-4 bottom-4 w-px bg-gray-300"></div>
 
-                   {/* Lesson Items */}
-                   <div className="relative pl-10 py-2">
-                      <div className="absolute left-[11px] top-1/2 -translate-y-1/2 w-[9px] h-[9px] rounded-full bg-black border-2 border-white ring-1 ring-black"></div>
-                      <div className="font-bold text-sm">Урок 1: Что такое продукт</div>
-                      <div className="text-xs text-gray-500 font-mono mt-1">Текущий урок</div>
-                   </div>
-
-                   <div className="relative pl-10 py-3 group cursor-pointer hover:bg-black/5 transition-colors -ml-4 px-4 rounded-r">
-                      <div className="absolute left-[12px] top-1/2 -translate-y-1/2 w-[7px] h-[7px] rounded-full bg-white border border-gray-400 group-hover:border-black transition-colors"></div>
-                      <div className="text-sm text-gray-600 group-hover:text-black transition-colors">Урок 2: Виды продуктов</div>
-                      <div className="text-xs text-gray-400 font-mono mt-1">12 минут</div>
-                   </div>
-
-                   <div className="relative pl-10 py-3 group cursor-pointer hover:bg-black/5 transition-colors -ml-4 px-4 rounded-r">
-                      <div className="absolute left-[12px] top-1/2 -translate-y-1/2 w-[7px] h-[7px] rounded-full bg-white border border-gray-400 group-hover:border-black transition-colors"></div>
-                      <div className="text-sm text-gray-600 group-hover:text-black transition-colors">Урок 3: Роль PM в команде</div>
-                      <div className="text-xs text-gray-400 font-mono mt-1">20 минут</div>
-                   </div>
-
-                   <div className="relative pl-10 py-3 group cursor-pointer hover:bg-black/5 transition-colors -ml-4 px-4 rounded-r opacity-50">
-                      <div className="absolute left-[12px] top-1/2 -translate-y-1/2 w-[7px] h-[7px] rounded-full bg-white border border-gray-300"></div>
-                      <div className="text-sm text-gray-500">Урок 4: Циклы разработки</div>
-                      <div className="text-xs text-gray-400 font-mono mt-1 flex items-center gap-1">
-                         <PlayCircle className="w-3 h-3" /> 18 минут
-                      </div>
-                   </div>
+                   {moduleLessons.map((item, index) => {
+                     const isCurrent = lesson.id === item.id;
+                     return (
+                       <div key={item.id} className={`relative pl-10 py-3 -ml-4 px-4 rounded-r ${isCurrent ? '' : 'group cursor-default'}`}>
+                          <div className={`absolute left-[12px] top-1/2 -translate-y-1/2 w-[7px] h-[7px] rounded-full ${isCurrent ? 'bg-black border-2 border-white ring-1 ring-black' : 'bg-white border border-gray-400'}`}></div>
+                          <div className={`text-sm ${isCurrent ? 'font-bold text-black' : 'text-gray-600'}`}>
+                            Урок {index + 1}: {item.title}
+                          </div>
+                          {item.videoDuration && (
+                            <div className="text-xs text-gray-400 font-mono mt-1">{item.videoDuration}</div>
+                          )}
+                          {isCurrent && (
+                            <div className="text-xs text-gray-500 font-mono mt-1">Текущий урок</div>
+                          )}
+                       </div>
+                     );
+                   })}
                 </div>
 
                 <div className="mt-8 pt-6 border-t border-gray-200">
                    <div className="flex items-center justify-between mb-2">
                       <span className="font-mono text-xs uppercase text-gray-500">Прогресс модуля</span>
-                      <span className="font-mono text-xs font-bold">25%</span>
+                      <span className="font-mono text-xs font-bold">{module?.progress ?? 0}%</span>
                    </div>
                    <div className="h-2 bg-gray-200 w-full overflow-hidden">
-                      <div className="h-full bg-black w-1/4"></div>
+                      <div className="h-full bg-black" style={{ width: `${module?.progress ?? 0}%` }}></div>
                    </div>
                 </div>
              </div>
@@ -350,3 +459,10 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
     </div>
   );
 }
+
+
+
+
+
+
+

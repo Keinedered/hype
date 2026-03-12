@@ -1,9 +1,9 @@
 import { Track, TrackId } from '../types';
 import { Button } from './ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { tracks } from '../data/mockData';
 
 interface TrackFilterProps {
+  tracks: Track[];
   selectedTrack: TrackId | 'all';
   onTrackChange: (trackId: TrackId | 'all') => void;
   selectedLevel: string;
@@ -13,6 +13,7 @@ interface TrackFilterProps {
 }
 
 export function TrackFilter({
+  tracks,
   selectedTrack,
   onTrackChange,
   selectedLevel,

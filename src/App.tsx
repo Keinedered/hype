@@ -13,7 +13,6 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { ProfilePage } from './components/ProfilePage';
 import { AdminPage } from './components/AdminPage';
 import { useAuth } from './context/AuthContext';
-import { courses, tracks } from './data/mockData';
 import { SmoothLinesBackground } from './components/ui/SmoothLinesBackground';
 import { TrackId } from './types';
 
@@ -178,11 +177,6 @@ export default function App() {
     setCurrentPage('path');
   };
 
-  const selectedCourse = selectedCourseId 
-    ? courses.find(c => c.id === selectedCourseId)
-    : null;
-  const selectedTrack = selectedCourse ? tracks.find(t => t.id === selectedCourse.trackId) : null;
-
   return (
     <div className="min-h-screen bg-background relative selection:bg-black selection:text-white">
       <SmoothLinesBackground />
@@ -216,16 +210,8 @@ export default function App() {
             if (nodeId === 'root') return;
             
             // Try to find if it's a course
-            const course = courses.find(c => c.id === nodeId);
-            if (course) {
-              setSelectedCourseId(nodeId);
-              setCurrentPage('course');
-            } else {
-              // Assume it's a lesson or just log for now
-              console.log('Node clicked:', nodeId);
-              // setSelectedLessonId(nodeId);
-              // setCurrentPage('lesson');
-            }
+            setSelectedCourseId(nodeId);
+            setCurrentPage('course');
           }}
           onOpenHandbook={() => {
             setCurrentPage('handbook');
@@ -383,9 +369,9 @@ export default function App() {
         </ProtectedRoute>
       )}
 
-      {currentPage === 'course' && selectedCourse && (
+      {currentPage === 'course' && selectedCourseId && (
         <CoursePage
-          course={selectedCourse}
+          courseId={selectedCourseId}
           onBack={handleBackToCatalog}
           onStartCourse={handleStartCourse}
           onOpenMap={handleOpenMap}
@@ -400,8 +386,6 @@ export default function App() {
         <LessonPage
           onBack={handleBackToCourse}
           onGoToCatalog={(trackId) => openCatalog(trackId ?? 'all')}
-          trackId={selectedCourse?.trackId}
-          trackName={selectedTrack?.name}
           lessonId={selectedLessonId || undefined}
           onNavigate={(direction) => {
             console.log('Navigate:', direction);
@@ -435,6 +419,13 @@ export default function App() {
     </div>
   );
 }
+
+
+
+
+
+
+
 
 
 

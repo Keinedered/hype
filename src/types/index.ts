@@ -29,6 +29,7 @@ export interface Module {
   courseId: string;
   title: string;
   description: string;
+  orderIndex?: number;
   lessons: Lesson[];
   progress?: number;
 }
@@ -41,8 +42,9 @@ export interface Lesson {
   videoUrl?: string;
   videoDuration?: string;
   content: string;
+  orderIndex?: number;
   handbookExcerpts: HandbookExcerpt[];
-  assignment: Assignment;
+  assignment?: Assignment;
   status?: 'not_started' | 'in_progress' | 'completed';
 }
 
@@ -105,3 +107,5 @@ export interface Notification {
   createdAt: Date;
   relatedUrl?: string;
 }
+
+

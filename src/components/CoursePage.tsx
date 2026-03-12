@@ -1,13 +1,15 @@
-import { Course, Module } from '../types';
-import { tracks, modules } from '../data/mockData';
+import { useEffect, useMemo, useState } from 'react';
+import { Course, Module, Track } from '../types';
+import { coursesAPI, lessonsAPI, modulesAPI, tracksAPI } from '../api/client';
+import { normalizeCourse, normalizeLesson, normalizeModule, normalizeTrack, RawCourse, RawLesson, RawModule, RawTrack } from '../api/normalizers';
 import { Button } from './ui/button';
-import { Progress } from './ui/progress';
 import { Card } from './ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { ArrowLeft, BookOpen, MapPin, CheckCircle2, Circle, Play } from 'lucide-react';
+import { Skeleton } from './ui/skeleton';
 
 interface CoursePageProps {
-  course: Course;
+  courseId: string;
   onBack?: () => void;
   onStartCourse?: () => void;
   onOpenMap?: () => void;
@@ -16,24 +18,123 @@ interface CoursePageProps {
 }
 
 export function CoursePage({ 
-  course, 
+  courseId,
   onBack, 
   onStartCourse,
   onOpenMap,
   onSelectLesson,
   onOpenHandbook
 }: CoursePageProps) {
-  const track = tracks.find((t) => t.id === course.trackId);
-  const courseModules = modules.filter((m) => m.courseId === course.id);
+  const [course, setCourse] = useState<Course | null>(null);
+  const [track, setTrack] = useState<Track | null>(null);
+  const [modules, setModules] = useState<Module[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock lessons for display
-  const mockLessons = (moduleId: string, count: number) => {
-    return Array.from({ length: count }, (_, i) => ({
-      id: `${moduleId}-lesson-${i + 1}`,
-      title: `Урок ${i + 1}`,
-      status: i === 0 ? 'completed' : i === 1 ? 'in_progress' : 'not_started'
-    }));
+  useEffect(() => {
+    let isMounted = true;
+
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const rawCourse = (await coursesAPI.getById(courseId)) as RawCourse;
+        const normalizedCourse = normalizeCourse(rawCourse);
+
+        const [rawTrack, rawModules] = await Promise.all([
+          tracksAPI.getById(normalizedCourse.trackId),
+          modulesAPI.getByCourseId(courseId),
+        ]);
+
+        const normalizedTrack = normalizeTrack(rawTrack as RawTrack);
+        const normalizedModules = (rawModules as RawModule[]).map(normalizeModule);
+
+        const lessonsByModule = await Promise.all(
+          normalizedModules.map(async (module) => {
+            const rawLessons = (await lessonsAPI.getByModuleId(module.id)) as RawLesson[];
+            return {
+              moduleId: module.id,
+              lessons: rawLessons.map(normalizeLesson).sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0)),
+            };
+          })
+        );
+
+
+        const modulesWithLessons = normalizedModules.map((module) => {
+          const lessons = lessonsByModule.find((entry) => entry.moduleId === module.id)?.lessons ?? [];
+          return { ...module, lessons };
+        });
+
+        if (!isMounted) return;
+        setCourse(normalizedCourse);
+        setTrack(normalizedTrack);
+        setModules(modulesWithLessons);
+      } catch (err) {
+        if (!isMounted) return;
+        setError(err instanceof Error ? err.message : '?? ??????? ????????? ????');
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      isMounted = false;
+    };
+  }, [courseId]);
+
+  const sortedModules = useMemo(() => {
+    return [...modules].sort((a, b) => {
+      const aIndex = a.orderIndex ?? 0;
+      const bIndex = b.orderIndex ?? 0;
+      return aIndex - bIndex;
+    });
+  }, [modules]);
+
+  const firstLessonId = useMemo(() => {
+    for (const module of sortedModules) {
+      if (module.lessons.length > 0) return module.lessons[0].id;
+    }
+    return null;
+  }, [sortedModules]);
+
+  const handleStart = () => {
+    if (firstLessonId) {
+      onSelectLesson?.(firstLessonId);
+    } else {
+      onStartCourse?.();
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-transparent">
+        <div className="container mx-auto px-6 py-16 space-y-8">
+          <Skeleton className="h-10 w-48" />
+          <Skeleton className="h-6 w-3/4" />
+          <Skeleton className="h-6 w-2/3" />
+          <Skeleton className="h-48 w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !course) {
+    return (
+      <div className="min-h-screen bg-transparent">
+        <div className="container mx-auto px-6 py-16">
+          <div className="border-2 border-black bg-white p-8 text-center space-y-3">
+            <div className="inline-flex items-center gap-2 bg-black text-white px-4 py-2 font-mono text-xs tracking-widest">
+              ???????? ? ???????
+            </div>
+            <p className="font-mono text-sm text-muted-foreground">{error ?? '???? ?? ??????.'}</p>
+            <p className="font-mono text-xs text-muted-foreground">?????????? ???????? ???????? ??? ??????? ?????? ????.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-transparent">
@@ -77,7 +178,7 @@ export function CoursePage({
                 className="px-3 py-1 text-xs font-mono tracking-widest uppercase border border-black rounded-full"
                 style={{ backgroundColor: track?.color }}
               >
-                {track?.name.toUpperCase()}
+                {track?.name ? track.name.toUpperCase() : 'ТРЕК'}
               </span>
               <span className="px-3 py-1 text-xs font-mono tracking-widest uppercase border border-black rounded-full bg-transparent">
                  {course.version}
@@ -145,7 +246,8 @@ export function CoursePage({
             <div className="flex gap-4">
               <Button 
                 size="lg"
-                onClick={onStartCourse}
+                onClick={handleStart}
+                disabled={!firstLessonId}
                 className="border-2 border-black hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] font-mono tracking-wide transition-all"
                 style={{ backgroundColor: track?.color, color: '#000000' }}
               >
@@ -192,7 +294,7 @@ export function CoursePage({
             </div>
             
             <Accordion type="single" collapsible className="space-y-4">
-              {courseModules.map((module, index) => (
+              {sortedModules.map((module, index) => (
                 <AccordionItem 
                   key={module.id} 
                   value={module.id}
@@ -232,7 +334,12 @@ export function CoursePage({
                   </AccordionTrigger>
                   <AccordionContent>
                     <div className="px-6 pb-4 space-y-2 border-t-2 border-black pt-4">
-                      {mockLessons(module.id, 3).map((lesson, lessonIndex) => (
+                      {module.lessons.length === 0 && (
+                        <div className="text-sm font-mono text-muted-foreground">
+                          В этом модуле пока нет уроков.
+                        </div>
+                      )}
+                      {module.lessons.map((lesson) => (
                         <button
                           key={lesson.id}
                           onClick={() => onSelectLesson?.(lesson.id)}
@@ -263,27 +370,13 @@ export function CoursePage({
               </div>
               <div className="space-y-4 text-sm font-mono leading-relaxed">
                 <p>
-                  Этот курс познакомит вас с основами продуктового менеджмента 
-                  и даст необходимые инструменты для работы с цифровыми продуктами.
+                  {course.description}
                 </p>
                 <div className="border-l-2 border-black pl-3">
-                  <div className="font-bold text-foreground mb-2 tracking-wide">ДЛЯ КОГО ЭТОТ КУРС</div>
-                  <p className="text-muted-foreground">
-                    Начинающие продакт-менеджеры, стажёры, специалисты смежных областей
-                  </p>
-                </div>
-                <div className="border-l-2 border-black pl-3">
-                  <div className="font-bold text-foreground mb-2 tracking-wide">ЧТО ВЫ ПОЛУЧИТЕ</div>
-                  <ul className="space-y-1 text-muted-foreground">
-                    <li>→ Понимание роли продакта</li>
-                    <li>→ Навыки проведения исследований</li>
-                    <li>→ Умение ставить метрики</li>
-                    <li>→ Опыт запуска продукта</li>
-                  </ul>
-                </div>
-                <div className="border-l-2 border-black pl-3">
                   <div className="font-bold text-foreground mb-2 tracking-wide">УРОВЕНЬ</div>
-                  <p className="text-muted-foreground">Начальный</p>
+                  <p className="text-muted-foreground">
+                    {course.level === 'beginner' ? 'Начальный' : course.level === 'intermediate' ? 'Средний' : 'Продвинутый'}
+                  </p>
                 </div>
               </div>
             </Card>
@@ -309,3 +402,7 @@ export function CoursePage({
     </div>
   );
 }
+
+
+
+
