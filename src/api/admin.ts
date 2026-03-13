@@ -12,6 +12,9 @@ import {
   AdminModuleDetail,
   AdminModuleListItem,
   AdminModuleUpdate,
+  AdminTrackCreate,
+  AdminTrackDetail,
+  AdminTrackUpdate,
   AdminUserDetail,
   AdminUserListItem,
   ResetPasswordResponse,
@@ -106,4 +109,23 @@ export async function updateAdminLesson(lessonId: string, payload: AdminLessonUp
 
 export async function deleteAdminLesson(lessonId: string): Promise<void> {
   await axiosClient.delete(`/admin/lessons/${lessonId}`);
+}
+
+export async function getAdminTracks(): Promise<AdminTrackDetail[]> {
+  const response = await axiosClient.get<AdminTrackDetail[]>('/admin/tracks');
+  return response.data;
+}
+
+export async function createAdminTrack(payload: AdminTrackCreate): Promise<AdminTrackDetail> {
+  const response = await axiosClient.post<AdminTrackDetail>('/admin/tracks', payload);
+  return response.data;
+}
+
+export async function updateAdminTrack(trackId: string, payload: AdminTrackUpdate): Promise<AdminTrackDetail> {
+  const response = await axiosClient.patch<AdminTrackDetail>(`/admin/tracks/${trackId}`, payload);
+  return response.data;
+}
+
+export async function deleteAdminTrack(trackId: string): Promise<void> {
+  await axiosClient.delete(`/admin/tracks/${trackId}`);
 }

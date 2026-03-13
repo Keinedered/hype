@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session, joinedload
+﻿from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from typing import List, Optional
 import models
@@ -9,7 +9,7 @@ import uuid
 
 # Users
 def create_user(db: Session, user: schemas.UserCreate) -> models.User:
-    """Создать пользователя"""
+    """Ð¡Ð¾Ð·Ð´Ð°Ñ‚ÑŒ Ð¿Ð¾Ð»ÑŒÐ·Ð¾Ð²Ð°Ñ‚ÐµÐ»Ñ"""
     db_user = models.User(
         id=str(uuid.uuid4()),
         email=user.email,
@@ -26,18 +26,64 @@ def create_user(db: Session, user: schemas.UserCreate) -> models.User:
 
 # Tracks
 def get_tracks(db: Session) -> List[models.Track]:
-    """Получить все треки"""
+    """ÐŸÐ¾Ð»ÑƒÑ‡Ð¸Ñ‚ÑŒ Ð²ÑÐµ Ñ‚Ñ€ÐµÐºÐ¸"""
     return db.query(models.Track).all()
 
 
+
+def get_admin_tracks(db: Session) -> List[models.Track]:
+    return db.query(models.Track).order_by(models.Track.id).all()
+
+
+def get_admin_track(db: Session, track_id: str) -> Optional[models.Track]:
+    return db.query(models.Track).filter(models.Track.id == track_id).first()
+
+
+def create_admin_track(db: Session, track: schemas.AdminTrackCreate) -> models.Track:
+    db_track = models.Track(
+        id=track.id,
+        name=track.name,
+        description=track.description,
+        color=track.color,
+    )
+    db.add(db_track)
+    db.commit()
+    db.refresh(db_track)
+    return db_track
+
+
+def update_admin_track(db: Session, track_id: str, track_update: schemas.AdminTrackUpdate) -> Optional[models.Track]:
+    db_track = db.query(models.Track).filter(models.Track.id == track_id).first()
+    if not db_track:
+        return None
+
+    data = track_update.dict(exclude_unset=True)
+    if "name" in data:
+        db_track.name = data["name"]
+    if "description" in data:
+        db_track.description = data["description"]
+    if "color" in data:
+        db_track.color = data["color"]
+
+    db.commit()
+    db.refresh(db_track)
+    return db_track
+
+
+def delete_admin_track(db: Session, track_id: str) -> bool:
+    deleted_rows = db.query(models.Track).filter(models.Track.id == track_id).delete(synchronize_session=False)
+    db.commit()
+    return deleted_rows > 0
+
+
 def get_track(db: Session, track_id: str) -> Optional[models.Track]:
-    """Получить трек по ID"""
+    """ÐŸÐ¾Ð»ÑƒÑ‡Ð¸Ñ‚ÑŒ Ñ‚Ñ€ÐµÐº Ð¿Ð¾ ID"""
     return db.query(models.Track).filter(models.Track.id == track_id).first()
 
 
 # Courses
 def get_courses(db: Session, track_id: Optional[str] = None, user_id: Optional[str] = None) -> List[dict]:
-    """Получить все курсы с прогрессом пользователя"""
+    """ÐŸÐ¾Ð»ÑƒÑ‡Ð¸Ñ‚ÑŒ Ð²ÑÐµ ÐºÑƒÑ€ÑÑ‹ Ñ Ð¿Ñ€Ð¾Ð³Ñ€ÐµÑÑÐ¾Ð¼ Ð¿Ð¾Ð»ÑŒÐ·Ð¾Ð²Ð°Ñ‚ÐµÐ»Ñ"""
     query = db.query(models.Course).options(joinedload(models.Course.authors))
     
     if track_id:
@@ -45,12 +91,12 @@ def get_courses(db: Session, track_id: Optional[str] = None, user_id: Optional[s
     
     courses = query.all()
     
-    # Если user_id передан, добавляем прогресс
+    # Ð•ÑÐ»Ð¸ user_id Ð¿ÐµÑ€ÐµÐ´Ð°Ð½, Ð´Ð¾Ð±Ð°Ð²Ð»ÑÐµÐ¼ Ð¿Ñ€Ð¾Ð³Ñ€ÐµÑÑ
     result = []
     for course in courses:
         course_dict = {
             "id": course.id,
-            "track_id": course.track_id.value if hasattr(course.track_id, 'value') else course.track_id,
+            "track_id": course.track_id,
             "title": course.title,
             "version": course.version,
             "description": course.description,
@@ -82,7 +128,7 @@ def get_courses(db: Session, track_id: Optional[str] = None, user_id: Optional[s
 
 
 def get_course(db: Session, course_id: str, user_id: Optional[str] = None) -> Optional[dict]:
-    """Получить курс по ID с прогрессом"""
+    """ÐŸÐ¾Ð»ÑƒÑ‡Ð¸Ñ‚ÑŒ ÐºÑƒÑ€Ñ Ð¿Ð¾ ID Ñ Ð¿Ñ€Ð¾Ð³Ñ€ÐµÑÑÐ¾Ð¼"""
     course = db.query(models.Course).options(joinedload(models.Course.authors)).filter(
         models.Course.id == course_id
     ).first()
@@ -92,7 +138,7 @@ def get_course(db: Session, course_id: str, user_id: Optional[str] = None) -> Op
     
     course_dict = {
         "id": course.id,
-        "track_id": course.track_id.value if hasattr(course.track_id, 'value') else course.track_id,
+        "track_id": course.track_id,
         "title": course.title,
         "version": course.version,
         "description": course.description,
@@ -120,27 +166,27 @@ def get_course(db: Session, course_id: str, user_id: Optional[str] = None) -> Op
 
 # Modules
 def get_modules(db: Session, course_id: str) -> List[models.Module]:
-    """Получить все модули курса"""
+    """ÐŸÐ¾Ð»ÑƒÑ‡Ð¸Ñ‚ÑŒ Ð²ÑÐµ Ð¼Ð¾Ð´ÑƒÐ»Ð¸ ÐºÑƒÑ€ÑÐ°"""
     return db.query(models.Module).filter(
         models.Module.course_id == course_id
     ).order_by(models.Module.order_index).all()
 
 
 def get_module(db: Session, module_id: str) -> Optional[models.Module]:
-    """Получить модуль по ID"""
+    """ÐŸÐ¾Ð»ÑƒÑ‡Ð¸Ñ‚ÑŒ Ð¼Ð¾Ð´ÑƒÐ»ÑŒ Ð¿Ð¾ ID"""
     return db.query(models.Module).filter(models.Module.id == module_id).first()
 
 
 # Lessons
 def get_lessons(db: Session, module_id: str) -> List[models.Lesson]:
-    """Получить все уроки модуля"""
+    """ÐŸÐ¾Ð»ÑƒÑ‡Ð¸Ñ‚ÑŒ Ð²ÑÐµ ÑƒÑ€Ð¾ÐºÐ¸ Ð¼Ð¾Ð´ÑƒÐ»Ñ"""
     return db.query(models.Lesson).filter(
         models.Lesson.module_id == module_id
     ).order_by(models.Lesson.order_index).all()
 
 
 def get_lesson(db: Session, lesson_id: str) -> Optional[models.Lesson]:
-    """Получить урок по ID"""
+    """ÐŸÐ¾Ð»ÑƒÑ‡Ð¸Ñ‚ÑŒ ÑƒÑ€Ð¾Ðº Ð¿Ð¾ ID"""
     return db.query(models.Lesson).options(
         joinedload(models.Lesson.handbook_excerpts),
         joinedload(models.Lesson.assignment)
@@ -149,19 +195,19 @@ def get_lesson(db: Session, lesson_id: str) -> Optional[models.Lesson]:
 
 # Graph
 def get_graph_nodes(db: Session, user_id: Optional[str] = None) -> List[models.GraphNode]:
-    """Получить все узлы графа"""
+    """ÐŸÐ¾Ð»ÑƒÑ‡Ð¸Ñ‚ÑŒ Ð²ÑÐµ ÑƒÐ·Ð»Ñ‹ Ð³Ñ€Ð°Ñ„Ð°"""
     return db.query(models.GraphNode).all()
 
 
 def get_graph_edges(db: Session) -> List[models.GraphEdge]:
-    """Получить все ребра графа"""
+    """ÐŸÐ¾Ð»ÑƒÑ‡Ð¸Ñ‚ÑŒ Ð²ÑÐµ Ñ€ÐµÐ±Ñ€Ð° Ð³Ñ€Ð°Ñ„Ð°"""
     return db.query(models.GraphEdge).all()
 
 
 # Submissions
 def create_submission(db: Session, submission: schemas.SubmissionCreate, user_id: str) -> models.Submission:
-    """Создать submission"""
-    # Проверяем существующие submissions
+    """Ð¡Ð¾Ð·Ð´Ð°Ñ‚ÑŒ submission"""
+    # ÐŸÑ€Ð¾Ð²ÐµÑ€ÑÐµÐ¼ ÑÑƒÑ‰ÐµÑÑ‚Ð²ÑƒÑŽÑ‰Ð¸Ðµ submissions
     existing = db.query(models.Submission).filter(
         models.Submission.assignment_id == submission.assignment_id,
         models.Submission.user_id == user_id
@@ -181,7 +227,7 @@ def create_submission(db: Session, submission: schemas.SubmissionCreate, user_id
     )
     db.add(db_submission)
     
-    # Добавляем файлы если есть
+    # Ð”Ð¾Ð±Ð°Ð²Ð»ÑÐµÐ¼ Ñ„Ð°Ð¹Ð»Ñ‹ ÐµÑÐ»Ð¸ ÐµÑÑ‚ÑŒ
     if submission.file_urls:
         for file_url in submission.file_urls:
             db_file = models.SubmissionFile(
@@ -196,7 +242,7 @@ def create_submission(db: Session, submission: schemas.SubmissionCreate, user_id
 
 
 def get_user_submissions(db: Session, user_id: str) -> List[models.Submission]:
-    """Получить все submissions пользователя"""
+    """ÐŸÐ¾Ð»ÑƒÑ‡Ð¸Ñ‚ÑŒ Ð²ÑÐµ submissions Ð¿Ð¾Ð»ÑŒÐ·Ð¾Ð²Ð°Ñ‚ÐµÐ»Ñ"""
     return db.query(models.Submission).filter(
         models.Submission.user_id == user_id
     ).order_by(models.Submission.created_at.desc()).all()
@@ -204,7 +250,7 @@ def get_user_submissions(db: Session, user_id: str) -> List[models.Submission]:
 
 # Notifications
 def get_user_notifications(db: Session, user_id: str, unread_only: bool = False) -> List[models.Notification]:
-    """Получить уведомления пользователя"""
+    """ÐŸÐ¾Ð»ÑƒÑ‡Ð¸Ñ‚ÑŒ ÑƒÐ²ÐµÐ´Ð¾Ð¼Ð»ÐµÐ½Ð¸Ñ Ð¿Ð¾Ð»ÑŒÐ·Ð¾Ð²Ð°Ñ‚ÐµÐ»Ñ"""
     query = db.query(models.Notification).filter(models.Notification.user_id == user_id)
     if unread_only:
         query = query.filter(models.Notification.is_read == False)
@@ -212,7 +258,7 @@ def get_user_notifications(db: Session, user_id: str, unread_only: bool = False)
 
 
 def mark_notification_read(db: Session, notification_id: str, user_id: str) -> Optional[models.Notification]:
-    """Отметить уведомление как прочитанное"""
+    """ÐžÑ‚Ð¼ÐµÑ‚Ð¸Ñ‚ÑŒ ÑƒÐ²ÐµÐ´Ð¾Ð¼Ð»ÐµÐ½Ð¸Ðµ ÐºÐ°Ðº Ð¿Ñ€Ð¾Ñ‡Ð¸Ñ‚Ð°Ð½Ð½Ð¾Ðµ"""
     notification = db.query(models.Notification).filter(
         models.Notification.id == notification_id,
         models.Notification.user_id == user_id
@@ -226,7 +272,7 @@ def mark_notification_read(db: Session, notification_id: str, user_id: str) -> O
 
 # User progress
 def update_course_progress(db: Session, user_id: str, course_id: str, progress: float, status: str):
-    """Обновить прогресс по курсу"""
+    """ÐžÐ±Ð½Ð¾Ð²Ð¸Ñ‚ÑŒ Ð¿Ñ€Ð¾Ð³Ñ€ÐµÑÑ Ð¿Ð¾ ÐºÑƒÑ€ÑÑƒ"""
     user_course = db.query(models.UserCourse).filter(
         models.UserCourse.user_id == user_id,
         models.UserCourse.course_id == course_id
@@ -252,7 +298,7 @@ def update_course_progress(db: Session, user_id: str, course_id: str, progress: 
 
 
 def update_lesson_progress(db: Session, user_id: str, lesson_id: str, status: str):
-    """Обновить прогресс по уроку"""
+    """ÐžÐ±Ð½Ð¾Ð²Ð¸Ñ‚ÑŒ Ð¿Ñ€Ð¾Ð³Ñ€ÐµÑÑ Ð¿Ð¾ ÑƒÑ€Ð¾ÐºÑƒ"""
     user_lesson = db.query(models.UserLesson).filter(
         models.UserLesson.user_id == user_id,
         models.UserLesson.lesson_id == lesson_id

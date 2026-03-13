@@ -4,9 +4,11 @@ import {
   createAdminCourse,
   createAdminLesson,
   createAdminModule,
+  createAdminTrack,
   deleteAdminCourse,
   deleteAdminLesson,
   deleteAdminModule,
+  deleteAdminTrack,
   deleteAdminUser,
   getAdminCourse,
   getAdminCourses,
@@ -14,12 +16,14 @@ import {
   getAdminLessons,
   getAdminModule,
   getAdminModules,
+  getAdminTracks,
   getAdminUserDetails,
   getAdminUsers,
   resetAdminUserPassword,
   updateAdminCourse,
   updateAdminLesson,
   updateAdminModule,
+  updateAdminTrack,
 } from '../api/admin';
 import { tracksAPI } from '../api/client';
 import { normalizeTrack, RawTrack } from '../api/normalizers';
@@ -30,6 +34,7 @@ import {
   AdminLessonListItem,
   AdminModuleDetail,
   AdminModuleListItem,
+  AdminTrackDetail,
   AdminUserDetail,
   AdminUserListItem,
   ResetPasswordResponse,
@@ -108,6 +113,13 @@ type LessonFormState = {
   orderIndex: number;
 };
 
+type TrackFormState = {
+  id: string;
+  name: string;
+  description: string;
+  color: string;
+};
+
 const emptyCourseForm = (): CourseFormState => ({
   id: '',
   trackId: '',
@@ -140,6 +152,14 @@ const emptyLessonForm = (moduleId: string): LessonFormState => ({
   orderIndex: 0,
 });
 
+const emptyTrackForm = (): TrackFormState => ({
+  id: '',
+  name: '',
+  description: '',
+  color: '',
+});
+
+
 export function AdminPage() {
   const [users, setUsers] = useState<AdminUserListItem[]>([]);
   const [isListLoading, setIsListLoading] = useState(true);
@@ -161,6 +181,12 @@ export function AdminPage() {
   const [deleteLoadingUserId, setDeleteLoadingUserId] = useState<string | null>(null);
 
   const [actionError, setActionError] = useState<string | null>(null);
+
+  const [adminTracks, setAdminTracks] = useState<AdminTrackDetail[]>([]);
+  const [tracksLoading, setTracksLoading] = useState(false);
+  const [tracksError, setTracksError] = useState<string | null>(null);
+  const [selectedTrackId, setSelectedTrackId] = useState<string | null>(null);
+  const [trackForm, setTrackForm] = useState<TrackFormState>(emptyTrackForm());
 
   const [tracks, setTracks] = useState<Track[]>([]);
   const [courses, setCourses] = useState<AdminCourseListItem[]>([]);
@@ -215,6 +241,41 @@ export function AdminPage() {
 
     void loadTracks();
   }, []);
+
+  useEffect(() => {
+    const loadAdminTracks = async () => {
+      setTracksLoading(true);
+      setTracksError(null);
+      try {
+        const data = await getAdminTracks();
+        setAdminTracks(data);
+      } catch (error) {
+        setTracksError(getErrorMessage(error, 'Не удалось загрузить треки.'));
+      } finally {
+        setTracksLoading(false);
+      }
+    };
+
+    void loadAdminTracks();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedTrackId) {
+      setTrackForm(emptyTrackForm());
+      return;
+    }
+    const selected = adminTracks.find((track) => track.id === selectedTrackId);
+    if (!selected) {
+      setTrackForm(emptyTrackForm());
+      return;
+    }
+    setTrackForm({
+      id: selected.id,
+      name: selected.name ?? '',
+      description: selected.description ?? '',
+      color: selected.color ?? '',
+    });
+  }, [selectedTrackId, adminTracks]);
 
   useEffect(() => {
     const loadCourses = async () => {
@@ -431,6 +492,87 @@ export function AdminPage() {
     setSelectedLessonId(null);
     setModuleForm(emptyModuleForm(course.id));
     setLessonForm(emptyLessonForm(''));
+  };
+
+  const refreshTracks = async () => {
+    try {
+      const adminData = await getAdminTracks();
+      setAdminTracks(adminData);
+    } catch {
+      // handled by callers
+    }
+
+    try {
+      const rawTracks = (await tracksAPI.getAll()) as RawTrack[];
+      setTracks(rawTracks.map(normalizeTrack));
+    } catch {
+      setTracks([]);
+    }
+  };
+
+  const handleTrackCreate = async () => {
+    setTracksError(null);
+    setContentMessage(null);
+    if (!trackForm.id) {
+      setTracksError('Выберите ID трека.');
+      return;
+    }
+    if (!trackForm.name.trim()) {
+      setTracksError('Укажите название трека.');
+      return;
+    }
+    try {
+      const created = await createAdminTrack({
+        id: trackForm.id.trim() as AdminTrackDetail['id'],
+        name: trackForm.name.trim(),
+        description: emptyToNull(trackForm.description),
+        color: emptyToNull(trackForm.color),
+      });
+      setContentMessage(`Трек "${created.name}" создан.`);
+      await refreshTracks();
+      setSelectedTrackId(created.id);
+    } catch (error) {
+      setTracksError(getErrorMessage(error, 'Не удалось создать трек.'));
+    }
+  };
+
+  const handleTrackUpdate = async () => {
+    if (!selectedTrackId) {
+      setTracksError('Выберите трек для обновления.');
+      return;
+    }
+    setTracksError(null);
+    setContentMessage(null);
+    try {
+      const updated = await updateAdminTrack(selectedTrackId, {
+        name: trackForm.name.trim(),
+        description: emptyToNull(trackForm.description),
+        color: emptyToNull(trackForm.color),
+      });
+      setContentMessage(`Трек "${updated.name}" обновлен.`);
+      await refreshTracks();
+    } catch (error) {
+      setTracksError(getErrorMessage(error, 'Не удалось обновить трек.'));
+    }
+  };
+
+  const handleTrackDelete = async (trackId: string) => {
+    if (!window.confirm('Удалить трек? Это возможно только если у трека нет курсов.')) {
+      return;
+    }
+    setTracksError(null);
+    setContentMessage(null);
+    try {
+      await deleteAdminTrack(trackId);
+      await refreshTracks();
+      if (selectedTrackId === trackId) {
+        setSelectedTrackId(null);
+        setTrackForm(emptyTrackForm());
+      }
+      setContentMessage('Трек удален.');
+    } catch (error) {
+      setTracksError(getErrorMessage(error, 'Не удалось удалить трек.'));
+    }
   };
 
   const handleCourseCreate = async () => {
@@ -888,6 +1030,149 @@ export function AdminPage() {
               </table>
             </div>
           )}
+        </section>
+
+        <section className="space-y-6 border-t-2 border-black pt-6">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <h2 className="font-mono text-lg uppercase tracking-wide">Треки</h2>
+              <p className="font-mono text-xs text-muted-foreground">Добавляйте и редактируйте треки (ID фиксированы).</p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-2 border-black rounded-none font-mono uppercase tracking-wide"
+              onClick={async () => {
+                setTracksError(null);
+                try {
+                  const data = await getAdminTracks();
+                  setAdminTracks(data);
+                } catch (error) {
+                  setTracksError(getErrorMessage(error, 'Не удалось обновить список треков.'));
+                }
+              }}
+            >
+              Обновить
+            </Button>
+          </div>
+
+          {tracksError && (
+            <div className="border-2 border-red-600 bg-red-50 p-3">
+              <p className="font-mono text-sm text-red-700">{tracksError}</p>
+            </div>
+          )}
+
+          <div className="grid lg:grid-cols-2 gap-6">
+            <div className="space-y-3 border-2 border-black p-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-mono text-sm uppercase tracking-wide">Список треков</h3>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-2 border-black rounded-none text-xs uppercase"
+                  onClick={() => {
+                    setSelectedTrackId(null);
+                    setTrackForm(emptyTrackForm());
+                  }}
+                >
+                  Новый
+                </Button>
+              </div>
+              {tracksLoading ? (
+                <p className="font-mono text-xs uppercase">Загрузка...</p>
+              ) : (
+                <div className="space-y-2">
+                  {adminTracks.map((track) => (
+                    <div
+                      key={track.id}
+                      className={`border-2 border-black p-3 cursor-pointer transition-colors ${selectedTrackId === track.id ? 'bg-black text-white' : 'bg-white hover:bg-black hover:text-white'}`}
+                      onClick={() => setSelectedTrackId(track.id)}
+                    >
+                      <div className="font-mono text-sm uppercase tracking-wide">{track.name}</div>
+                      <div className="font-mono text-xs opacity-70">{track.id}</div>
+                      <div className="mt-2 flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-2 border-black rounded-none text-xs uppercase"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleTrackDelete(track.id);
+                          }}
+                        >
+                          Удалить
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  {adminTracks.length === 0 && (
+                    <p className="font-mono text-xs text-muted-foreground">Треки не найдены.</p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-4 border-2 border-black p-4">
+              <h3 className="font-mono text-sm uppercase tracking-wide">Параметры трека</h3>
+              <div className="grid gap-3">
+                <div className="space-y-1">
+                  <label className="font-mono text-xs uppercase">ID трека</label>
+                  <Input
+                    value={trackForm.id}
+                    onChange={(event) => setTrackForm((prev) => ({ ...prev, id: event.target.value }))}
+                    className="rounded-none border-2 border-black font-mono"
+                    placeholder="event"
+                    disabled={Boolean(selectedTrackId)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-mono text-xs uppercase">Название</label>
+                  <Input
+                    value={trackForm.name}
+                    onChange={(event) => setTrackForm((prev) => ({ ...prev, name: event.target.value }))}
+                    className="rounded-none border-2 border-black font-mono"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-mono text-xs uppercase">Описание</label>
+                  <Textarea
+                    value={trackForm.description}
+                    onChange={(event) => setTrackForm((prev) => ({ ...prev, description: event.target.value }))}
+                    className="rounded-none border-2 border-black font-mono"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-mono text-xs uppercase">Цвет</label>
+                  <Input
+                    value={trackForm.color}
+                    onChange={(event) => setTrackForm((prev) => ({ ...prev, color: event.target.value }))}
+                    className="rounded-none border-2 border-black font-mono"
+                    placeholder="#E2B6C8"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {!selectedTrackId && (
+                  <Button
+                    type="button"
+                    className="border-2 border-black rounded-none font-mono uppercase tracking-wide"
+                    onClick={handleTrackCreate}
+                  >
+                    Создать трек
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-2 border-black rounded-none font-mono uppercase tracking-wide"
+                  onClick={handleTrackUpdate}
+                  disabled={!selectedTrackId}
+                >
+                  Сохранить изменения
+                </Button>
+              </div>
+            </div>
+          </div>
         </section>
 
         <section className="space-y-6 border-t-2 border-black pt-6">

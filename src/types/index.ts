@@ -1,4 +1,4 @@
-export type TrackId = 'event' | 'digital' | 'communication' | 'design';
+export type TrackId = string;
 
 export interface Track {
   id: TrackId;
@@ -107,5 +107,4 @@ export interface Notification {
   createdAt: Date;
   relatedUrl?: string;
 }
-
 

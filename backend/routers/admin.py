@@ -120,6 +120,54 @@ def delete_user(
     return None
 
 
+@router.get("/tracks", response_model=list[schemas.AdminTrackDetail])
+def list_tracks(
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_admin_user),
+):
+    return crud.get_admin_tracks(db)
+
+
+@router.post("/tracks", response_model=schemas.AdminTrackDetail, status_code=status.HTTP_201_CREATED)
+def create_track(
+    track: schemas.AdminTrackCreate,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_admin_user),
+):
+    existing = crud.get_admin_track(db, track.id)
+    if existing:
+        raise HTTPException(status_code=400, detail="Track already exists")
+    return crud.create_admin_track(db, track)
+
+
+@router.patch("/tracks/{track_id}", response_model=schemas.AdminTrackDetail)
+def update_track(
+    track_id: str,
+    track_update: schemas.AdminTrackUpdate,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_admin_user),
+):
+    updated = crud.update_admin_track(db, track_id, track_update)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Track not found")
+    return updated
+
+
+@router.delete("/tracks/{track_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_track(
+    track_id: str,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_admin_user),
+):
+    courses_count = db.query(models.Course).filter(models.Course.track_id == track_id).count()
+    if courses_count > 0:
+        raise HTTPException(status_code=400, detail="Track has courses")
+    deleted = crud.delete_admin_track(db, track_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Track not found")
+    return None
+
+
 @router.get("/courses", response_model=list[schemas.AdminCourseListItem])
 def list_courses(
     db: Session = Depends(get_db),

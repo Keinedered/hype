@@ -15,25 +15,25 @@ def init_tracks(db: Session):
     """Инициализация треков"""
     tracks_data = [
         {
-            "id": models.TrackIdEnum.event,
+            "id": "event",
             "name": "Ивент",
             "description": "Организация мероприятий и управление событиями",
             "color": "#E2B6C8",
         },
         {
-            "id": models.TrackIdEnum.digital,
+            "id": "digital",
             "name": "Цифровые продукты",
             "description": "Product management и продуктовая аналитика",
             "color": "#B6E2C8",
         },
         {
-            "id": models.TrackIdEnum.communication,
+            "id": "communication",
             "name": "Внешние коммуникации",
             "description": "Деловая коммуникация и внешние связи",
             "color": "#B6C8E2",
         },
         {
-            "id": models.TrackIdEnum.design,
+            "id": "design",
             "name": "Дизайн",
             "description": "Графический и продуктовый дизайн",
             "color": "#C8B6E2",
@@ -53,7 +53,7 @@ def init_courses(db: Session):
     courses_data = [
         {
             "id": "event-basics",
-            "track_id": models.TrackIdEnum.event,
+            "track_id": "event",
             "title": "Основы ивент-менеджмента",
             "version": "v1.0",
             "description": "Погружение в мир организации мероприятий: от концепции до пост-анализа",
@@ -67,7 +67,7 @@ def init_courses(db: Session):
         },
         {
             "id": "product-intro",
-            "track_id": models.TrackIdEnum.digital,
+            "track_id": "digital",
             "title": "Введение в продуктовый менеджмент",
             "version": "v1.0",
             "description": "Основы работы продакт-менеджера: от идеи до запуска",
@@ -81,7 +81,7 @@ def init_courses(db: Session):
         },
         {
             "id": "business-comm",
-            "track_id": models.TrackIdEnum.communication,
+            "track_id": "communication",
             "title": "Основы деловой переписки",
             "version": "v1.0",
             "description": "Эффективная деловая коммуникация в письменной форме",
@@ -94,7 +94,7 @@ def init_courses(db: Session):
         },
         {
             "id": "graphic-design",
-            "track_id": models.TrackIdEnum.design,
+            "track_id": "design",
             "title": "Основы графического дизайна",
             "version": "v1.0",
             "description": "Фундаментальные принципы визуального дизайна",

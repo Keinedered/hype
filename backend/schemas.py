@@ -5,11 +5,7 @@ from enum import Enum
 
 
 # Enums
-class TrackId(str, Enum):
-    event = "event"
-    digital = "digital"
-    communication = "communication"
-    design = "design"
+TrackId = str
 
 
 class CourseLevel(str, Enum):
@@ -74,6 +70,29 @@ class TrackBase(BaseModel):
 class Track(TrackBase):
     class Config:
         from_attributes = True
+
+
+class AdminTrackDetail(BaseModel):
+    id: TrackId
+    name: str
+    description: Optional[str] = None
+    color: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class AdminTrackCreate(BaseModel):
+    id: TrackId
+    name: str
+    description: Optional[str] = None
+    color: Optional[str] = None
+
+
+class AdminTrackUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    color: Optional[str] = None
 
 
 class CourseBase(BaseModel):

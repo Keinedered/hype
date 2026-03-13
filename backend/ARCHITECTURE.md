@@ -155,7 +155,7 @@ class Course(Base):
     __tablename__ = "courses"
     
     id = Column(String, primary_key=True)
-    track_id = Column(SQLEnum(TrackIdEnum), ForeignKey("tracks.id"))
+    track_id = Column(String, ForeignKey("tracks.id"))
     title = Column(String, nullable=False)
     
     # Relationship - связь с другими таблицами
@@ -169,7 +169,7 @@ class Course(Base):
 - **Many-to-Many:** через промежуточную таблицу
 
 **Enums:**
-- Используются для ограничения значений (например, `TrackIdEnum`, `CourseStatus`)
+- Используются для ограничения значений (например, `CourseStatus`)
 
 ---
 
@@ -667,4 +667,3 @@ curl -H "Authorization: Bearer <token>" \
 - ✅ Производительность
 - ✅ Поддерживаемость
 - ✅ Тестируемость
-

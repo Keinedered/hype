@@ -6,13 +6,6 @@ import enum
 
 
 # Enums
-class TrackIdEnum(enum.Enum):
-    event = "event"
-    digital = "digital"
-    communication = "communication"
-    design = "design"
-
-
 class CourseLevel(enum.Enum):
     beginner = "beginner"
     intermediate = "intermediate"
@@ -84,7 +77,7 @@ class User(Base):
 class Track(Base):
     __tablename__ = "tracks"
     
-    id = Column(SQLEnum(TrackIdEnum), primary_key=True)
+    id = Column(String, primary_key=True)
     name = Column(String, nullable=False)
     description = Column(Text)
     color = Column(String)
@@ -97,7 +90,7 @@ class Course(Base):
     __tablename__ = "courses"
     
     id = Column(String, primary_key=True, index=True)
-    track_id = Column(SQLEnum(TrackIdEnum), ForeignKey("tracks.id"), nullable=False)
+    track_id = Column(String, ForeignKey("tracks.id"), nullable=False)
     title = Column(String, nullable=False)
     version = Column(String)
     description = Column(Text)

@@ -32,6 +32,26 @@ export interface ResetPasswordResponse {
   temporary_password: string;
 }
 
+export interface AdminTrackDetail {
+  id: string;
+  name: string;
+  description?: string | null;
+  color?: string | null;
+}
+
+export interface AdminTrackCreate {
+  id: AdminTrackDetail['id'];
+  name: string;
+  description?: string | null;
+  color?: string | null;
+}
+
+export interface AdminTrackUpdate {
+  name?: string | null;
+  description?: string | null;
+  color?: string | null;
+}
+
 export interface AdminCourseListItem {
   id: string;
   track_id: 'event' | 'digital' | 'communication' | 'design';
