@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useEffect, WheelEvent, MouseEvent } from 'react';
+﻿?import { useState, useRef, useEffect, WheelEvent, MouseEvent } from 'react';
 import { Course, GraphNode, GraphEdge, Track } from '../types';
 import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { Button } from './ui/button';
@@ -13,7 +13,7 @@ interface KnowledgeGraphProps {
   onNodeClick?: (nodeId: string) => void;
 }
 
-// Ð¦ÐµÐ½Ñ‚Ñ€ Ð³Ñ€Ð°Ñ„Ð° Ð² ÐºÐ¾Ð¾Ñ€Ð´Ð¸Ð½Ð°Ñ‚Ð°Ñ… Ð´Ð°Ð½Ð½Ñ‹Ñ… (root ÑƒÐ·ÐµÐ»)
+// Центр графа в координатах данных (root узел)
 const GRAPH_CENTER_X = 800;
 const GRAPH_CENTER_Y = 500;
 
@@ -26,14 +26,14 @@ export function KnowledgeGraph({ nodes, edges, courses, tracks, filter = 'all', 
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // ÐÐ°Ñ‡Ð°Ð»ÑŒÐ½Ð°Ñ Ð¿Ð¾Ð·Ð¸Ñ†Ð¸Ñ Ð¸ Ð¼Ð°ÑÑˆÑ‚Ð°Ð± Ð¿Ð¾ Ñ€Ð°Ð·Ð¼ÐµÑ€Ñƒ ÐºÐ¾Ð½Ñ‚ÐµÐ¹Ð½ÐµÑ€Ð°: Ñ†ÐµÐ½Ñ‚Ñ€ Ð³Ñ€Ð°Ñ„Ð° ÑÐ¾Ð²Ð¿Ð°Ð´Ð°ÐµÑ‚ Ñ Ñ†ÐµÐ½Ñ‚Ñ€Ð¾Ð¼ Ð²Ð¸Ð´Ð°
+  // Начальная позиция и масштаб по размеру контейнера: центр графа совпадает с центром вида
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
     const width = container.clientWidth;
     const height = container.clientHeight;
     if (width <= 0 || height <= 0) return;
-    // ÐÐ° ÑƒÐ·ÐºÐ¸Ñ… ÑÐºÑ€Ð°Ð½Ð°Ñ… Ñ‡ÑƒÑ‚ÑŒ ÑƒÐ²ÐµÐ»Ð¸Ñ‡Ð¸Ð²Ð°ÐµÐ¼ Ð¼Ð°ÑÑˆÑ‚Ð°Ð±, Ñ‡Ñ‚Ð¾Ð±Ñ‹ Ð³Ñ€Ð°Ñ„ Ð±Ñ‹Ð» ÐºÑ€ÑƒÐ¿Ð½ÐµÐµ
+    // На узких экранах чуть увеличиваем масштаб, чтобы граф был крупнее
     const initialZoom = width < 640 ? 0.95 : width < 1024 ? 0.9 : 0.8;
     setZoom(initialZoom);
     setPan({ x: 0, y: 0 });
@@ -349,7 +349,7 @@ export function KnowledgeGraph({ nodes, edges, courses, tracks, filter = 'all', 
             handleZoomIn();
           }}
           className="bg-white border-2 border-black hover:bg-black hover:text-white transition-all font-mono"
-          title="Ð£Ð²ÐµÐ»Ð¸Ñ‡Ð¸Ñ‚ÑŒ"
+          title="Увеличить"
         >
           <ZoomIn className="w-4 h-4" />
         </Button>
@@ -362,7 +362,7 @@ export function KnowledgeGraph({ nodes, edges, courses, tracks, filter = 'all', 
             handleZoomOut();
           }}
           className="bg-white border-2 border-black hover:bg-black hover:text-white transition-all font-mono"
-          title="Ð£Ð¼ÐµÐ½ÑŒÑˆÐ¸Ñ‚ÑŒ"
+          title="Уменьшить"
         >
           <ZoomOut className="w-4 h-4" />
         </Button>
@@ -375,7 +375,7 @@ export function KnowledgeGraph({ nodes, edges, courses, tracks, filter = 'all', 
             handleReset();
           }}
           className="bg-white border-2 border-black hover:bg-black hover:text-white transition-all font-mono"
-          title="Ð¡Ð±Ñ€Ð¾ÑÐ¸Ñ‚ÑŒ"
+          title="Сбросить"
         >
           <Maximize2 className="w-4 h-4" />
         </Button>
@@ -658,10 +658,10 @@ export function KnowledgeGraph({ nodes, edges, courses, tracks, filter = 'all', 
                   className="text-xs px-3 py-1 border-2 border-black font-mono tracking-wide"
                   style={{ backgroundColor: getNodeColors(selectedNode).accent }}
                 >
-                  {selectedNode.status === 'completed' && 'ÐŸÐ ÐžÐ™Ð”Ð•ÐÐž'}
-                  {selectedNode.status === 'current' && 'Ð¢Ð•ÐšÐ£Ð©ÐÐ¯'}
-                  {selectedNode.status === 'open' && 'ÐžÐ¢ÐšÐ Ð«Ð¢Ðž'}
-                  {selectedNode.status === 'closed' && 'Ð—ÐÐšÐ Ð«Ð¢Ðž'}
+                  {selectedNode.status === 'completed' && 'ПРОЙДЕНО'}
+                  {selectedNode.status === 'current' && 'ТЕКУЩАЯ'}
+                  {selectedNode.status === 'open' && 'ОТКРЫТО'}
+                  {selectedNode.status === 'closed' && 'ЗАКРЫТО'}
                 </span>
               )}
             </div>
@@ -674,7 +674,7 @@ export function KnowledgeGraph({ nodes, edges, courses, tracks, filter = 'all', 
                 color: selectedNode.status === 'closed' ? '#666666' : '#ffffff'
               }}
             >
-              {selectedNode.status === 'closed' ? 'ÐÐ•Ð”ÐžÐ¡Ð¢Ð£ÐŸÐÐž' : 'ÐŸÐ•Ð Ð•Ð™Ð¢Ð˜ Ðš ÐšÐ£Ð Ð¡Ð£'}
+              {selectedNode.status === 'closed' ? 'НЕДОСТУПНО' : 'ПЕРЕЙТИ К КУРСУ'}
             </Button>
           </div>
         </Card>
@@ -682,3 +682,4 @@ export function KnowledgeGraph({ nodes, edges, courses, tracks, filter = 'all', 
     </div>
   );
 }
+

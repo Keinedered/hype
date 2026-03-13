@@ -60,40 +60,40 @@ export function PurposeGraph() {
   const nodes: Node[] = useMemo(() => [
     {
       id: 'structure',
-      title: 'Ð¡Ñ‚Ñ€ÑƒÐºÑ‚ÑƒÑ€Ð°',
-      subtitle: 'Ð’Ð¸Ð´Ð½Ð¾ ÑÐ²ÑÐ·Ð¸ Ñ‚ÐµÐ¼',
+      title: 'Структура',
+      subtitle: 'Видно связи тем',
       x: 170,
       y: 230,
       color: accentColors[0] ?? fallbackColors[0],
     },
     {
       id: 'focus',
-      title: 'Ð¤Ð¾ÐºÑƒÑ',
-      subtitle: 'ÐŸÐ¾Ð½ÑÑ‚Ð½Ð¾, Ñ‡Ñ‚Ð¾ Ð´Ð°Ð»ÑŒÑˆÐµ',
+      title: 'Фокус',
+      subtitle: 'Понятно, что дальше',
       x: 460,
       y: 135,
       color: accentColors[2] ?? fallbackColors[2],
     },
     {
       id: 'practice',
-      title: 'ÐŸÑ€Ð°ÐºÑ‚Ð¸ÐºÐ°',
-      subtitle: 'Ð—Ð°ÐºÑ€ÐµÐ¿Ð»ÐµÐ½Ð¸Ðµ Ð½Ð°Ð²Ñ‹ÐºÐ°',
+      title: 'Практика',
+      subtitle: 'Закрепление навыка',
       x: 460,
       y: 335,
       color: accentColors[1] ?? fallbackColors[1],
     },
     {
       id: 'feedback',
-      title: 'ÐžÐ±Ñ€Ð°Ñ‚Ð½Ð°Ñ ÑÐ²ÑÐ·ÑŒ',
-      subtitle: 'Ð ÐµÐºÐ¾Ð¼ÐµÐ½Ð´Ð°Ñ†Ð¸Ð¸ ÐºÑƒÑ€Ð°Ñ‚Ð¾Ñ€Ð°',
+      title: 'Обратная связь',
+      subtitle: 'Рекомендации куратора',
       x: 720,
       y: 335,
       color: accentColors[3] ?? fallbackColors[3],
     },
     {
       id: 'progress',
-      title: 'ÐŸÑ€Ð¾Ð³Ñ€ÐµÑÑ',
-      subtitle: 'ÐŸÑƒÑ‚ÑŒ Ð¸ ÑÐ¾ÑÑ‚Ð¾ÑÐ½Ð¸Ðµ',
+      title: 'Прогресс',
+      subtitle: 'Путь и состояние',
       x: 780,
       y: 165,
       color: accentColors[0] ?? fallbackColors[0],
@@ -108,7 +108,7 @@ export function PurposeGraph() {
         viewBox="70 20 800 420"
         className="w-full max-w-[800px] min-w-0 h-auto text-foreground"
         role="img"
-        aria-label="ÐžÑ€Ð¸ÐµÐ½Ñ‚Ð¸Ñ€Ð¾Ð²Ð°Ð½Ð½Ñ‹Ð¹ Ð³Ñ€Ð°Ñ„ Ð¿Ñ€Ð¸Ñ‡Ð¸Ð½, Ð·Ð°Ñ‡ÐµÐ¼ Ð½ÑƒÐ¶ÐµÐ½ GRAPH"
+        aria-label="Визуализированный граф причин, зачем нужен GRAPH"
         preserveAspectRatio="xMidYMid meet"
       >
         <defs>
