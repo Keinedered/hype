@@ -23,14 +23,14 @@ export function Header({ currentPage = 'home', onNavigate }: HeaderProps) {
   const { isAuthenticated, user } = useAuth();
   
   const navigation = [
-    { id: 'catalog', label: 'CATALOG' },
-    { id: 'path', label: 'MY PATH' },
-    { id: 'courses', label: 'MY COURSES' },
-    { id: 'about', label: 'ABOUT' }
+    { id: 'catalog', label: 'КАТАЛОГ' },
+    { id: 'path', label: 'МОЙ ПУТЬ' },
+    { id: 'courses', label: 'МОИ КУРСЫ' },
+    { id: 'about', label: 'О ПРОЕКТЕ' }
   ];
 
   const navigationItems = user?.role === 'admin'
-    ? [...navigation, { id: 'admin', label: 'ADMIN' }]
+    ? [...navigation, { id: 'admin', label: 'АДМИН' }]
     : navigation;
 
   const mockNotifications = [
