@@ -66,6 +66,24 @@ export type RawModule = {
   lessons?: RawLesson[] | null;
 };
 
+export type RawGraphNode = {
+  id: string;
+  type: string;
+  entity_id: string;
+  title: string;
+  x: number;
+  y: number;
+  status?: string | null;
+  size?: number | null;
+};
+
+export type RawGraphEdge = {
+  id: string;
+  source_id: string;
+  target_id: string;
+  type: string;
+};
+
 export const normalizeTrack = (raw: RawTrack): Track => ({
   id: raw.id as Track['id'],
   name: raw.name,
@@ -129,4 +147,22 @@ export const normalizeModule = (raw: RawModule): Module => ({
   orderIndex: raw.order_index ?? undefined,
   progress: raw.progress ?? undefined,
   lessons: (raw.lessons ?? []).map(normalizeLesson),
+});
+
+export const normalizeGraphNode = (raw: RawGraphNode) => ({
+  id: raw.id,
+  type: raw.type as any,
+  entityId: raw.entity_id,
+  title: raw.title,
+  x: raw.x,
+  y: raw.y,
+  status: raw.status ?? undefined,
+  size: raw.size ?? undefined,
+});
+
+export const normalizeGraphEdge = (raw: RawGraphEdge) => ({
+  id: raw.id,
+  sourceId: raw.source_id,
+  targetId: raw.target_id,
+  type: raw.type as any,
 });
