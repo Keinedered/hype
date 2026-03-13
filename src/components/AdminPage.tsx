@@ -1068,13 +1068,15 @@ export function AdminPage() {
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  className="border-2 border-black rounded-none font-mono uppercase tracking-wide"
-                  onClick={handleCourseCreate}
-                >
-                  Создать курс
-                </Button>
+                {!selectedCourseId && (
+                  <Button
+                    type="button"
+                    className="border-2 border-black rounded-none font-mono uppercase tracking-wide"
+                    onClick={handleCourseCreate}
+                  >
+                    Создать курс
+                  </Button>
+                )}
                 <Button
                   type="button"
                   variant="outline"
@@ -1207,13 +1209,15 @@ export function AdminPage() {
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  className="border-2 border-black rounded-none font-mono uppercase tracking-wide"
-                  onClick={handleModuleCreate}
-                >
-                  Создать модуль
-                </Button>
+                {!selectedModuleId && (
+                  <Button
+                    type="button"
+                    className="border-2 border-black rounded-none font-mono uppercase tracking-wide"
+                    onClick={handleModuleCreate}
+                  >
+                    Создать модуль
+                  </Button>
+                )}
                 <Button
                   type="button"
                   variant="outline"
@@ -1358,13 +1362,15 @@ export function AdminPage() {
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  className="border-2 border-black rounded-none font-mono uppercase tracking-wide"
-                  onClick={handleLessonCreate}
-                >
-                  Создать урок
-                </Button>
+                {!selectedLessonId && (
+                  <Button
+                    type="button"
+                    className="border-2 border-black rounded-none font-mono uppercase tracking-wide"
+                    onClick={handleLessonCreate}
+                  >
+                    Создать урок
+                  </Button>
+                )}
                 <Button
                   type="button"
                   variant="outline"
