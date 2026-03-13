@@ -13,13 +13,14 @@ import { Skeleton } from './ui/skeleton';
 interface LessonPageProps {
   onBack?: () => void;
   onNavigate?: (direction: 'prev' | 'next') => void;
+  onSelectLesson?: (lessonId: string) => void;
   onOpenMap?: () => void;
   onGoToCatalog?: (trackId?: TrackId | 'all') => void;
   onOpenHandbook?: () => void;
   lessonId?: string;
 }
 
-export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpenHandbook, lessonId }: LessonPageProps) {
+export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGoToCatalog, onOpenHandbook, lessonId }: LessonPageProps) {
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [module, setModule] = useState<Module | null>(null);
   const [track, setTrack] = useState<Track | null>(null);
@@ -55,15 +56,29 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
         const rawCourse = (await coursesAPI.getById(normalizedModule.courseId)) as RawCourse;
         const normalizedCourse = normalizeCourse(rawCourse);
 
+        const extractLessons = (value: unknown): RawLesson[] => {
+          if (Array.isArray(value)) return value as RawLesson[];
+          if (value && typeof value === 'object') {
+            const record = value as { lessons?: unknown; items?: unknown };
+            if (Array.isArray(record.lessons)) return record.lessons as RawLesson[];
+            if (Array.isArray(record.items)) return record.items as RawLesson[];
+          }
+          return [];
+        };
+
         const [rawTrack, rawModuleLessons] = await Promise.all([
           tracksAPI.getById(normalizedCourse.trackId),
           lessonsAPI.getByModuleId(normalizedModule.id),
         ]);
 
         const normalizedTrack = normalizeTrack(rawTrack as RawTrack);
-        const normalizedModuleLessons = (rawModuleLessons as RawLesson[])
+        let normalizedModuleLessons = extractLessons(rawModuleLessons)
           .map(normalizeLesson)
           .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
+
+        if (normalizedModuleLessons.length === 0 && normalizedModule.lessons.length > 0) {
+          normalizedModuleLessons = [...normalizedModule.lessons].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
+        }
 
         if (!isMounted) return;
         setLesson(normalizedLesson);
@@ -394,23 +409,33 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
 
             {/* Pagination */}
             <div className="flex justify-between pt-8">
-               <Button 
-                  variant="outline" 
-                  onClick={() => onNavigate?.('prev')}
-                  disabled={!prevLesson}
-                  className="rounded-none border-2 border-black/10 hover:border-black hover:bg-white h-12 px-6"
-               >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  <span className="font-mono text-xs uppercase">Предыдущий</span>
-               </Button>
-               <Button 
-                  onClick={() => onNavigate?.('next')}
-                  disabled={!nextLesson}
-                  className="rounded-none bg-black text-white hover:bg-gray-800 h-12 px-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)] transition-all"
-               >
-                  <span className="font-mono text-xs uppercase">Следующий урок</span>
-                  <ArrowRight className="w-4 h-4 ml-2" />
-               </Button>
+              <Button 
+                 variant="outline" 
+                 onClick={() => {
+                   if (prevLesson) {
+                     onSelectLesson?.(prevLesson.id);
+                   }
+                   onNavigate?.('prev');
+                 }}
+                 disabled={!prevLesson}
+                 className="rounded-none border-2 border-black/10 hover:border-black hover:bg-white h-12 px-6"
+              >
+                 <ArrowLeft className="w-4 h-4 mr-2" />
+                 <span className="font-mono text-xs uppercase">Предыдущий</span>
+              </Button>
+              <Button 
+                 onClick={() => {
+                   if (nextLesson) {
+                     onSelectLesson?.(nextLesson.id);
+                   }
+                   onNavigate?.('next');
+                 }}
+                 disabled={!nextLesson}
+                 className="rounded-none bg-black text-white hover:bg-gray-800 h-12 px-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)] transition-all"
+              >
+                 <span className="font-mono text-xs uppercase">Следующий урок</span>
+                 <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
             </div>
           </div>
 
@@ -428,7 +453,13 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
                    {moduleLessons.map((item, index) => {
                      const isCurrent = lesson.id === item.id;
                      return (
-                       <div key={item.id} className={`relative pl-10 py-3 -ml-4 px-4 rounded-r ${isCurrent ? '' : 'group cursor-default'}`}>
+                       <button
+                         key={item.id}
+                         type="button"
+                         onClick={() => onSelectLesson?.(item.id)}
+                         className={`relative w-full text-left pl-10 py-3 -ml-4 px-4 rounded-r transition-colors ${isCurrent ? '' : 'group hover:bg-white/70'} ${isCurrent ? 'cursor-default' : 'cursor-pointer'}`}
+                         disabled={isCurrent}
+                       >
                           <div className={`absolute left-[12px] top-1/2 -translate-y-1/2 w-[7px] h-[7px] rounded-full ${isCurrent ? 'bg-black border-2 border-white ring-1 ring-black' : 'bg-white border border-gray-400'}`}></div>
                           <div className={`text-sm ${isCurrent ? 'font-bold text-black' : 'text-gray-600'}`}>
                             Урок {index + 1}: {item.title}
@@ -439,7 +470,7 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
                           {isCurrent && (
                             <div className="text-xs text-gray-500 font-mono mt-1">Текущий урок</div>
                           )}
-                       </div>
+                       </button>
                      );
                    })}
                 </div>

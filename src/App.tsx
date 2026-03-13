@@ -52,19 +52,19 @@ export default function App() {
 
   const handleNavigate = (page: string) => {
     if (page.startsWith('lesson/')) {
-       const lessonId = page.split('/')[1];
+       const lessonId = page.split('/')[1]?.split('?')[0] || '';
        setSelectedLessonId(lessonId);
        setCurrentPage('lesson');
        return;
     }
     if (page.startsWith('course/')) {
-       const courseId = page.split('/')[1];
+       const courseId = page.split('/')[1]?.split('?')[0] || '';
        setSelectedCourseId(courseId);
        setCurrentPage('course');
        return;
     }
     if (page.startsWith('handbook/')) {
-       const courseId = page.split('/')[1];
+       const courseId = page.split('/')[1]?.split('?')[0] || '';
        setSelectedCourseId(courseId);
        setCurrentPage('handbook');
        return;
@@ -169,7 +169,7 @@ export default function App() {
 
   const handleSelectLesson = (lessonId: string) => {
     console.log('Selected lesson:', lessonId);
-    setSelectedLessonId(lessonId);
+    setSelectedLessonId(lessonId?.split('?')[0] || '');
     setCurrentPage('lesson');
   };
 
@@ -387,6 +387,7 @@ export default function App() {
           onBack={handleBackToCourse}
           onGoToCatalog={(trackId) => openCatalog(trackId ?? 'all')}
           lessonId={selectedLessonId || undefined}
+          onSelectLesson={handleSelectLesson}
           onNavigate={(direction) => {
             console.log('Navigate:', direction);
           }}
@@ -419,8 +420,6 @@ export default function App() {
     </div>
   );
 }
-
-
 
 
 

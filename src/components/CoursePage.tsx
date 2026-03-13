@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
-import { Course, Module, Track } from '../types';
+import { Course, Lesson, Module, Track } from '../types';
 import { coursesAPI, lessonsAPI, modulesAPI, tracksAPI } from '../api/client';
 import { normalizeCourse, normalizeLesson, normalizeModule, normalizeTrack, RawCourse, RawLesson, RawModule, RawTrack } from '../api/normalizers';
 import { Button } from './ui/button';
@@ -48,16 +48,36 @@ export function CoursePage({
         ]);
 
         const normalizedTrack = normalizeTrack(rawTrack as RawTrack);
-        const normalizedModules = (rawModules as RawModule[]).map(normalizeModule);
+        const rawModulesList = (rawModules as RawModule[]) ?? [];
+        const normalizedModules = rawModulesList.map(normalizeModule);
+
+        const extractLessons = (value: unknown): RawLesson[] => {
+          if (Array.isArray(value)) return value as RawLesson[];
+          if (value && typeof value === 'object') {
+            const record = value as { lessons?: unknown; items?: unknown };
+            if (Array.isArray(record.lessons)) return record.lessons as RawLesson[];
+            if (Array.isArray(record.items)) return record.items as RawLesson[];
+          }
+          return [];
+        };
 
         const lessonsByModule = await Promise.all(
-          normalizedModules.map(async (module) => {
-            const rawLessons = (await lessonsAPI.getByModuleId(module.id)) as RawLesson[];
+          normalizedModules.map(async (module, index) => {
+            let lessons: Lesson[] = [];
+            try {
+              const rawLessons = await lessonsAPI.getByModuleId(module.id);
+              lessons = extractLessons(rawLessons).map(normalizeLesson);
+            } catch {
+              lessons = [];
+            }
+
+            if (lessons.length === 0) {
+              const rawModule = rawModulesList[index];
+              lessons = (rawModule?.lessons ?? []).map(normalizeLesson);
+            }
             return {
               moduleId: module.id,
-              lessons: rawLessons
-                .map(normalizeLesson)
-                .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0)),
+              lessons: lessons.sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0)),
             };
           })
         );
