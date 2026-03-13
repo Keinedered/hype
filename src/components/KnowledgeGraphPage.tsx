@@ -1,11 +1,13 @@
-import { useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
-import { Progress } from './ui/progress';
 import { KnowledgeGraph } from './KnowledgeGraph';
 import { graphNodes, graphEdges, modules } from '../data/mockData';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { BookOpen, Bell } from 'lucide-react';
+import { coursesAPI, tracksAPI } from '../api/client';
+import { normalizeCourse, normalizeTrack, RawCourse, RawTrack } from '../api/normalizers';
+import { Course, Track } from '../types';
 
 interface KnowledgeGraphPageProps {
   onNodeClick?: (nodeId: string) => void;
@@ -14,6 +16,33 @@ interface KnowledgeGraphPageProps {
 
 export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGraphPageProps) {
   const [viewFilter, setViewFilter] = useState<'all' | 'completed' | 'uncompleted'>('all');
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [tracks, setTracks] = useState<Track[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const load = async () => {
+      try {
+        const [rawCourses, rawTracks] = await Promise.all([
+          coursesAPI.getAll(),
+          tracksAPI.getAll(),
+        ]);
+        if (!isMounted) return;
+        setCourses((rawCourses as RawCourse[]).map(normalizeCourse));
+        setTracks((rawTracks as RawTrack[]).map(normalizeTrack));
+      } catch {
+        if (!isMounted) return;
+        setCourses([]);
+        setTracks([]);
+      }
+    };
+
+    load();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-transparent">
@@ -21,7 +50,7 @@ export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGra
         {/* Page title */}
         <div className="mb-8 relative inline-block">
           <div className="bg-black text-white px-6 py-3 inline-block font-mono tracking-wider">
-            <h1 className="mb-0">МОЙ ПУТЬ / КАРТА ЗНАНИЙ</h1>
+            <h1 className="mb-0">ÐœÐžÐ™ ÐŸÐ£Ð¢Ð¬ / ÐšÐÐ Ð¢Ð Ð—ÐÐÐÐ˜Ð™</h1>
           </div>
           <div className="absolute -top-2 -left-2 w-5 h-5 border-l-2 border-t-2 border-black" />
           <div className="absolute -bottom-2 -right-2 w-5 h-5 border-r-2 border-b-2 border-black" />
@@ -39,10 +68,10 @@ export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGra
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="bg-black text-white px-3 py-1 inline-block mb-2 font-mono text-xs tracking-wide">
-                    КУРС
+                    ÐšÐ£Ð Ð¡
                   </div>
                   <h3 className="font-mono tracking-wide mb-1">
-                    ВВЕДЕНИЕ В ПРОДУКТОВЫЙ МЕНЕДЖМЕНТ
+                    Ð’Ð’Ð•Ð”Ð•ÐÐ˜Ð• Ð’ ÐŸÐ ÐžÐ”Ð£ÐšÐ¢ÐžÐ’Ð«Ð™ ÐœÐ•ÐÐ•Ð”Ð–ÐœÐ•ÐÐ¢
                   </h3>
                   <span className="text-sm text-muted-foreground font-mono">v1.0</span>
                 </div>
@@ -57,7 +86,7 @@ export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGra
 
               <div className="space-y-3 bg-white border-2 border-black p-4">
                 <div className="flex justify-between font-mono text-sm">
-                  <span>ПРОГРЕСС ПО КУРСУ</span>
+                  <span>ÐŸÐ ÐžÐ“Ð Ð•Ð¡Ð¡ ÐŸÐž ÐšÐ£Ð Ð¡Ð£</span>
                   <span className="font-bold">35%</span>
                 </div>
                 <div className="relative h-2 bg-white border border-black">
@@ -79,14 +108,14 @@ export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGra
                   className="flex-1 border-2 border-black hover:bg-black hover:text-white font-mono tracking-wide"
                 >
                   <BookOpen className="w-4 h-4 mr-2" />
-                  ХЕНДБУК
+                  Ð¥Ð•ÐÐ”Ð‘Ð£Ðš
                 </Button>
                 <Button 
                   variant="outline" 
                   size="sm" 
                   className="flex-1 border-2 border-black hover:bg-black hover:text-white font-mono tracking-wide"
                 >
-                  О КУРСЕ
+                  Ðž ÐšÐ£Ð Ð¡Ð•
                 </Button>
               </div>
             </Card>
@@ -94,7 +123,7 @@ export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGra
             {/* Modules list */}
             <Card className="p-6 border-2 border-black bg-white">
               <div className="bg-black text-white px-3 py-1 inline-block mb-4 font-mono text-sm tracking-wide">
-                СПИСОК МОДУЛЕЙ
+                Ð¡ÐŸÐ˜Ð¡ÐžÐš ÐœÐžÐ”Ð£Ð›Ð•Ð™
               </div>
               
               <Accordion type="single" collapsible className="space-y-3">
@@ -143,7 +172,7 @@ export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGra
             {/* Display options */}
             <Card className="p-6 border-2 border-black bg-white">
               <div className="bg-black text-white px-3 py-1 inline-block mb-4 font-mono text-sm tracking-wide">
-                ОТОБРАЖЕНИЕ
+                ÐžÐ¢ÐžÐ‘Ð ÐÐ–Ð•ÐÐ˜Ð•
               </div>
               <div className="space-y-3 text-sm font-mono">
                 <label className="flex items-center gap-3 cursor-pointer hover:bg-black hover:text-white p-2 border border-black transition-all">
@@ -154,7 +183,7 @@ export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGra
                     onChange={() => setViewFilter('all')}
                     className="accent-black" 
                   />
-                  <span>ПОЛНАЯ КАРТА</span>
+                  <span>ÐŸÐžÐ›ÐÐÐ¯ ÐšÐÐ Ð¢Ð</span>
                 </label>
                 <label className="flex items-center gap-3 cursor-pointer hover:bg-black hover:text-white p-2 border border-black transition-all">
                   <input 
@@ -164,7 +193,7 @@ export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGra
                     onChange={() => setViewFilter('completed')}
                     className="accent-black" 
                   />
-                  <span>ТОЛЬКО ПРОЙДЕННОЕ</span>
+                  <span>Ð¢ÐžÐ›Ð¬ÐšÐž ÐŸÐ ÐžÐ™Ð”Ð•ÐÐÐžÐ•</span>
                 </label>
                 <label className="flex items-center gap-3 cursor-pointer hover:bg-black hover:text-white p-2 border border-black transition-all">
                   <input 
@@ -174,17 +203,19 @@ export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGra
                     onChange={() => setViewFilter('uncompleted')}
                     className="accent-black" 
                   />
-                  <span>ТОЛЬКО НЕПРОЙДЕННОЕ</span>
+                  <span>Ð¢ÐžÐ›Ð¬ÐšÐž ÐÐ•ÐŸÐ ÐžÐ™Ð”Ð•ÐÐÐžÐ•</span>
                 </label>
               </div>
             </Card>
           </div>
 
-          {/* Right panel - Graph: отступ снизу для карточки узла */}
+          {/* Right panel - Graph: Ð¾Ñ‚ÑÑ‚ÑƒÐ¿ ÑÐ½Ð¸Ð·Ñƒ Ð´Ð»Ñ ÐºÐ°Ñ€Ñ‚Ð¾Ñ‡ÐºÐ¸ ÑƒÐ·Ð»Ð° */}
           <div className="h-full relative pb-4 md:pb-6">
             <KnowledgeGraph 
               nodes={graphNodes}
               edges={graphEdges}
+              courses={courses}
+              tracks={tracks}
               filter={viewFilter}
               onNodeClick={onNodeClick}
             />
@@ -194,3 +225,4 @@ export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGra
     </div>
   );
 }
+

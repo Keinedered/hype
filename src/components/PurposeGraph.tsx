@@ -1,5 +1,7 @@
-import { useId } from 'react';
-import { tracks } from '../data/mockData';
+﻿import { useEffect, useId, useMemo, useState } from 'react';
+import { tracksAPI } from '../api/client';
+import { normalizeTrack, RawTrack } from '../api/normalizers';
+import { Track } from '../types';
 
 type Node = {
   id: string;
@@ -15,50 +17,7 @@ type Edge = {
   to: string;
 };
 
-const accentColors = tracks.map((t) => t.color);
-
-const nodes: Node[] = [
-  {
-    id: 'structure',
-    title: 'Структура',
-    subtitle: 'Видно связи тем',
-    x: 170,
-    y: 230,
-    color: accentColors[0] ?? '#E2B6C8',
-  },
-  {
-    id: 'focus',
-    title: 'Фокус',
-    subtitle: 'Понятно, что дальше',
-    x: 460,
-    y: 135,
-    color: accentColors[2] ?? '#B6C8E2',
-  },
-  {
-    id: 'practice',
-    title: 'Практика',
-    subtitle: 'Закрепление навыка',
-    x: 460,
-    y: 335,
-    color: accentColors[1] ?? '#B6E2C8',
-  },
-  {
-    id: 'feedback',
-    title: 'Обратная связь',
-    subtitle: 'Рекомендации куратора',
-    x: 720,
-    y: 335,
-    color: accentColors[3] ?? '#C8B6E2',
-  },
-  {
-    id: 'progress',
-    title: 'Прогресс',
-    subtitle: 'Путь и состояние',
-    x: 780,
-    y: 165,
-    color: accentColors[0] ?? '#E2B6C8',
-  },
-];
+const fallbackColors = ['#E2B6C8', '#B6E2C8', '#B6C8E2', '#C8B6E2'];
 
 const edges: Edge[] = [
   { from: 'structure', to: 'focus' },
@@ -68,12 +27,80 @@ const edges: Edge[] = [
   { from: 'feedback', to: 'progress' },
 ];
 
-function getNodeById(id: string) {
-  return nodes.find((n) => n.id === id);
-}
-
 export function PurposeGraph() {
   const id = useId();
+  const [tracks, setTracks] = useState<Track[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const load = async () => {
+      try {
+        const rawTracks = (await tracksAPI.getAll()) as RawTrack[];
+        if (!isMounted) return;
+        setTracks(rawTracks.map(normalizeTrack));
+      } catch {
+        if (!isMounted) return;
+        setTracks([]);
+      }
+    };
+
+    load();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const accentColors = useMemo(() => {
+    const fromTracks = tracks.map((t) => t.color).filter(Boolean);
+    if (fromTracks.length === 0) return fallbackColors;
+    return [...fromTracks, ...fallbackColors].slice(0, 4);
+  }, [tracks]);
+
+  const nodes: Node[] = useMemo(() => [
+    {
+      id: 'structure',
+      title: 'Ð¡Ñ‚Ñ€ÑƒÐºÑ‚ÑƒÑ€Ð°',
+      subtitle: 'Ð’Ð¸Ð´Ð½Ð¾ ÑÐ²ÑÐ·Ð¸ Ñ‚ÐµÐ¼',
+      x: 170,
+      y: 230,
+      color: accentColors[0] ?? fallbackColors[0],
+    },
+    {
+      id: 'focus',
+      title: 'Ð¤Ð¾ÐºÑƒÑ',
+      subtitle: 'ÐŸÐ¾Ð½ÑÑ‚Ð½Ð¾, Ñ‡Ñ‚Ð¾ Ð´Ð°Ð»ÑŒÑˆÐµ',
+      x: 460,
+      y: 135,
+      color: accentColors[2] ?? fallbackColors[2],
+    },
+    {
+      id: 'practice',
+      title: 'ÐŸÑ€Ð°ÐºÑ‚Ð¸ÐºÐ°',
+      subtitle: 'Ð—Ð°ÐºÑ€ÐµÐ¿Ð»ÐµÐ½Ð¸Ðµ Ð½Ð°Ð²Ñ‹ÐºÐ°',
+      x: 460,
+      y: 335,
+      color: accentColors[1] ?? fallbackColors[1],
+    },
+    {
+      id: 'feedback',
+      title: 'ÐžÐ±Ñ€Ð°Ñ‚Ð½Ð°Ñ ÑÐ²ÑÐ·ÑŒ',
+      subtitle: 'Ð ÐµÐºÐ¾Ð¼ÐµÐ½Ð´Ð°Ñ†Ð¸Ð¸ ÐºÑƒÑ€Ð°Ñ‚Ð¾Ñ€Ð°',
+      x: 720,
+      y: 335,
+      color: accentColors[3] ?? fallbackColors[3],
+    },
+    {
+      id: 'progress',
+      title: 'ÐŸÑ€Ð¾Ð³Ñ€ÐµÑÑ',
+      subtitle: 'ÐŸÑƒÑ‚ÑŒ Ð¸ ÑÐ¾ÑÑ‚Ð¾ÑÐ½Ð¸Ðµ',
+      x: 780,
+      y: 165,
+      color: accentColors[0] ?? fallbackColors[0],
+    },
+  ], [accentColors]);
+
+  const getNodeById = (nodeId: string) => nodes.find((n) => n.id === nodeId);
 
   return (
     <div className="w-full overflow-x-auto flex justify-center">
@@ -81,7 +108,7 @@ export function PurposeGraph() {
         viewBox="70 20 800 420"
         className="w-full max-w-[800px] min-w-0 h-auto text-foreground"
         role="img"
-        aria-label="Ориентированный граф причин, зачем нужен GRAPH"
+        aria-label="ÐžÑ€Ð¸ÐµÐ½Ñ‚Ð¸Ñ€Ð¾Ð²Ð°Ð½Ð½Ñ‹Ð¹ Ð³Ñ€Ð°Ñ„ Ð¿Ñ€Ð¸Ñ‡Ð¸Ð½, Ð·Ð°Ñ‡ÐµÐ¼ Ð½ÑƒÐ¶ÐµÐ½ GRAPH"
         preserveAspectRatio="xMidYMid meet"
       >
         <defs>
@@ -173,5 +200,3 @@ export function PurposeGraph() {
     </div>
   );
 }
-
-
