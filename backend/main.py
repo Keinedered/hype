@@ -9,59 +9,11 @@ import models
 from config import settings
 from database import Base, engine
 
+# Uncomment when migrating database, so the container would not crash:
+#while True: pass
+
 # Create tables if they do not exist
 Base.metadata.create_all(bind=engine)
-
-
-def ensure_user_columns() -> None:
-    """Backfill user columns for existing DBs without migrations."""
-    inspector = inspect(engine)
-    columns = {column["name"] for column in inspector.get_columns("users")}
-
-    with engine.begin() as connection:
-        if "avatar_url" not in columns:
-            connection.execute(text("ALTER TABLE users ADD COLUMN avatar_url VARCHAR"))
-        if "role" not in columns:
-            connection.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR DEFAULT 'user' NOT NULL"))
-        if "last_login_at" not in columns:
-            connection.execute(text("ALTER TABLE users ADD COLUMN last_login_at TIMESTAMP WITH TIME ZONE NULL"))
-
-
-ensure_user_columns()
-
-
-def ensure_track_id_string() -> None:
-    """Ensure tracks.id and courses.track_id are plain TEXT (for enum migrations)."""
-    inspector = inspect(engine)
-    course_columns = {column["name"]: column for column in inspector.get_columns("courses")}
-    track_columns = {column["name"]: column for column in inspector.get_columns("tracks")}
-
-    track_id_type = str(track_columns.get("id", {}).get("type", "")).lower()
-    course_track_type = str(course_columns.get("track_id", {}).get("type", "")).lower()
-
-    needs_migration = ("enum" in track_id_type) or ("user-defined" in track_id_type) or ("enum" in course_track_type) or ("user-defined" in course_track_type)
-    if not needs_migration:
-        return
-
-    with engine.begin() as connection:
-        try:
-            connection.execute(text("ALTER TABLE courses ALTER COLUMN track_id TYPE TEXT USING track_id::text"))
-        except Exception:
-            # sqlite or already text
-            pass
-        try:
-            connection.execute(text("ALTER TABLE tracks ALTER COLUMN id TYPE TEXT USING id::text"))
-        except Exception:
-            pass
-
-        # Best-effort drop of enum type (Postgres). Ignore failures.
-        try:
-            connection.execute(text("DROP TYPE IF EXISTS trackidenum"))
-        except Exception:
-            pass
-
-
-ensure_track_id_string()
 
 # Create app
 app = FastAPI(

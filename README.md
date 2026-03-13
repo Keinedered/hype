@@ -689,3 +689,44 @@ MIT License - используйте свободно для любых целе
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Migrating database
+
+Run alembic from the docker container like this:
+
+```bash
+# create a new revision and edit it manually afterwards
+docker compose backend alembic revision -m "message"
+
+# generate a new revision automatically (still check it afterwards just in case ;) )
+docker compose backend alembic revision --autogenerate -m "message"
+
+# update to latest revision
+docker compose backend alembic upgrade head
+
+# mark environment as up-to-date
+docker compose exec backend alembic stamp head
+```
