@@ -118,3 +118,303 @@ def delete_user(
         raise HTTPException(status_code=404, detail="User not found")
 
     return None
+
+
+@router.get("/courses", response_model=list[schemas.AdminCourseListItem])
+def list_courses(
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_admin_user),
+):
+    courses = crud.get_admin_courses(db)
+    result = []
+    for course in courses:
+        result.append(
+            schemas.AdminCourseListItem(
+                id=course.id,
+                track_id=course.track_id,
+                title=course.title,
+                version=course.version,
+                level=course.level,
+                module_count=course.module_count,
+                lesson_count=course.lesson_count,
+                task_count=course.task_count,
+            )
+        )
+    return result
+
+
+@router.get("/courses/{course_id}", response_model=schemas.AdminCourseDetail)
+def get_course(
+    course_id: str,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_admin_user),
+):
+    course = crud.get_admin_course(db, course_id)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    return schemas.AdminCourseDetail(
+        id=course.id,
+        track_id=course.track_id,
+        title=course.title,
+        version=course.version,
+        description=course.description,
+        short_description=course.short_description,
+        level=course.level,
+        module_count=course.module_count,
+        lesson_count=course.lesson_count,
+        task_count=course.task_count,
+        authors=[author.author_name for author in course.authors],
+        enrollment_deadline=course.enrollment_deadline,
+        created_at=course.created_at,
+    )
+
+
+@router.post("/courses", response_model=schemas.AdminCourseDetail, status_code=status.HTTP_201_CREATED)
+def create_course(
+    course: schemas.AdminCourseCreate,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_admin_user),
+):
+    existing = crud.get_admin_course(db, course.id)
+    if existing:
+        raise HTTPException(status_code=400, detail="Course already exists")
+    created = crud.create_admin_course(db, course)
+    return schemas.AdminCourseDetail(
+        id=created.id,
+        track_id=created.track_id,
+        title=created.title,
+        version=created.version,
+        description=created.description,
+        short_description=created.short_description,
+        level=created.level,
+        module_count=created.module_count,
+        lesson_count=created.lesson_count,
+        task_count=created.task_count,
+        authors=[author.author_name for author in created.authors],
+        enrollment_deadline=created.enrollment_deadline,
+        created_at=created.created_at,
+    )
+
+
+@router.patch("/courses/{course_id}", response_model=schemas.AdminCourseDetail)
+def update_course(
+    course_id: str,
+    course_update: schemas.AdminCourseUpdate,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_admin_user),
+):
+    updated = crud.update_admin_course(db, course_id, course_update)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Course not found")
+    updated = crud.get_admin_course(db, course_id)
+    return schemas.AdminCourseDetail(
+        id=updated.id,
+        track_id=updated.track_id,
+        title=updated.title,
+        version=updated.version,
+        description=updated.description,
+        short_description=updated.short_description,
+        level=updated.level,
+        module_count=updated.module_count,
+        lesson_count=updated.lesson_count,
+        task_count=updated.task_count,
+        authors=[author.author_name for author in updated.authors],
+        enrollment_deadline=updated.enrollment_deadline,
+        created_at=updated.created_at,
+    )
+
+
+@router.delete("/courses/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_course(
+    course_id: str,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_admin_user),
+):
+    deleted = crud.delete_admin_course(db, course_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Course not found")
+    return None
+
+
+@router.get("/courses/{course_id}/modules", response_model=list[schemas.AdminModuleListItem])
+def list_modules(
+    course_id: str,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_admin_user),
+):
+    modules = crud.get_admin_modules(db, course_id)
+    return [
+        schemas.AdminModuleListItem(
+            id=module.id,
+            course_id=module.course_id,
+            title=module.title,
+            description=module.description,
+            order_index=module.order_index,
+            lesson_count=len(module.lessons),
+        )
+        for module in modules
+    ]
+
+
+@router.get("/modules/{module_id}", response_model=schemas.AdminModuleDetail)
+def get_module(
+    module_id: str,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_admin_user),
+):
+    module = crud.get_admin_module(db, module_id)
+    if not module:
+        raise HTTPException(status_code=404, detail="Module not found")
+    return schemas.AdminModuleDetail(
+        id=module.id,
+        course_id=module.course_id,
+        title=module.title,
+        description=module.description,
+        order_index=module.order_index,
+    )
+
+
+@router.post("/modules", response_model=schemas.AdminModuleDetail, status_code=status.HTTP_201_CREATED)
+def create_module(
+    module: schemas.AdminModuleCreate,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_admin_user),
+):
+    existing = crud.get_admin_module(db, module.id)
+    if existing:
+        raise HTTPException(status_code=400, detail="Module already exists")
+    created = crud.create_admin_module(db, module)
+    return schemas.AdminModuleDetail(
+        id=created.id,
+        course_id=created.course_id,
+        title=created.title,
+        description=created.description,
+        order_index=created.order_index,
+    )
+
+
+@router.patch("/modules/{module_id}", response_model=schemas.AdminModuleDetail)
+def update_module(
+    module_id: str,
+    module_update: schemas.AdminModuleUpdate,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_admin_user),
+):
+    updated = crud.update_admin_module(db, module_id, module_update)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Module not found")
+    return schemas.AdminModuleDetail(
+        id=updated.id,
+        course_id=updated.course_id,
+        title=updated.title,
+        description=updated.description,
+        order_index=updated.order_index,
+    )
+
+
+@router.delete("/modules/{module_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_module(
+    module_id: str,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_admin_user),
+):
+    deleted = crud.delete_admin_module(db, module_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Module not found")
+    return None
+
+
+@router.get("/modules/{module_id}/lessons", response_model=list[schemas.AdminLessonListItem])
+def list_lessons(
+    module_id: str,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_admin_user),
+):
+    lessons = crud.get_admin_lessons(db, module_id)
+    return [
+        schemas.AdminLessonListItem(
+            id=lesson.id,
+            module_id=lesson.module_id,
+            title=lesson.title,
+            description=lesson.description,
+            order_index=lesson.order_index,
+        )
+        for lesson in lessons
+    ]
+
+
+@router.get("/lessons/{lesson_id}", response_model=schemas.AdminLessonDetail)
+def get_lesson(
+    lesson_id: str,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_admin_user),
+):
+    lesson = crud.get_admin_lesson(db, lesson_id)
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    return schemas.AdminLessonDetail(
+        id=lesson.id,
+        module_id=lesson.module_id,
+        title=lesson.title,
+        description=lesson.description,
+        video_url=lesson.video_url,
+        video_duration=lesson.video_duration,
+        content=lesson.content,
+        order_index=lesson.order_index,
+    )
+
+
+@router.post("/lessons", response_model=schemas.AdminLessonDetail, status_code=status.HTTP_201_CREATED)
+def create_lesson(
+    lesson: schemas.AdminLessonCreate,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_admin_user),
+):
+    existing = crud.get_admin_lesson(db, lesson.id)
+    if existing:
+        raise HTTPException(status_code=400, detail="Lesson already exists")
+    created = crud.create_admin_lesson(db, lesson)
+    return schemas.AdminLessonDetail(
+        id=created.id,
+        module_id=created.module_id,
+        title=created.title,
+        description=created.description,
+        video_url=created.video_url,
+        video_duration=created.video_duration,
+        content=created.content,
+        order_index=created.order_index,
+    )
+
+
+@router.patch("/lessons/{lesson_id}", response_model=schemas.AdminLessonDetail)
+def update_lesson(
+    lesson_id: str,
+    lesson_update: schemas.AdminLessonUpdate,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_admin_user),
+):
+    updated = crud.update_admin_lesson(db, lesson_id, lesson_update)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    return schemas.AdminLessonDetail(
+        id=updated.id,
+        module_id=updated.module_id,
+        title=updated.title,
+        description=updated.description,
+        video_url=updated.video_url,
+        video_duration=updated.video_duration,
+        content=updated.content,
+        order_index=updated.order_index,
+    )
+
+
+@router.delete("/lessons/{lesson_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_lesson(
+    lesson_id: str,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_admin_user),
+):
+    deleted = crud.delete_admin_lesson(db, lesson_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    return None

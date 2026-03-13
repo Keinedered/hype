@@ -1,5 +1,21 @@
 import { axiosClient } from './axiosClient';
-import { AdminUserDetail, AdminUserListItem, ResetPasswordResponse } from '../types/admin';
+import {
+  AdminCourseCreate,
+  AdminCourseDetail,
+  AdminCourseListItem,
+  AdminCourseUpdate,
+  AdminLessonCreate,
+  AdminLessonDetail,
+  AdminLessonListItem,
+  AdminLessonUpdate,
+  AdminModuleCreate,
+  AdminModuleDetail,
+  AdminModuleListItem,
+  AdminModuleUpdate,
+  AdminUserDetail,
+  AdminUserListItem,
+  ResetPasswordResponse,
+} from '../types/admin';
 
 export async function getAdminUsers(): Promise<AdminUserListItem[]> {
   const response = await axiosClient.get<AdminUserListItem[]>('/admin/users');
@@ -18,4 +34,76 @@ export async function resetAdminUserPassword(userId: string): Promise<ResetPassw
 
 export async function deleteAdminUser(userId: string): Promise<void> {
   await axiosClient.delete(`/admin/users/${userId}`);
+}
+
+export async function getAdminCourses(): Promise<AdminCourseListItem[]> {
+  const response = await axiosClient.get<AdminCourseListItem[]>('/admin/courses');
+  return response.data;
+}
+
+export async function getAdminCourse(courseId: string): Promise<AdminCourseDetail> {
+  const response = await axiosClient.get<AdminCourseDetail>(`/admin/courses/${courseId}`);
+  return response.data;
+}
+
+export async function createAdminCourse(payload: AdminCourseCreate): Promise<AdminCourseDetail> {
+  const response = await axiosClient.post<AdminCourseDetail>('/admin/courses', payload);
+  return response.data;
+}
+
+export async function updateAdminCourse(courseId: string, payload: AdminCourseUpdate): Promise<AdminCourseDetail> {
+  const response = await axiosClient.patch<AdminCourseDetail>(`/admin/courses/${courseId}`, payload);
+  return response.data;
+}
+
+export async function deleteAdminCourse(courseId: string): Promise<void> {
+  await axiosClient.delete(`/admin/courses/${courseId}`);
+}
+
+export async function getAdminModules(courseId: string): Promise<AdminModuleListItem[]> {
+  const response = await axiosClient.get<AdminModuleListItem[]>(`/admin/courses/${courseId}/modules`);
+  return response.data;
+}
+
+export async function getAdminModule(moduleId: string): Promise<AdminModuleDetail> {
+  const response = await axiosClient.get<AdminModuleDetail>(`/admin/modules/${moduleId}`);
+  return response.data;
+}
+
+export async function createAdminModule(payload: AdminModuleCreate): Promise<AdminModuleDetail> {
+  const response = await axiosClient.post<AdminModuleDetail>('/admin/modules', payload);
+  return response.data;
+}
+
+export async function updateAdminModule(moduleId: string, payload: AdminModuleUpdate): Promise<AdminModuleDetail> {
+  const response = await axiosClient.patch<AdminModuleDetail>(`/admin/modules/${moduleId}`, payload);
+  return response.data;
+}
+
+export async function deleteAdminModule(moduleId: string): Promise<void> {
+  await axiosClient.delete(`/admin/modules/${moduleId}`);
+}
+
+export async function getAdminLessons(moduleId: string): Promise<AdminLessonListItem[]> {
+  const response = await axiosClient.get<AdminLessonListItem[]>(`/admin/modules/${moduleId}/lessons`);
+  return response.data;
+}
+
+export async function getAdminLesson(lessonId: string): Promise<AdminLessonDetail> {
+  const response = await axiosClient.get<AdminLessonDetail>(`/admin/lessons/${lessonId}`);
+  return response.data;
+}
+
+export async function createAdminLesson(payload: AdminLessonCreate): Promise<AdminLessonDetail> {
+  const response = await axiosClient.post<AdminLessonDetail>('/admin/lessons', payload);
+  return response.data;
+}
+
+export async function updateAdminLesson(lessonId: string, payload: AdminLessonUpdate): Promise<AdminLessonDetail> {
+  const response = await axiosClient.patch<AdminLessonDetail>(`/admin/lessons/${lessonId}`, payload);
+  return response.data;
+}
+
+export async function deleteAdminLesson(lessonId: string): Promise<void> {
+  await axiosClient.delete(`/admin/lessons/${lessonId}`);
 }

@@ -103,6 +103,64 @@ class CourseWithProgress(Course):
     status: Optional[CourseStatus] = None
 
 
+class AdminCourseListItem(BaseModel):
+    id: str
+    track_id: TrackId
+    title: str
+    version: str
+    level: CourseLevel
+    module_count: int
+    lesson_count: int
+    task_count: int
+
+    class Config:
+        from_attributes = True
+
+
+class AdminCourseDetail(BaseModel):
+    id: str
+    track_id: TrackId
+    title: str
+    version: str
+    description: str
+    short_description: str
+    level: CourseLevel
+    module_count: int
+    lesson_count: int
+    task_count: int
+    authors: List[str]
+    enrollment_deadline: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class AdminCourseCreate(BaseModel):
+    id: str
+    track_id: TrackId
+    title: str
+    version: str
+    description: str
+    short_description: str
+    level: CourseLevel
+    task_count: int = 0
+    enrollment_deadline: Optional[str] = None
+    authors: List[str] = []
+
+
+class AdminCourseUpdate(BaseModel):
+    track_id: Optional[TrackId] = None
+    title: Optional[str] = None
+    version: Optional[str] = None
+    description: Optional[str] = None
+    short_description: Optional[str] = None
+    level: Optional[CourseLevel] = None
+    task_count: Optional[int] = None
+    enrollment_deadline: Optional[str] = None
+    authors: Optional[List[str]] = None
+
+
 class HandbookExcerptBase(BaseModel):
     id: str
     section_title: str
@@ -167,6 +225,90 @@ class Module(ModuleBase):
 
     class Config:
         from_attributes = True
+
+
+class AdminModuleListItem(BaseModel):
+    id: str
+    course_id: str
+    title: str
+    description: str
+    order_index: int
+    lesson_count: int
+
+    class Config:
+        from_attributes = True
+
+
+class AdminModuleDetail(BaseModel):
+    id: str
+    course_id: str
+    title: str
+    description: str
+    order_index: int
+
+    class Config:
+        from_attributes = True
+
+
+class AdminModuleCreate(BaseModel):
+    id: str
+    course_id: str
+    title: str
+    description: str
+    order_index: int = 0
+
+
+class AdminModuleUpdate(BaseModel):
+    course_id: Optional[str] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    order_index: Optional[int] = None
+
+
+class AdminLessonListItem(BaseModel):
+    id: str
+    module_id: str
+    title: str
+    description: str
+    order_index: int
+
+    class Config:
+        from_attributes = True
+
+
+class AdminLessonDetail(BaseModel):
+    id: str
+    module_id: str
+    title: str
+    description: str
+    video_url: Optional[str] = None
+    video_duration: Optional[str] = None
+    content: str
+    order_index: int
+
+    class Config:
+        from_attributes = True
+
+
+class AdminLessonCreate(BaseModel):
+    id: str
+    module_id: str
+    title: str
+    description: str
+    video_url: Optional[str] = None
+    video_duration: Optional[str] = None
+    content: str
+    order_index: int = 0
+
+
+class AdminLessonUpdate(BaseModel):
+    module_id: Optional[str] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    video_url: Optional[str] = None
+    video_duration: Optional[str] = None
+    content: Optional[str] = None
+    order_index: Optional[int] = None
 
 
 class GraphNodeBase(BaseModel):
