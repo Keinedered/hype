@@ -329,26 +329,28 @@ def update_admin_course(db: Session, course_id: str, course_update: schemas.Admi
     if not db_course:
         return None
 
-    if course_update.track_id is not None:
-        db_course.track_id = course_update.track_id
-    if course_update.title is not None:
-        db_course.title = course_update.title
-    if course_update.version is not None:
-        db_course.version = course_update.version
-    if course_update.description is not None:
-        db_course.description = course_update.description
-    if course_update.short_description is not None:
-        db_course.short_description = course_update.short_description
-    if course_update.level is not None:
-        db_course.level = course_update.level
-    if course_update.task_count is not None:
-        db_course.task_count = course_update.task_count
-    if course_update.enrollment_deadline is not None:
-        db_course.enrollment_deadline = course_update.enrollment_deadline
+    data = course_update.dict(exclude_unset=True)
 
-    if course_update.authors is not None:
+    if "track_id" in data:
+        db_course.track_id = data["track_id"]
+    if "title" in data:
+        db_course.title = data["title"]
+    if "version" in data:
+        db_course.version = data["version"]
+    if "description" in data:
+        db_course.description = data["description"]
+    if "short_description" in data:
+        db_course.short_description = data["short_description"]
+    if "level" in data:
+        db_course.level = data["level"]
+    if "task_count" in data:
+        db_course.task_count = data["task_count"]
+    if "enrollment_deadline" in data:
+        db_course.enrollment_deadline = data["enrollment_deadline"]
+
+    if "authors" in data:
         db.query(models.CourseAuthor).filter(models.CourseAuthor.course_id == course_id).delete(synchronize_session=False)
-        for author_name in course_update.authors:
+        for author_name in data["authors"] or []:
             db.add(models.CourseAuthor(course_id=course_id, author_name=author_name))
 
     db.commit()
@@ -392,14 +394,16 @@ def update_admin_module(db: Session, module_id: str, module_update: schemas.Admi
 
     old_course_id = db_module.course_id
 
-    if module_update.course_id is not None:
-        db_module.course_id = module_update.course_id
-    if module_update.title is not None:
-        db_module.title = module_update.title
-    if module_update.description is not None:
-        db_module.description = module_update.description
-    if module_update.order_index is not None:
-        db_module.order_index = module_update.order_index
+    data = module_update.dict(exclude_unset=True)
+
+    if "course_id" in data:
+        db_module.course_id = data["course_id"]
+    if "title" in data:
+        db_module.title = data["title"]
+    if "description" in data:
+        db_module.description = data["description"]
+    if "order_index" in data:
+        db_module.order_index = data["order_index"]
 
     db.commit()
     db.refresh(db_module)
@@ -458,20 +462,22 @@ def update_admin_lesson(db: Session, lesson_id: str, lesson_update: schemas.Admi
 
     old_module_id = db_lesson.module_id
 
-    if lesson_update.module_id is not None:
-        db_lesson.module_id = lesson_update.module_id
-    if lesson_update.title is not None:
-        db_lesson.title = lesson_update.title
-    if lesson_update.description is not None:
-        db_lesson.description = lesson_update.description
-    if lesson_update.video_url is not None:
-        db_lesson.video_url = lesson_update.video_url
-    if lesson_update.video_duration is not None:
-        db_lesson.video_duration = lesson_update.video_duration
-    if lesson_update.content is not None:
-        db_lesson.content = lesson_update.content
-    if lesson_update.order_index is not None:
-        db_lesson.order_index = lesson_update.order_index
+    data = lesson_update.dict(exclude_unset=True)
+
+    if "module_id" in data:
+        db_lesson.module_id = data["module_id"]
+    if "title" in data:
+        db_lesson.title = data["title"]
+    if "description" in data:
+        db_lesson.description = data["description"]
+    if "video_url" in data:
+        db_lesson.video_url = data["video_url"]
+    if "video_duration" in data:
+        db_lesson.video_duration = data["video_duration"]
+    if "content" in data:
+        db_lesson.content = data["content"]
+    if "order_index" in data:
+        db_lesson.order_index = data["order_index"]
 
     db.commit()
     db.refresh(db_lesson)

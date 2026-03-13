@@ -71,6 +71,11 @@ function getErrorMessage(error: unknown, fallback: string): string {
   return axiosError.response?.data?.detail || axiosError.response?.data?.message || fallback;
 }
 
+const emptyToNull = (value: string): string | null => {
+  const trimmed = value.trim();
+  return trimmed.length === 0 ? null : trimmed;
+};
+
 type CourseFormState = {
   id: string;
   trackId: Track['id'] | '';
@@ -478,19 +483,20 @@ export function AdminPage() {
     setCoursesError(null);
 
     try {
+      const cleanedAuthors = courseForm.authorsText
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean);
       const updated = await updateAdminCourse(selectedCourseId, {
         track_id: courseForm.trackId || undefined,
         title: courseForm.title.trim(),
         version: courseForm.version.trim(),
-        description: courseForm.description.trim(),
-        short_description: courseForm.shortDescription.trim(),
+        description: emptyToNull(courseForm.description),
+        short_description: emptyToNull(courseForm.shortDescription),
         level: courseForm.level,
         task_count: Number(courseForm.taskCount) || 0,
-        enrollment_deadline: courseForm.enrollmentDeadline.trim() || null,
-        authors: courseForm.authorsText
-          .split(',')
-          .map((value) => value.trim())
-          .filter(Boolean),
+        enrollment_deadline: emptyToNull(courseForm.enrollmentDeadline),
+        authors: cleanedAuthors,
       });
       setContentMessage(`Курс "${updated.title}" обновлен.`);
       const updatedList = await getAdminCourses();
@@ -559,10 +565,11 @@ export function AdminPage() {
     setContentMessage(null);
 
     try {
+      const courseId = moduleForm.courseId.trim();
       await updateAdminModule(selectedModuleId, {
-        course_id: moduleForm.courseId.trim() || undefined,
+        course_id: courseId.length > 0 ? courseId : undefined,
         title: moduleForm.title.trim(),
-        description: moduleForm.description.trim(),
+        description: emptyToNull(moduleForm.description),
         order_index: Number(moduleForm.orderIndex) || 0,
       });
       if (selectedCourseId) {
@@ -637,13 +644,14 @@ export function AdminPage() {
     setContentMessage(null);
 
     try {
+      const moduleId = lessonForm.moduleId.trim();
       await updateAdminLesson(selectedLessonId, {
-        module_id: lessonForm.moduleId.trim() || undefined,
+        module_id: moduleId.length > 0 ? moduleId : undefined,
         title: lessonForm.title.trim(),
-        description: lessonForm.description.trim(),
-        video_url: lessonForm.videoUrl.trim() || null,
-        video_duration: lessonForm.videoDuration.trim() || null,
-        content: lessonForm.content.trim(),
+        description: emptyToNull(lessonForm.description),
+        video_url: emptyToNull(lessonForm.videoUrl),
+        video_duration: emptyToNull(lessonForm.videoDuration),
+        content: emptyToNull(lessonForm.content),
         order_index: Number(lessonForm.orderIndex) || 0,
       });
       if (selectedModuleId) {
