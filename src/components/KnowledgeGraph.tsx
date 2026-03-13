@@ -1,4 +1,4 @@
-﻿?import { useState, useRef, useEffect, WheelEvent, MouseEvent } from 'react';
+﻿import { useState, useRef, useEffect, WheelEvent, MouseEvent } from 'react';
 import { Course, GraphNode, GraphEdge, Track } from '../types';
 import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { Button } from './ui/button';
