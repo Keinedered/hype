@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { Course, Module, Track } from '../types';
 import { coursesAPI, lessonsAPI, modulesAPI, tracksAPI } from '../api/client';
 import { normalizeCourse, normalizeLesson, normalizeModule, normalizeTrack, RawCourse, RawLesson, RawModule, RawTrack } from '../api/normalizers';
@@ -55,11 +55,12 @@ export function CoursePage({
             const rawLessons = (await lessonsAPI.getByModuleId(module.id)) as RawLesson[];
             return {
               moduleId: module.id,
-              lessons: rawLessons.map(normalizeLesson).sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0)),
+              lessons: rawLessons
+                .map(normalizeLesson)
+                .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0)),
             };
           })
         );
-
 
         const modulesWithLessons = normalizedModules.map((module) => {
           const lessons = lessonsByModule.find((entry) => entry.moduleId === module.id)?.lessons ?? [];
@@ -72,7 +73,7 @@ export function CoursePage({
         setModules(modulesWithLessons);
       } catch (err) {
         if (!isMounted) return;
-        setError(err instanceof Error ? err.message : '?? ??????? ????????? ????');
+        setError(err instanceof Error ? err.message : 'Не удалось загрузить курс');
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -126,10 +127,10 @@ export function CoursePage({
         <div className="container mx-auto px-6 py-16">
           <div className="border-2 border-black bg-white p-8 text-center space-y-3">
             <div className="inline-flex items-center gap-2 bg-black text-white px-4 py-2 font-mono text-xs tracking-widest">
-              ???????? ? ???????
+              ПРОБЛЕМА С ДАННЫМИ
             </div>
-            <p className="font-mono text-sm text-muted-foreground">{error ?? '???? ?? ??????.'}</p>
-            <p className="font-mono text-xs text-muted-foreground">?????????? ???????? ???????? ??? ??????? ?????? ????.</p>
+            <p className="font-mono text-sm text-muted-foreground">{error ?? 'Курс не найден.'}</p>
+            <p className="font-mono text-xs text-muted-foreground">Попробуйте обновить страницу или открыть другой курс.</p>
           </div>
         </div>
       </div>
@@ -402,7 +403,3 @@ export function CoursePage({
     </div>
   );
 }
-
-
-
-

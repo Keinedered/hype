@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Button } from './ui/button';
@@ -37,7 +37,7 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
 
     const load = async () => {
       if (!lessonId) {
-        setError('???? ?? ??????.');
+        setError('Урок не выбран.');
         setLoading(false);
         return;
       }
@@ -61,7 +61,9 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
         ]);
 
         const normalizedTrack = normalizeTrack(rawTrack as RawTrack);
-        const normalizedModuleLessons = (rawModuleLessons as RawLesson[]).map(normalizeLesson).sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
+        const normalizedModuleLessons = (rawModuleLessons as RawLesson[])
+          .map(normalizeLesson)
+          .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
 
         if (!isMounted) return;
         setLesson(normalizedLesson);
@@ -74,7 +76,7 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
         setSubmissionError(null);
       } catch (err) {
         if (!isMounted) return;
-        setError(err instanceof Error ? err.message : '?? ??????? ????????? ????');
+        setError(err instanceof Error ? err.message : 'Не удалось загрузить урок');
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -117,7 +119,7 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
       setSubmissionStatus(status ?? 'pending');
     } catch (err) {
       setSubmissionStatus('not_submitted');
-      setSubmissionError(err instanceof Error ? err.message : '?? ??????? ????????? ???????');
+      setSubmissionError(err instanceof Error ? err.message : 'Не удалось отправить задание');
     }
   };
 
@@ -172,9 +174,9 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
         <div className="container mx-auto px-6 py-12">
           <div className="border-2 border-black bg-white p-8 text-center space-y-3">
             <div className="inline-flex items-center gap-2 bg-black text-white px-4 py-2 font-mono text-xs tracking-widest">
-              ???????? ? ???????
+              ПРОБЛЕМА С ДАННЫМИ
             </div>
-            <p className="font-mono text-sm text-muted-foreground">{error ?? '???? ?? ??????.'}</p>
+            <p className="font-mono text-sm text-muted-foreground">{error ?? 'Урок не найден.'}</p>
           </div>
         </div>
       </div>
@@ -459,10 +461,3 @@ export function LessonPage({ onBack, onNavigate, onOpenMap, onGoToCatalog, onOpe
     </div>
   );
 }
-
-
-
-
-
-
-

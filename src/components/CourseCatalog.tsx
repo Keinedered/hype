@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { CourseCard } from './CourseCard';
 import { TrackFilter } from './TrackFilter';
 import { coursesAPI, tracksAPI } from '../api/client';
@@ -43,7 +43,7 @@ export function CourseCatalog({ onCourseSelect, selectedTrack, onSelectedTrackCh
         setTracks((rawTracks as RawTrack[]).map(normalizeTrack));
       } catch (err) {
         if (!isMounted) return;
-        setError(err instanceof Error ? err.message : '?? ??????? ????????? ?????');
+        setError(err instanceof Error ? err.message : 'Не удалось загрузить курсы');
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -104,10 +104,10 @@ export function CourseCatalog({ onCourseSelect, selectedTrack, onSelectedTrackCh
       {!loading && error && (
         <div className="border-2 border-black bg-white p-8 text-center space-y-3">
           <div className="inline-flex items-center gap-2 bg-black text-white px-4 py-2 font-mono text-xs tracking-widest">
-            ???????? ? ???????
+            ПРОБЛЕМА С ДАННЫМИ
           </div>
           <p className="font-mono text-sm text-muted-foreground">{error}</p>
-          <p className="font-mono text-xs text-muted-foreground">?????????? ???????? ???????? ??? ????? ?????.</p>
+          <p className="font-mono text-xs text-muted-foreground">Попробуйте обновить страницу или войти снова.</p>
         </div>
       )}
 
@@ -127,10 +127,10 @@ export function CourseCatalog({ onCourseSelect, selectedTrack, onSelectedTrackCh
           {filteredCourses.length === 0 && (
             <div className="text-center py-20 border-2 border-black">
               <div className="bg-black text-white px-6 py-3 inline-block font-mono tracking-wide mb-4">
-                ?? ???????
+                НЕ НАЙДЕНО
               </div>
               <p className="text-muted-foreground font-mono">
-                ????? ? ?????????? ????????? ?? ???????.
+                Курсы с выбранными фильтрами не найдены.
               </p>
             </div>
           )}
