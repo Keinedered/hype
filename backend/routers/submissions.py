@@ -76,13 +76,40 @@ def create_submission(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
 
-@router.get("/", response_model=List[schemas.Submission])
+@router.get("/", response_model=List[schemas.UserSubmissionListItem])
 def get_user_submissions(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_active_user)
 ):
-    """Получить все submissions текущего пользователя"""
-    return crud.get_user_submissions(db, current_user.id)
+    """Получить все submissions текущего пользователя с деталями урока"""
+    submissions = crud.get_user_submissions(db, current_user.id)
+    result: list[schemas.UserSubmissionListItem] = []
+    for submission in submissions:
+        assignment = submission.assignment
+        lesson = assignment.lesson if assignment else None
+        module = lesson.module if lesson else None
+        course = module.course if module else None
+        track = course.track if course else None
+        result.append(
+            schemas.UserSubmissionListItem(
+                id=submission.id,
+                assignment_id=submission.assignment_id,
+                version=submission.version,
+                status=submission.status,
+                curator_comment=submission.curator_comment,
+                submitted_at=submission.submitted_at,
+                reviewed_at=submission.reviewed_at,
+                lesson_id=lesson.id if lesson else "",
+                lesson_title=lesson.title if lesson else None,
+                module_id=module.id if module else "",
+                module_title=module.title if module else None,
+                course_id=course.id if course else "",
+                course_title=course.title if course else None,
+                track_id=course.track_id if course else None,
+                track_color=track.color if track else None,
+            )
+        )
+    return result
 
 
 @router.patch("/{submission_id}", response_model=schemas.Submission)

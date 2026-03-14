@@ -46,6 +46,7 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
     submitted_at?: string | null;
   }>>([]);
   const [submissionStatus, setSubmissionStatus] = useState<'not_submitted' | 'pending' | 'accepted' | 'needs_revision'>('not_submitted');
+  const [lessonStatus, setLessonStatus] = useState<'not_started' | 'in_progress' | 'completed'>('not_started');
   const [submissionError, setSubmissionError] = useState<string | null>(null);
 
   const fileUrlsRef = useRef<string[]>([]);
@@ -123,9 +124,6 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
 
         const loadExistingSubmission = async () => {
           if (!isMounted) return;
-          if (!normalizedLesson.assignment) {
-            return;
-          }
           try {
             const submissions = (await submissionsAPI.getAll()) as Array<{
               id: string;
@@ -138,22 +136,34 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
               curator_comment?: string | null;
               submitted_at?: string | null;
             }>;
-            const assignmentSubmissions = submissions
-              .filter((submission) => submission.assignment_id === normalizedLesson.assignment?.id)
-              .sort((a, b) => (b.version ?? 0) - (a.version ?? 0));
-            const latest = assignmentSubmissions[0];
-            setSubmissionsList(assignmentSubmissions);
-            if (latest) {
-              setSubmissionId(latest.id);
-              setSubmissionStatus(latest.status ?? 'pending');
-              setTextAnswer(latest.text_answer ?? '');
-              setLinkUrl(latest.link_url ?? '');
-              setFileUrls(latest.file_urls ?? []);
+            if (normalizedLesson.assignment) {
+              const assignmentSubmissions = submissions
+                .filter((submission) => submission.assignment_id === normalizedLesson.assignment?.id)
+                .sort((a, b) => (b.version ?? 0) - (a.version ?? 0));
+              const latest = assignmentSubmissions[0];
+              setSubmissionsList(assignmentSubmissions);
+              if (latest) {
+                setSubmissionId(latest.id);
+                setSubmissionStatus(latest.status ?? 'pending');
+                setTextAnswer(latest.text_answer ?? '');
+                setLinkUrl(latest.link_url ?? '');
+                setFileUrls(latest.file_urls ?? []);
+              }
             }
           } catch {
             // Ignore submission load errors
           }
         };
+
+        // отмечаем урок без задания как начатый
+        if (!normalizedLesson.assignment) {
+          try {
+            await lessonsAPI.updateProgress(normalizedLesson.id, 'in_progress');
+            setLessonStatus('in_progress');
+          } catch {
+            // ignore errors
+          }
+        }
 
         if (!isMounted) return;
         setLesson(normalizedLesson);
@@ -165,6 +175,7 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
         setFileUrls([]);
         setSubmissionId(null);
         setSubmissionStatus('not_submitted');
+        setLessonStatus('not_started');
         setSubmissionError(null);
         setSubmissionsList([]);
         await loadExistingSubmission();
@@ -332,6 +343,16 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
   };
 
   const inputsLocked = submissionStatus === 'pending' || submissionStatus === 'accepted';
+
+  const completeLesson = async () => {
+    if (!lesson) return;
+    try {
+      await lessonsAPI.updateProgress(lesson.id, 'completed');
+      setLessonStatus('completed');
+    } catch {
+      // ignore
+    }
+  };
 
   if (loading) {
     return (
@@ -507,8 +528,8 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
               </div>
             )}
 
-            {/* Assignment Section */}
-            {lesson.assignment && (
+            {/* Assignment Section OR отметка прочтения */}
+            {lesson.assignment ? (
               <div className="mt-16 pt-16 border-t-2 border-black">
                  <h3 className="font-mono text-2xl font-bold uppercase mb-8 flex items-center gap-3">
                     <span className="w-8 h-8 bg-black text-white flex items-center justify-center text-sm">?</span>
@@ -664,6 +685,28 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
                        )}
                     </div>
                  </div>
+              </div>
+            ) : (
+              <div className="mt-12 pt-12 border-t-2 border-black">
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <div className="space-y-1">
+                    <h3 className="font-mono text-2xl font-bold uppercase">Заданий нет</h3>
+                    <p className="font-mono text-sm text-gray-600">Отметьте урок как изученный, чтобы зафиксировать прогресс.</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="font-mono text-xs uppercase border border-black px-3 py-1">
+                      {lessonStatus === 'completed' ? 'Завершен' : lessonStatus === 'in_progress' ? 'В процессе' : 'Не начат'}
+                    </div>
+                    <Button
+                      type="button"
+                      className="rounded-none border-2 border-black bg-black text-white hover:bg-gray-800 font-mono uppercase tracking-wide"
+                      onClick={() => void completeLesson()}
+                      disabled={lessonStatus === 'completed'}
+                    >
+                      Отметить как изучено
+                    </Button>
+                  </div>
+                </div>
               </div>
             )}
 

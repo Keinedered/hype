@@ -460,6 +460,24 @@ class AdminSubmissionListItem(BaseModel):
     reviewed_at: Optional[datetime] = None
 
 
+class UserSubmissionListItem(BaseModel):
+    id: str
+    assignment_id: str
+    version: int
+    status: SubmissionStatus
+    curator_comment: Optional[str] = None
+    submitted_at: Optional[datetime] = None
+    reviewed_at: Optional[datetime] = None
+    lesson_id: str
+    lesson_title: Optional[str] = None
+    module_id: str
+    module_title: Optional[str] = None
+    course_id: str
+    course_title: Optional[str] = None
+    track_id: Optional[str] = None
+    track_color: Optional[str] = None
+
+
 class AdminSubmissionReview(BaseModel):
     status: SubmissionStatus
     curator_comment: Optional[str] = None

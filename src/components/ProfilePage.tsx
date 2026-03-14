@@ -1,6 +1,6 @@
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from 'react';
 import { AxiosError } from 'axios';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { deleteMyAccount, deleteMyAvatar, updateMyProfile, uploadMyAvatar } from '../api/profile';
@@ -20,6 +20,7 @@ import {
 } from './ui/alert-dialog';
 import { Check, Clock, X, Bell, ArrowRight, Settings, HelpCircle, MessageSquare, Facebook, Twitter, Instagram } from 'lucide-react';
 import { clearClientAuthState } from '../api/client';
+import { submissionsAPI } from '../api/client';
 
 interface ProfilePageProps {
   onNavigateToLesson?: (lessonId: string) => void;
@@ -59,6 +60,34 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
 
   const { isAuthenticated, logout } = useAuth();
   const { data, isLoading, error } = useUserProfile(isAuthenticated);
+  const {
+    data: submissionsData,
+    isLoading: submissionsLoading,
+    error: submissionsError,
+  } = useQuery({
+    queryKey: ['my-submissions'],
+    queryFn: async () => {
+      const raw = (await submissionsAPI.getAll()) as any[];
+      return raw.map((item) => ({
+        id: item.id as string,
+        assignmentId: item.assignment_id as string,
+        version: item.version as number,
+        status: item.status as 'not_submitted' | 'pending' | 'accepted' | 'needs_revision',
+        curatorComment: item.curator_comment as string | null,
+        submittedAt: item.submitted_at as string | null,
+        reviewedAt: item.reviewed_at as string | null,
+        lessonId: item.lesson_id as string,
+        lessonTitle: (item.lesson_title as string | null) ?? '',
+        moduleId: item.module_id as string,
+        moduleTitle: (item.module_title as string | null) ?? '',
+        courseId: item.course_id as string,
+        courseTitle: (item.course_title as string | null) ?? '',
+        trackColor: (item.track_color as string | null) ?? '#000',
+      }));
+    },
+    enabled: isAuthenticated,
+    staleTime: 30_000,
+  });
 
   useEffect(() => {
     if (!data) {
@@ -229,38 +258,6 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
       isRead: true,
       relatedUrl: 'lesson/5',
       color: '#B6C8E2'
-    }
-  ];
-
-  const mockSubmissions = [
-    {
-      id: '1',
-      courseName: 'Введение в продуктовый менеджмент',
-      moduleName: 'Модуль 1: Роль продукта',
-      lessonName: 'Урок 1: Что такое продукт',
-      status: 'accepted' as const,
-      submittedAt: '15.12.2025',
-      reviewedAt: '16.12.2025',
-      trackColor: '#B6E2C8' // Digital
-    },
-    {
-      id: '2',
-      courseName: 'Введение в продуктовый менеджмент',
-      moduleName: 'Модуль 1: Роль продукта',
-      lessonName: 'Урок 2: Виды продуктов',
-      status: 'pending' as const,
-      submittedAt: '15.12.2025',
-      trackColor: '#B6E2C8' // Digital
-    },
-    {
-      id: '3',
-      courseName: 'Продуктовый дизайн и интерфейсы',
-      moduleName: 'Модуль 2: UX исследования',
-      lessonName: 'Урок 3: Интервью с пользователями',
-      status: 'needs_revision' as const,
-      submittedAt: '14.12.2025',
-      reviewedAt: '15.12.2025',
-      trackColor: '#C8B6E2' // Design
     }
   ];
 
@@ -639,55 +636,71 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
           </TabsContent>
 
           <TabsContent value="submissions" className="space-y-4">
-            <div className="grid gap-4">
-              {mockSubmissions.map((submission) => (
-                <div key={submission.id}>
-                  <div className="group relative bg-white/90 backdrop-blur-sm border-2 border-black p-6 hover:translate-x-1 hover:-translate-y-1 transition-transform duration-300">
-                    <div className="absolute top-0 left-0 w-2 h-full" style={{ backgroundColor: submission.trackColor }} />
+            {submissionsLoading ? (
+              <div className="text-center py-12 border-2 border-dashed border-black">
+                <p className="font-mono text-gray-500 uppercase">Загрузка заданий...</p>
+              </div>
+            ) : submissionsError ? (
+              <div className="border-2 border-red-600 bg-red-50 p-4">
+                <p className="font-mono text-sm text-red-700">
+                  Не удалось загрузить задания: {(submissionsError as AxiosError<ApiErrorResponse>).response?.data?.detail || (submissionsError as Error).message}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-4">
+                  {(submissionsData ?? []).map((submission) => (
+                    <div key={submission.id}>
+                      <div className="group relative bg-white/90 backdrop-blur-sm border-2 border-black p-6 hover:translate-x-1 hover:-translate-y-1 transition-transform duration-300">
+                        <div className="absolute top-0 left-0 w-2 h-full" style={{ backgroundColor: submission.trackColor }} />
 
-                    <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between pl-4">
-                      <div className="space-y-2 flex-1">
-                        <div className="flex items-center gap-3 mb-1">
-                          <span className={`px-2 py-0.5 text-xs font-mono border border-black uppercase ${
-                            submission.status === 'accepted' ? 'bg-white text-black' :
-                            submission.status === 'needs_revision' ? 'bg-black text-white' : 'bg-white text-gray-500 dashed-border'
-                          }`}>
-                            {getStatusText(submission.status)}
-                          </span>
-                          <span className="text-xs font-mono text-gray-500">{submission.submittedAt}</span>
+                        <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between pl-4">
+                          <div className="space-y-2 flex-1">
+                            <div className="flex items-center gap-3 mb-1">
+                              <span className={`px-2 py-0.5 text-xs font-mono border border-black uppercase ${
+                                submission.status === 'accepted' ? 'bg-white text-black' :
+                                submission.status === 'needs_revision' ? 'bg-black text-white' : 'bg-white text-gray-500 dashed-border'
+                              }`}>
+                                {getStatusText(submission.status)}
+                              </span>
+                              <span className="text-xs font-mono text-gray-500">
+                                {submission.submittedAt ? formatDate(submission.submittedAt) : '—'}
+                              </span>
+                            </div>
+                            <h3 className="text-xl font-bold font-mono uppercase">{submission.lessonTitle || submission.lessonId}</h3>
+                            <p className="font-mono text-sm text-gray-600">
+                              {submission.courseTitle || submission.courseId} <span className="mx-2">/</span> {submission.moduleTitle || submission.moduleId}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
+                            {submission.status === 'needs_revision' && submission.curatorComment && (
+                               <div className="hidden md:block text-right mr-4 max-w-xs">
+                                  <p className="text-xs border border-black p-2 font-mono uppercase whitespace-pre-wrap">
+                                     {submission.curatorComment}
+                                  </p>
+                               </div>
+                            )}
+                            <Button
+                              variant="outline"
+                              className="border-2 border-black hover:bg-black hover:text-white transition-colors rounded-none font-mono uppercase tracking-wide gap-2"
+                              onClick={() => onNavigateToLesson?.(submission.lessonId)}
+                            >
+                              Открыть <ArrowRight className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
-                        <h3 className="text-xl font-bold font-mono uppercase">{submission.lessonName}</h3>
-                        <p className="font-mono text-sm text-gray-600">
-                          {submission.courseName} <span className="mx-2">/</span> {submission.moduleName}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
-                        {submission.status === 'needs_revision' && (
-                           <div className="hidden md:block text-right mr-4 max-w-xs">
-                              <p className="text-xs border border-black p-2 font-mono uppercase">
-                                 Коммент: Добавьте детали...
-                              </p>
-                           </div>
-                        )}
-                        <Button
-                          variant="outline"
-                          className="border-2 border-black hover:bg-black hover:text-white transition-colors rounded-none font-mono uppercase tracking-wide gap-2"
-                          onClick={() => onNavigateToLesson?.(submission.id)}
-                        >
-                          Открыть <ArrowRight className="w-4 h-4" />
-                        </Button>
                       </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
 
-            {mockSubmissions.length === 0 && (
-              <div className="text-center py-20 border-2 border-dashed border-black">
-                <p className="font-mono text-gray-400 uppercase">Нет заданий</p>
-              </div>
+                {(submissionsData ?? []).length === 0 && (
+                  <div className="text-center py-20 border-2 border-dashed border-black">
+                    <p className="font-mono text-gray-400 uppercase">Нет заданий</p>
+                  </div>
+                )}
+              </>
             )}
           </TabsContent>
 

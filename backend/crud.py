@@ -115,12 +115,68 @@ def get_courses(db: Session, track_id: Optional[str] = None, user_id: Optional[s
                 models.UserCourse.user_id == user_id,
                 models.UserCourse.course_id == course.id
             ).first()
-            if user_course:
-                course_dict["progress"] = user_course.progress
-                course_dict["status"] = user_course.status.value if hasattr(user_course.status, 'value') else user_course.status
-            else:
-                course_dict["progress"] = None
-                course_dict["status"] = "not_started"
+            progress = user_course.progress if user_course else None
+            status_value = (
+                user_course.status.value if hasattr(user_course.status, "value") else user_course.status
+            ) if user_course else "not_started"
+
+            total_lessons = course.lesson_count or 0
+            if total_lessons > 0:
+                completed_lessons = (
+                    db.query(func.count(func.distinct(models.Lesson.id)))
+                    .outerjoin(models.Assignment, models.Lesson.id == models.Assignment.lesson_id)
+                    .outerjoin(models.Submission, models.Assignment.id == models.Submission.assignment_id)
+                    .outerjoin(models.UserLesson, models.UserLesson.lesson_id == models.Lesson.id)
+                    .join(models.Module, models.Lesson.module_id == models.Module.id)
+                    .filter(
+                        models.Module.course_id == course.id,
+                        (
+                            (models.Submission.user_id == user_id) &
+                            (models.Submission.status == models.SubmissionStatus.accepted)
+                        )
+                        | (
+                            (models.UserLesson.user_id == user_id) &
+                            (models.UserLesson.status == models.CourseStatus.completed)
+                        )
+                    )
+                    .scalar()
+                    or 0
+                )
+                in_progress_lessons = (
+                    db.query(func.count(func.distinct(models.Lesson.id)))
+                    .outerjoin(models.Assignment, models.Lesson.id == models.Assignment.lesson_id)
+                    .outerjoin(models.Submission, models.Assignment.id == models.Submission.assignment_id)
+                    .outerjoin(models.UserLesson, models.UserLesson.lesson_id == models.Lesson.id)
+                    .join(models.Module, models.Lesson.module_id == models.Module.id)
+                    .filter(
+                        models.Module.course_id == course.id,
+                        (
+                            (models.Submission.user_id == user_id) &
+                            (models.Submission.status.in_([models.SubmissionStatus.pending, models.SubmissionStatus.needs_revision]))
+                        )
+                        | (
+                            (models.UserLesson.user_id == user_id) &
+                            (models.UserLesson.status == models.CourseStatus.in_progress)
+                        )
+                    )
+                    .scalar()
+                    or 0
+                )
+
+                computed_progress = round((completed_lessons / total_lessons) * 100, 2)
+
+                if progress is None or progress == 0:
+                    progress = computed_progress
+
+                if completed_lessons == total_lessons and total_lessons > 0:
+                    status_value = "completed"
+                elif completed_lessons > 0 or in_progress_lessons > 0:
+                    status_value = "in_progress"
+                else:
+                    status_value = "not_started"
+
+            course_dict["progress"] = progress
+            course_dict["status"] = status_value
 
         result.append(course_dict)
 
@@ -157,9 +213,67 @@ def get_course(db: Session, course_id: str, user_id: Optional[str] = None) -> Op
             models.UserCourse.user_id == user_id,
             models.UserCourse.course_id == course.id
         ).first()
-        if user_course:
-            course_dict["progress"] = user_course.progress
-            course_dict["status"] = user_course.status.value if hasattr(user_course.status, 'value') else user_course.status
+        progress = user_course.progress if user_course else None
+        status_value = (
+            user_course.status.value if hasattr(user_course.status, "value") else user_course.status
+        ) if user_course else "not_started"
+
+        total_lessons = course.lesson_count or 0
+        if total_lessons > 0:
+            completed_lessons = (
+                db.query(func.count(func.distinct(models.Lesson.id)))
+                .outerjoin(models.Assignment, models.Lesson.id == models.Assignment.lesson_id)
+                .outerjoin(models.Submission, models.Assignment.id == models.Submission.assignment_id)
+                .outerjoin(models.UserLesson, models.UserLesson.lesson_id == models.Lesson.id)
+                .join(models.Module, models.Lesson.module_id == models.Module.id)
+                .filter(
+                    models.Module.course_id == course.id,
+                    (
+                        (models.Submission.user_id == user_id) &
+                        (models.Submission.status == models.SubmissionStatus.accepted)
+                    )
+                    | (
+                        (models.UserLesson.user_id == user_id) &
+                        (models.UserLesson.status == models.CourseStatus.completed)
+                    )
+                )
+                .scalar()
+                or 0
+            )
+            in_progress_lessons = (
+                db.query(func.count(func.distinct(models.Lesson.id)))
+                .outerjoin(models.Assignment, models.Lesson.id == models.Assignment.lesson_id)
+                .outerjoin(models.Submission, models.Assignment.id == models.Submission.assignment_id)
+                .outerjoin(models.UserLesson, models.UserLesson.lesson_id == models.Lesson.id)
+                .join(models.Module, models.Lesson.module_id == models.Module.id)
+                .filter(
+                    models.Module.course_id == course.id,
+                    (
+                        (models.Submission.user_id == user_id) &
+                        (models.Submission.status.in_([models.SubmissionStatus.pending, models.SubmissionStatus.needs_revision]))
+                    )
+                    | (
+                        (models.UserLesson.user_id == user_id) &
+                        (models.UserLesson.status == models.CourseStatus.in_progress)
+                    )
+                )
+                .scalar()
+                or 0
+            )
+
+            computed_progress = round((completed_lessons / total_lessons) * 100, 2)
+            if progress is None or progress == 0:
+                progress = computed_progress
+
+            if completed_lessons == total_lessons and total_lessons > 0:
+                status_value = "completed"
+            elif completed_lessons > 0 or in_progress_lessons > 0:
+                status_value = "in_progress"
+            else:
+                status_value = "not_started"
+
+        course_dict["progress"] = progress
+        course_dict["status"] = status_value
 
     return course_dict
 
@@ -359,10 +473,21 @@ def delete_submission(db: Session, submission_id: str, user_id: str) -> bool:
 
 
 def get_user_submissions(db: Session, user_id: str) -> List[models.Submission]:
-    """ÐŸÐ¾Ð»ÑƒÑ‡Ð¸Ñ‚ÑŒ Ð²ÑÐµ submissions Ð¿Ð¾Ð»ÑŒÐ·Ð¾Ð²Ð°Ñ‚ÐµÐ»Ñ"""
-    return db.query(models.Submission).filter(
-        models.Submission.user_id == user_id
-    ).order_by(models.Submission.created_at.desc()).all()
+    """Получить все submissions пользователя с необходимыми связями"""
+    return (
+        db.query(models.Submission)
+        .options(
+            joinedload(models.Submission.files),
+            joinedload(models.Submission.assignment)
+            .joinedload(models.Assignment.lesson)
+            .joinedload(models.Lesson.module)
+            .joinedload(models.Module.course)
+            .joinedload(models.Course.track),
+        )
+        .filter(models.Submission.user_id == user_id)
+        .order_by(models.Submission.created_at.desc())
+        .all()
+    )
 
 
 def get_admin_submissions(db: Session, course_ids: Optional[List[str]] = None) -> List[models.Submission]:

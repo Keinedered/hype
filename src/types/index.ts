@@ -80,6 +80,8 @@ export interface Submission {
   reviewedAt?: Date;
 }
 
+export type LessonProgressStatus = 'not_started' | 'in_progress' | 'completed';
+
 export interface GraphNode {
   id: string;
   type: 'track' | 'course' | 'module' | 'lesson' | 'concept';
