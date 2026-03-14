@@ -554,6 +554,14 @@ class AdminUserDetail(BaseModel):
     user_lessons_count: int
 
 
+class AdminUserUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+    username: Optional[str] = None
+    full_name: Optional[str] = None
+    role: Optional[UserRole] = None
+    is_active: Optional[bool] = None
+
+
 class ResetPasswordResponse(BaseModel):
     user_id: str
     username: str

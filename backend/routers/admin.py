@@ -152,6 +152,41 @@ def reset_user_password(
     )
 
 
+@router.patch("/users/{user_id}", response_model=schemas.AdminUserDetail)
+def update_user(
+    user_id: str,
+    user_update: schemas.AdminUserUpdate,
+    db: Session = Depends(get_db),
+    current_admin: models.User = Depends(get_current_admin_user),
+):
+    if current_admin.id == user_id:
+        if user_update.role is not None and user_update.role != "admin":
+            raise HTTPException(status_code=400, detail="You cannot remove your own admin role")
+        if user_update.is_active is not None and user_update.is_active is False:
+            raise HTTPException(status_code=400, detail="You cannot deactivate your own account")
+
+    updated = crud.update_admin_user(db, user_id, user_update)
+    if not updated:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return schemas.AdminUserDetail(
+        id=updated.id,
+        username=updated.username,
+        email=updated.email,
+        full_name=updated.full_name,
+        role=updated.role,
+        is_active=updated.is_active,
+        avatar_url=updated.avatar_url,
+        created_at=updated.created_at,
+        last_login_at=updated.last_login_at,
+        hashed_password=updated.hashed_password,
+        submissions_count=len(updated.submissions),
+        notifications_count=len(updated.notifications),
+        user_courses_count=len(updated.user_courses),
+        user_lessons_count=len(updated.user_lessons),
+    )
+
+
 @router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_user(
     user_id: str,

@@ -737,6 +737,28 @@ def update_user(db: Session, user_id: str, user_update: schemas.UserUpdate) -> O
     db.refresh(db_user)
     return db_user
 
+
+def update_admin_user(db: Session, user_id: str, user_update: schemas.AdminUserUpdate) -> Optional[models.User]:
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not db_user:
+        return None
+
+    data = user_update.dict(exclude_unset=True)
+    if "email" in data:
+        db_user.email = data["email"]
+    if "username" in data:
+        db_user.username = data["username"]
+    if "full_name" in data:
+        db_user.full_name = data["full_name"]
+    if "role" in data:
+        db_user.role = data["role"]
+    if "is_active" in data:
+        db_user.is_active = data["is_active"]
+
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
 def delete_user(db: Session, user_id: str) -> bool:
     """Delete user by id using SQL DELETE so DB cascades handle children."""
     deleted_rows = db.query(models.User).filter(models.User.id == user_id).delete(synchronize_session=False)

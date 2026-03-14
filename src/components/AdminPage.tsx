@@ -23,6 +23,7 @@ import {
   getAdminTracks,
   getAdminUserDetails,
   getAdminUsers,
+  updateAdminUser,
   reviewAdminSubmission,
   resetAdminUserPassword,
   uploadAdminLessonVideo,
@@ -45,6 +46,7 @@ import {
   AdminTrackDetail,
   AdminUserDetail,
   AdminUserListItem,
+  AdminUserUpdate,
   ResetPasswordResponse,
 } from '../types/admin';
 import { Track } from '../types';
@@ -201,6 +203,8 @@ export function AdminPage() {
   const [detailsLoadingUserId, setDetailsLoadingUserId] = useState<string | null>(null);
   const [selectedDetails, setSelectedDetails] = useState<AdminUserDetail | null>(null);
   const [detailsError, setDetailsError] = useState<string | null>(null);
+  const [userEditForm, setUserEditForm] = useState<AdminUserUpdate | null>(null);
+  const [userEditLoading, setUserEditLoading] = useState(false);
 
   const [resetLoadingUserId, setResetLoadingUserId] = useState<string | null>(null);
   const [tempPasswordData, setTempPasswordData] = useState<ResetPasswordResponse | null>(null);
@@ -511,12 +515,43 @@ export function AdminPage() {
     try {
       const details = await getAdminUserDetails(userId);
       setSelectedDetails(details);
+      setUserEditForm({
+        email: details.email,
+        username: details.username,
+        full_name: details.full_name ?? '',
+        role: details.role,
+        is_active: details.is_active,
+      });
     } catch (error) {
       const message = getErrorMessage(error, 'Failed to load user details.');
       setDetailsError(message);
       setActionError(message);
     } finally {
       setDetailsLoadingUserId(null);
+    }
+  };
+
+  const handleUserUpdate = async () => {
+    if (!selectedDetails || !userEditForm) {
+      return;
+    }
+    setUserEditLoading(true);
+    setActionError(null);
+    try {
+      const updated = await updateAdminUser(selectedDetails.id, {
+        email: userEditForm.email?.trim() || null,
+        username: userEditForm.username?.trim() || null,
+        full_name: userEditForm.full_name?.trim() || null,
+        role: userEditForm.role,
+        is_active: userEditForm.is_active,
+      });
+      setSelectedDetails(updated);
+      setUsers((prev) => prev.map((user) => (user.id === updated.id ? { ...user, username: updated.username, email: updated.email, role: updated.role, is_active: updated.is_active } : user)));
+      setContentMessage(`Пользователь "${updated.username}" обновлен.`);
+    } catch (error) {
+      setActionError(getErrorMessage(error, 'Failed to update user.'));
+    } finally {
+      setUserEditLoading(false);
     }
   };
 
@@ -1068,6 +1103,7 @@ export function AdminPage() {
                     setDetailsOpen(false);
                     setSelectedDetails(null);
                     setDetailsError(null);
+                    setUserEditForm(null);
                   }}
                 >
                   Close
@@ -1077,20 +1113,82 @@ export function AdminPage() {
               {detailsError ? (
                 <p className="font-mono text-sm text-red-700">{detailsError}</p>
               ) : selectedDetails ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-xs">
-                  <div><strong>ID:</strong> {selectedDetails.id}</div>
-                  <div><strong>Username:</strong> {selectedDetails.username}</div>
-                  <div><strong>Email:</strong> {selectedDetails.email}</div>
-                  <div><strong>Role:</strong> {selectedDetails.role}</div>
-                  <div><strong>Active:</strong> {String(selectedDetails.is_active)}</div>
-                  <div><strong>Avatar:</strong> {selectedDetails.avatar_url ?? '-'}</div>
-                  <div><strong>Created:</strong> {formatDate(selectedDetails.created_at)}</div>
-                  <div><strong>Last login:</strong> {formatDate(selectedDetails.last_login_at)}</div>
-                  <div className="md:col-span-2"><strong>Hashed password:</strong> {selectedDetails.hashed_password}</div>
-                  <div><strong>Submissions:</strong> {selectedDetails.submissions_count}</div>
-                  <div><strong>Notifications:</strong> {selectedDetails.notifications_count}</div>
-                  <div><strong>User courses:</strong> {selectedDetails.user_courses_count}</div>
-                  <div><strong>User lessons:</strong> {selectedDetails.user_lessons_count}</div>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 font-mono text-xs">
+                    <div><strong>ID:</strong> {selectedDetails.id}</div>
+                    <div><strong>Avatar:</strong> {selectedDetails.avatar_url ?? '-'}</div>
+                    <div><strong>Created:</strong> {formatDate(selectedDetails.created_at)}</div>
+                    <div><strong>Last login:</strong> {formatDate(selectedDetails.last_login_at)}</div>
+                    <div className="md:col-span-2"><strong>Hashed password:</strong> {selectedDetails.hashed_password}</div>
+                    <div><strong>Submissions:</strong> {selectedDetails.submissions_count}</div>
+                    <div><strong>Notifications:</strong> {selectedDetails.notifications_count}</div>
+                    <div><strong>User courses:</strong> {selectedDetails.user_courses_count}</div>
+                    <div><strong>User lessons:</strong> {selectedDetails.user_lessons_count}</div>
+                  </div>
+
+                  {userEditForm && (
+                    <div className="border-2 border-black/40 p-3 space-y-3">
+                      <div className="font-mono text-xs uppercase tracking-wide">Редактирование</div>
+                      <div className="grid md:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="font-mono text-[10px] uppercase">Username</label>
+                          <Input
+                            value={userEditForm.username ?? ''}
+                            onChange={(event) => setUserEditForm((prev) => prev ? { ...prev, username: event.target.value } : prev)}
+                            className="rounded-none border-2 border-black font-mono"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="font-mono text-[10px] uppercase">Email</label>
+                          <Input
+                            value={userEditForm.email ?? ''}
+                            onChange={(event) => setUserEditForm((prev) => prev ? { ...prev, email: event.target.value } : prev)}
+                            className="rounded-none border-2 border-black font-mono"
+                          />
+                        </div>
+                        <div className="space-y-1 md:col-span-2">
+                          <label className="font-mono text-[10px] uppercase">Full name</label>
+                          <Input
+                            value={userEditForm.full_name ?? ''}
+                            onChange={(event) => setUserEditForm((prev) => prev ? { ...prev, full_name: event.target.value } : prev)}
+                            className="rounded-none border-2 border-black font-mono"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="font-mono text-[10px] uppercase">Role</label>
+                          <select
+                            value={userEditForm.role ?? 'user'}
+                            onChange={(event) => setUserEditForm((prev) => prev ? { ...prev, role: event.target.value as AdminUserUpdate['role'] } : prev)}
+                            className="h-9 w-full rounded-none border-2 border-black px-2 font-mono text-xs uppercase"
+                          >
+                            <option value="user">user</option>
+                            <option value="admin">admin</option>
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="font-mono text-[10px] uppercase">Active</label>
+                          <div className="flex items-center gap-2 text-[10px] uppercase">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(userEditForm.is_active)}
+                              onChange={(event) => setUserEditForm((prev) => prev ? { ...prev, is_active: event.target.checked } : prev)}
+                            />
+                            Активен
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          className="border-2 border-black rounded-none font-mono uppercase tracking-wide"
+                          disabled={userEditLoading}
+                          onClick={handleUserUpdate}
+                        >
+                          {userEditLoading ? 'Сохранение...' : 'Сохранить'}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <p className="font-mono text-sm">Loading details...</p>

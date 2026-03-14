@@ -17,6 +17,7 @@ import {
   AdminTrackUpdate,
   AdminUserDetail,
   AdminUserListItem,
+  AdminUserUpdate,
   AdminSubmissionListItem,
   AdminSubmissionReview,
   ResetPasswordResponse,
@@ -34,6 +35,11 @@ export async function getAdminUserDetails(userId: string): Promise<AdminUserDeta
 
 export async function resetAdminUserPassword(userId: string): Promise<ResetPasswordResponse> {
   const response = await axiosClient.post<ResetPasswordResponse>(`/admin/users/${userId}/reset-password`);
+  return response.data;
+}
+
+export async function updateAdminUser(userId: string, payload: AdminUserUpdate): Promise<AdminUserDetail> {
+  const response = await axiosClient.patch<AdminUserDetail>(`/admin/users/${userId}`, payload);
   return response.data;
 }
 

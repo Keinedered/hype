@@ -26,6 +26,14 @@ export interface AdminUserDetail {
   user_lessons_count: number;
 }
 
+export interface AdminUserUpdate {
+  email?: string | null;
+  username?: string | null;
+  full_name?: string | null;
+  role?: 'user' | 'admin';
+  is_active?: boolean;
+}
+
 export interface ResetPasswordResponse {
   user_id: string;
   username: string;
