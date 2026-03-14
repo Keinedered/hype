@@ -14,7 +14,9 @@ import { ProfilePage } from './components/ProfilePage';
 import { AdminPage } from './components/AdminPage';
 import { useAuth } from './context/AuthContext';
 import { SmoothLinesBackground } from './components/ui/SmoothLinesBackground';
-import { TrackId } from './types';
+import { Track, TrackId } from './types';
+import { tracksAPI } from './api/client';
+import { normalizeTrack } from './api/normalizers';
 
 type Page = 'home' | 'catalog' | 'path' | 'courses' | 'about' | 'profile' | 'admin' | 'course' | 'lesson' | 'handbook' | 'login';
 
@@ -23,8 +25,37 @@ export default function App() {
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [catalogSelectedTrack, setCatalogSelectedTrack] = useState<TrackId | 'all'>('all');
+  const [aboutTracks, setAboutTracks] = useState<Track[]>([]);
+  const [aboutTracksLoading, setAboutTracksLoading] = useState(true);
+  const [aboutTracksError, setAboutTracksError] = useState<string | null>(null);
 
   const { isAuthenticated, loading: authLoading, user } = useAuth();
+  useEffect(() => {
+    let cancelled = false;
+    const loadTracks = async () => {
+      setAboutTracksLoading(true);
+      setAboutTracksError(null);
+      try {
+        const rawTracks = await tracksAPI.getAll();
+        if (!cancelled) {
+          setAboutTracks(rawTracks.map(normalizeTrack));
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setAboutTracksError('Не удалось загрузить треки.');
+          setAboutTracks([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setAboutTracksLoading(false);
+        }
+      }
+    };
+    void loadTracks();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   useEffect(() => {
     if (window.location.pathname === '/login') {
       setCurrentPage('login');
@@ -246,36 +277,28 @@ export default function App() {
               <div className="bg-black text-white px-4 py-2 inline-block font-mono tracking-wide">
                 <h2 className="mb-0">НАШИ ТРЕКИ</h2>
               </div>
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="p-6 border-2 border-black bg-white hover:translate-x-1 hover:-translate-y-1 transition-transform duration-300">
-                  <div className="h-3 mb-4" style={{ backgroundColor: '#E2B6C8' }} />
-                  <h3 className="mb-3 font-mono tracking-wide">ИВЕНТ</h3>
-                  <p className="text-sm text-muted-foreground font-mono leading-relaxed">
-                    Организация мероприятий и управление событиями любого масштаба
-                  </p>
+              {aboutTracksLoading ? (
+                <p className="font-mono text-sm uppercase text-muted-foreground">Загрузка треков...</p>
+              ) : aboutTracksError ? (
+                <p className="font-mono text-sm text-red-600">{aboutTracksError}</p>
+              ) : aboutTracks.length === 0 ? (
+                <p className="font-mono text-sm uppercase text-muted-foreground">Треки не найдены.</p>
+              ) : (
+                <div className="grid md:grid-cols-2 gap-6">
+                  {aboutTracks.map((track) => (
+                    <div
+                      key={track.id}
+                      className="p-6 border-2 border-black bg-white hover:translate-x-1 hover:-translate-y-1 transition-transform duration-300"
+                    >
+                      <div className="h-3 mb-4" style={{ backgroundColor: track.color || '#000' }} />
+                      <h3 className="mb-3 font-mono tracking-wide">{track.name}</h3>
+                      <p className="text-sm text-muted-foreground font-mono leading-relaxed">
+                        {track.description || 'Описание скоро появится.'}
+                      </p>
+                    </div>
+                  ))}
                 </div>
-                <div className="p-6 border-2 border-black bg-white hover:translate-x-1 hover:-translate-y-1 transition-transform duration-300">
-                  <div className="h-3 mb-4" style={{ backgroundColor: '#B6E2C8' }} />
-                  <h3 className="mb-3 font-mono tracking-wide">ЦИФРОВЫЕ ПРОДУКТЫ</h3>
-                  <p className="text-sm text-muted-foreground font-mono leading-relaxed">
-                    Product management, аналитика и работа с цифровыми решениями
-                  </p>
-                </div>
-                <div className="p-6 border-2 border-black bg-white hover:translate-x-1 hover:-translate-y-1 transition-transform duration-300">
-                  <div className="h-3 mb-4" style={{ backgroundColor: '#B6C8E2' }} />
-                  <h3 className="mb-3 font-mono tracking-wide">ВНЕШНИЕ КОММУНИКАЦИИ</h3>
-                  <p className="text-sm text-muted-foreground font-mono leading-relaxed">
-                    Деловая коммуникация, PR и работа с общественностью
-                  </p>
-                </div>
-                <div className="p-6 border-2 border-black bg-white hover:translate-x-1 hover:-translate-y-1 transition-transform duration-300">
-                  <div className="h-3 mb-4" style={{ backgroundColor: '#C8B6E2' }} />
-                  <h3 className="mb-3 font-mono tracking-wide">ДИЗАЙН</h3>
-                  <p className="text-sm text-muted-foreground font-mono leading-relaxed">
-                    Графический и продуктовый дизайн, UX/UI интерфейсов
-                  </p>
-                </div>
-              </div>
+              )}
             </div>
 
             <div className="space-y-6">
@@ -420,10 +443,6 @@ export default function App() {
     </div>
   );
 }
-
-
-
-
 
 
 
