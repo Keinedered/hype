@@ -25,7 +25,7 @@ cd graph-hype
 # 2. Запустить все сервисы (PostgreSQL + Backend + Frontend)
 docker-compose up -d
 
-# 3. Инициализировать базу данных
+# 3. Добавить данные для тестирования (необязательно)
 docker-compose exec backend python init_db.py
 ```
 
@@ -95,7 +95,7 @@ docker-compose up -d
 - **Backend API** — FastAPI сервер (порт 8000)
 - **Frontend** — React приложение (порт 3000)
 
-#### Шаг 2: Инициализация базы данных
+#### Шаг 2: Заполнение базы данных для тестирования (НЕОБЯЗАТЕЛЬНО)
 
 ```bash
 docker-compose exec backend python init_db.py
@@ -169,7 +169,7 @@ pip install -r requirements.txt
 # 6. Создать файл .env (опционально)
 # DATABASE_URL=postgresql://graph_user:graph_password@localhost:5432/graph_db
 
-# 7. Инициализировать БД
+# 7. Заполнение базы данных для тестирования (НЕОБЯЗАТЕЛЬНО)
 python init_db.py
 
 # 8. Запустить сервер
@@ -208,7 +208,7 @@ graph-hype/
 │   ├── auth.py               # JWT токены
 │   ├── database.py           # Подключение к БД
 │   ├── main.py               # Точка входа FastAPI
-│   ├── init_db.py            # Инициализация БД
+│   ├── init_db.py            # Заполнение базы данных для тестирования (НЕОБЯЗАТЕЛЬНО)
 │   ├── requirements.txt      # Python зависимости
 │   └── Dockerfile            # Backend Dockerfile
 │
@@ -274,7 +274,7 @@ docker-compose up -d --build frontend
 ### Работа с базой данных
 
 ```bash
-# Инициализировать БД
+# Заполнение базы данных для тестирования (НЕОБЯЗАТЕЛЬНО)
 docker-compose exec backend python init_db.py
 
 # Подключиться к PostgreSQL
@@ -625,7 +625,7 @@ curl http://localhost:3000
 ```bash
 # Очистить БД и переинициализировать
 docker-compose exec postgres psql -U graph_user -d graph_db -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-docker-compose exec backend python init_db.py
+docker-compose exec backend python init_db.py # необязательно
 ```
 
 ---
