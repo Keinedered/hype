@@ -9,6 +9,13 @@ export interface AdminUserListItem {
   last_login_at: string | null;
 }
 
+export interface AdminUserListResponse {
+  items: AdminUserListItem[];
+  page: number;
+  page_size: number;
+  total: number;
+}
+
 export interface AdminUserDetail {
   id: string;
   username: string;
@@ -60,6 +67,13 @@ export interface AdminSubmissionListItem {
   curator_comment?: string | null;
   submitted_at?: string | null;
   reviewed_at?: string | null;
+}
+
+export interface AdminSubmissionListResponse {
+  items: AdminSubmissionListItem[];
+  page: number;
+  page_size: number;
+  total: number;
 }
 
 export interface AdminSubmissionReview {

@@ -4,7 +4,7 @@ import string
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status, Query
 from sqlalchemy.orm import Session
 
 import crud
@@ -121,13 +121,27 @@ def _serialize_admin_lesson(lesson: models.Lesson) -> schemas.AdminLessonDetail:
     )
 
 
-@router.get("/users", response_model=list[schemas.AdminUserListItem])
+@router.get("/users", response_model=schemas.AdminUserListResponse)
 def list_users(
     db: Session = Depends(get_db),
     _: models.User = Depends(get_current_admin_user),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=100),
 ):
-    users = db.query(models.User).order_by(models.User.created_at.desc()).all()
-    return users
+    query = db.query(models.User)
+    total = query.count()
+    users = (
+        query.order_by(models.User.username.asc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+    return schemas.AdminUserListResponse(
+        items=users,
+        page=page,
+        page_size=page_size,
+        total=total,
+    )
 
 
 @router.get("/users/{user_id}", response_model=schemas.AdminUserDetail)
@@ -648,17 +662,35 @@ def delete_lesson(
     return None
 
 
-@router.get("/submissions", response_model=list[schemas.AdminSubmissionListItem])
+@router.get("/submissions", response_model=schemas.AdminSubmissionListResponse)
 def list_submissions(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_admin_or_course_editor_user),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=100),
+    course_id: str | None = Query(None),
+    module_id: str | None = Query(None),
+    lesson_id: str | None = Query(None),
 ):
     course_ids: list[str] | None = None
     if current_user.role == "course_editor":
         course_ids = crud.get_course_editor_course_ids(db, current_user.id)
         if not course_ids:
-            return []
-    submissions = crud.get_admin_submissions(db, course_ids)
+            return schemas.AdminSubmissionListResponse(
+                items=[],
+                page=page,
+                page_size=page_size,
+                total=0,
+            )
+    submissions, total = crud.get_admin_submissions_paginated(
+        db,
+        course_ids=course_ids,
+        course_id=course_id,
+        module_id=module_id,
+        lesson_id=lesson_id,
+        offset=(page - 1) * page_size,
+        limit=page_size,
+    )
     response: list[schemas.AdminSubmissionListItem] = []
     for submission in submissions:
         assignment = submission.assignment
@@ -683,7 +715,12 @@ def list_submissions(
                 reviewed_at=submission.reviewed_at,
             )
         )
-    return response
+    return schemas.AdminSubmissionListResponse(
+        items=response,
+        page=page,
+        page_size=page_size,
+        total=total,
+    )
 
 
 @router.post("/submissions/{submission_id}/review", response_model=schemas.Submission)

@@ -13,6 +13,7 @@ import {
   deleteAdminModule,
   deleteAdminTrack,
   deleteAdminUser,
+  AdminSubmissionsQuery,
   getAdminCourse,
   getAdminCourses,
   getAdminLesson,
@@ -200,6 +201,8 @@ const emptyTrackForm = (): TrackFormState => ({
   color: '',
 });
 
+const USERS_PAGE_SIZE = 20;
+const SUBMISSIONS_PAGE_SIZE = 20;
 
 export function AdminPage() {
   const { user, refreshUser } = useAuth();
@@ -209,6 +212,8 @@ export function AdminPage() {
   const courseCreationAllowed = user?.courseCreationAllowed ?? false;
   const courseCreationDisabled = isCourseEditor && !courseCreationAllowed;
   const [users, setUsers] = useState<AdminUserListItem[]>([]);
+  const [usersPage, setUsersPage] = useState(1);
+  const [usersTotal, setUsersTotal] = useState(0);
   const [isListLoading, setIsListLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
 
@@ -265,6 +270,8 @@ export function AdminPage() {
   const [contentMessage, setContentMessage] = useState<string | null>(null);
 
   const [submissions, setSubmissions] = useState<AdminSubmissionListItem[]>([]);
+  const [submissionsPage, setSubmissionsPage] = useState(1);
+  const [submissionsTotal, setSubmissionsTotal] = useState(0);
   const [submissionsLoading, setSubmissionsLoading] = useState(false);
   const [submissionsError, setSubmissionsError] = useState<string | null>(null);
   const [submissionNotes, setSubmissionNotes] = useState<Record<string, string>>({});
@@ -293,18 +300,20 @@ export function AdminPage() {
     return { course, module, lesson };
   }, [submissions]);
 
-  const filteredSubmissions = useMemo(() => {
+  const submissionFilters = useMemo<Partial<AdminSubmissionsQuery>>(() => {
     if (selectedLessonId) {
-      return submissions.filter((submission) => submission.lesson_id === selectedLessonId);
+      return { lesson_id: selectedLessonId };
     }
     if (selectedModuleId) {
-      return submissions.filter((submission) => submission.module_id === selectedModuleId);
+      return { module_id: selectedModuleId };
     }
     if (selectedCourseId) {
-      return submissions.filter((submission) => submission.course_id === selectedCourseId);
+      return { course_id: selectedCourseId };
     }
-    return submissions;
-  }, [selectedCourseId, selectedLessonId, selectedModuleId, submissions]);
+    return {};
+  }, [selectedCourseId, selectedLessonId, selectedModuleId]);
+
+  const filteredSubmissions = submissions;
 
   const formatSubmissionStatus = (status: string) => {
     const normalized = status.replace(/_/g, ' ');
@@ -328,7 +337,7 @@ export function AdminPage() {
     }
     return (
       <div className="mt-2 flex flex-wrap gap-2 text-[10px] uppercase">
-        <span className="border border-black px-2 py-0.5">Есть работы</span>
+        <span className="border border-black px-2 py-0.5">Есть работы (страница)</span>
         {stats.pending > 0 && (
           <span className="border border-amber-600 px-2 py-0.5 text-amber-700">
             Непроверенные: {stats.pending}
@@ -341,6 +350,7 @@ export function AdminPage() {
   useEffect(() => {
     if (!isAdmin) {
       setUsers([]);
+      setUsersTotal(0);
       setIsListLoading(false);
       return;
     }
@@ -348,8 +358,13 @@ export function AdminPage() {
       setIsListLoading(true);
       setListError(null);
       try {
-        const data = await getAdminUsers();
-        setUsers(data);
+        const data = await getAdminUsers({ page: usersPage, page_size: USERS_PAGE_SIZE });
+        if (data.items.length === 0 && usersPage > 1) {
+          setUsersPage((prev) => Math.max(1, prev - 1));
+          return;
+        }
+        setUsers(data.items);
+        setUsersTotal(data.total);
       } catch (error) {
         setListError(getErrorMessage(error, 'Не удалось загрузить список пользователей.'));
       } finally {
@@ -358,7 +373,7 @@ export function AdminPage() {
     };
 
     void loadUsers();
-  }, [isAdmin]);
+  }, [isAdmin, usersPage]);
 
   useEffect(() => {
     const loadTracks = async () => {
@@ -396,8 +411,13 @@ export function AdminPage() {
   }, [isAdmin]);
 
   useEffect(() => {
+    setSubmissionsPage(1);
+  }, [selectedCourseId, selectedLessonId, selectedModuleId]);
+
+  useEffect(() => {
     if (!canReviewSubmissions) {
       setSubmissions([]);
+      setSubmissionsTotal(0);
       setSubmissionsLoading(false);
       return;
     }
@@ -405,8 +425,17 @@ export function AdminPage() {
       setSubmissionsLoading(true);
       setSubmissionsError(null);
       try {
-        const data = await getAdminSubmissions();
-        setSubmissions(data);
+        const data = await getAdminSubmissions({
+          page: submissionsPage,
+          page_size: SUBMISSIONS_PAGE_SIZE,
+          ...submissionFilters,
+        });
+        if (data.items.length === 0 && submissionsPage > 1) {
+          setSubmissionsPage((prev) => Math.max(1, prev - 1));
+          return;
+        }
+        setSubmissions(data.items);
+        setSubmissionsTotal(data.total);
       } catch (error) {
         setSubmissionsError(getErrorMessage(error, 'Не удалось загрузить задания.'));
       } finally {
@@ -415,7 +444,7 @@ export function AdminPage() {
     };
 
     void loadSubmissions();
-  }, [canReviewSubmissions]);
+  }, [canReviewSubmissions, submissionFilters, submissionsPage]);
 
   useEffect(() => {
     if (!selectedTrackId) {
@@ -601,6 +630,8 @@ export function AdminPage() {
   }, [selectedLessonId]);
 
   const sortedUsers = useMemo(() => [...users].sort((a, b) => a.username.localeCompare(b.username)), [users]);
+  const usersTotalPages = Math.max(1, Math.ceil(usersTotal / USERS_PAGE_SIZE));
+  const submissionsTotalPages = Math.max(1, Math.ceil(submissionsTotal / SUBMISSIONS_PAGE_SIZE));
 
   const openDetails = async (userId: string) => {
     setActionError(null);
@@ -703,7 +734,13 @@ export function AdminPage() {
 
     try {
       await deleteAdminUser(deleteCandidate.id);
-      setUsers((prev) => prev.filter((user) => user.id !== deleteCandidate.id));
+      const data = await getAdminUsers({ page: usersPage, page_size: USERS_PAGE_SIZE });
+      if (data.items.length === 0 && usersPage > 1) {
+        setUsersPage((prev) => Math.max(1, prev - 1));
+      } else {
+        setUsers(data.items);
+        setUsersTotal(data.total);
+      }
       setDeleteDialogOpen(false);
       setDeleteCandidate(null);
       setDeleteConfirmed(false);
@@ -1151,8 +1188,17 @@ export function AdminPage() {
         status,
         curator_comment: submissionNotes[submission.id] ?? submission.curator_comment ?? '',
       });
-      const updated = await getAdminSubmissions();
-      setSubmissions(updated);
+      const updated = await getAdminSubmissions({
+        page: submissionsPage,
+        page_size: SUBMISSIONS_PAGE_SIZE,
+        ...submissionFilters,
+      });
+      if (updated.items.length === 0 && submissionsPage > 1) {
+        setSubmissionsPage((prev) => Math.max(1, prev - 1));
+      } else {
+        setSubmissions(updated.items);
+        setSubmissionsTotal(updated.total);
+      }
     } catch (error) {
       setSubmissionsError(getErrorMessage(error, 'Не удалось обновить статус.'));
     } finally {
@@ -1433,68 +1479,95 @@ export function AdminPage() {
               <p className="font-mono text-sm text-red-700">{listError}</p>
             </div>
           ) : (
-            <div className="overflow-x-auto border-2 border-black">
-              <table className="w-full min-w-[900px] font-mono text-sm">
-                <thead className="bg-black text-white uppercase text-xs tracking-wide">
-                  <tr>
-                    <th className="px-3 py-2 text-left">Логин</th>
-                    <th className="px-3 py-2 text-left">Email</th>
-                    <th className="px-3 py-2 text-left">Роль</th>
-                    <th className="px-3 py-2 text-left">Создан</th>
-                    <th className="px-3 py-2 text-left">Последний вход</th>
-                    <th className="px-3 py-2 text-left">Действия</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedUsers.map((user) => (
-                    <tr key={user.id} className="border-t border-black/20">
-                      <td className="px-3 py-2">{user.username}</td>
-                      <td className="px-3 py-2">{user.email}</td>
-                      <td className="px-3 py-2 uppercase">{user.role}</td>
-                      <td className="px-3 py-2">{formatDate(user.created_at)}</td>
-                      <td className="px-3 py-2">{formatDate(user.last_login_at)}</td>
-                      <td className="px-3 py-2">
-                        <div className="flex flex-wrap gap-2">
+            <div className="space-y-3">
+              <div className="overflow-x-auto border-2 border-black">
+                <table className="w-full min-w-[900px] font-mono text-sm">
+                  <thead className="bg-black text-white uppercase text-xs tracking-wide">
+                    <tr>
+                      <th className="px-3 py-2 text-left">Логин</th>
+                      <th className="px-3 py-2 text-left">Email</th>
+                      <th className="px-3 py-2 text-left">Роль</th>
+                      <th className="px-3 py-2 text-left">Создан</th>
+                      <th className="px-3 py-2 text-left">Последний вход</th>
+                      <th className="px-3 py-2 text-left">Действия</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedUsers.map((user) => (
+                      <tr key={user.id} className="border-t border-black/20">
+                        <td className="px-3 py-2">{user.username}</td>
+                        <td className="px-3 py-2">{user.email}</td>
+                        <td className="px-3 py-2 uppercase">{user.role}</td>
+                        <td className="px-3 py-2">{formatDate(user.created_at)}</td>
+                        <td className="px-3 py-2">{formatDate(user.last_login_at)}</td>
+                        <td className="px-3 py-2">
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                            type="button"
+                            variant="outline"
+                            className="border-2 border-black rounded-none font-mono uppercase tracking-wide"
+                            disabled={detailsLoadingUserId === user.id}
+                            onClick={() => void openDetails(user.id)}
+                          >
+                            {detailsLoadingUserId === user.id ? 'Загрузка...' : 'Детали'}
+                          </Button>
                           <Button
-                          type="button"
-                          variant="outline"
-                          className="border-2 border-black rounded-none font-mono uppercase tracking-wide"
-                          disabled={detailsLoadingUserId === user.id}
-                          onClick={() => void openDetails(user.id)}
-                        >
-                          {detailsLoadingUserId === user.id ? 'Загрузка...' : 'Детали'}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="border-2 border-black rounded-none font-mono uppercase tracking-wide"
-                          disabled={resetLoadingUserId === user.id}
-                          onClick={() => void handleResetPassword(user.id)}
-                        >
-                          {resetLoadingUserId === user.id ? 'Сбрасываем...' : 'Сбросить пароль'}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="border-2 border-black rounded-none font-mono uppercase tracking-wide text-red-700"
-                          disabled={deleteLoadingUserId === user.id}
-                          onClick={() => openDeleteDialog(user)}
-                        >
-                          {deleteLoadingUserId === user.id ? 'Удаляем...' : 'Удалить'}
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {sortedUsers.length === 0 && (
-                  <tr>
-                    <td className="px-3 py-6 text-center text-muted-foreground" colSpan={6}>
-                      Пользователи не найдены.
-                    </td>
-                  </tr>
-                )}
-                </tbody>
-              </table>
+                            type="button"
+                            variant="outline"
+                            className="border-2 border-black rounded-none font-mono uppercase tracking-wide"
+                            disabled={resetLoadingUserId === user.id}
+                            onClick={() => void handleResetPassword(user.id)}
+                          >
+                            {resetLoadingUserId === user.id ? 'Сбрасываем...' : 'Сбросить пароль'}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="border-2 border-black rounded-none font-mono uppercase tracking-wide text-red-700"
+                            disabled={deleteLoadingUserId === user.id}
+                            onClick={() => openDeleteDialog(user)}
+                          >
+                            {deleteLoadingUserId === user.id ? 'Удаляем...' : 'Удалить'}
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {sortedUsers.length === 0 && (
+                    <tr>
+                      <td className="px-3 py-6 text-center text-muted-foreground" colSpan={6}>
+                        Пользователи не найдены.
+                      </td>
+                    </tr>
+                  )}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-2 border-black px-3 py-2">
+                <div className="font-mono text-xs uppercase">
+                  Страница {usersPage} из {usersTotalPages} · Всего: {usersTotal}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-2 border-black rounded-none font-mono uppercase tracking-wide"
+                    disabled={usersPage <= 1 || isListLoading}
+                    onClick={() => setUsersPage((prev) => Math.max(1, prev - 1))}
+                  >
+                    Назад
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-2 border-black rounded-none font-mono uppercase tracking-wide"
+                    disabled={usersPage >= usersTotalPages || isListLoading}
+                    onClick={() => setUsersPage((prev) => prev + 1)}
+                  >
+                    Вперед
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
           </section>
@@ -2391,8 +2464,17 @@ export function AdminPage() {
                 onClick={async () => {
                   setSubmissionsError(null);
                   try {
-                    const data = await getAdminSubmissions();
-                    setSubmissions(data);
+                    const data = await getAdminSubmissions({
+                      page: submissionsPage,
+                      page_size: SUBMISSIONS_PAGE_SIZE,
+                      ...submissionFilters,
+                    });
+                    if (data.items.length === 0 && submissionsPage > 1) {
+                      setSubmissionsPage((prev) => Math.max(1, prev - 1));
+                    } else {
+                      setSubmissions(data.items);
+                      setSubmissionsTotal(data.total);
+                    }
                   } catch (error) {
                     setSubmissionsError(getErrorMessage(error, 'Не удалось обновить список заданий.'));
                   }
@@ -2505,6 +2587,31 @@ export function AdminPage() {
                     : 'Отправленных заданий нет.'}
                 </p>
               )}
+              <div className="flex flex-wrap items-center justify-between gap-3 border-2 border-black px-3 py-2">
+                <div className="font-mono text-xs uppercase">
+                  Страница {submissionsPage} из {submissionsTotalPages} · Всего: {submissionsTotal}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-2 border-black rounded-none font-mono uppercase tracking-wide"
+                    disabled={submissionsPage <= 1 || submissionsLoading}
+                    onClick={() => setSubmissionsPage((prev) => Math.max(1, prev - 1))}
+                  >
+                    Назад
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-2 border-black rounded-none font-mono uppercase tracking-wide"
+                    disabled={submissionsPage >= submissionsTotalPages || submissionsLoading}
+                    onClick={() => setSubmissionsPage((prev) => prev + 1)}
+                  >
+                    Вперед
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
           </section>

@@ -1,6 +1,6 @@
 ﻿from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import models
 import schemas
 from auth import get_password_hash
@@ -513,6 +513,39 @@ def get_admin_submissions(db: Session, course_ids: Optional[List[str]] = None) -
         query = query.join(models.Module, models.Lesson.module_id == models.Module.id)
         query = query.filter(models.Module.course_id.in_(course_ids))
     return query.order_by(models.Submission.created_at.desc()).all()
+
+
+def get_admin_submissions_paginated(
+    db: Session,
+    course_ids: Optional[List[str]] = None,
+    course_id: Optional[str] = None,
+    module_id: Optional[str] = None,
+    lesson_id: Optional[str] = None,
+    offset: int = 0,
+    limit: int = 25,
+) -> Tuple[List[models.Submission], int]:
+    query = db.query(models.Submission).options(
+        joinedload(models.Submission.files),
+        joinedload(models.Submission.user),
+        joinedload(models.Submission.assignment)
+        .joinedload(models.Assignment.lesson)
+        .joinedload(models.Lesson.module),
+    )
+    if course_ids is not None or course_id or module_id or lesson_id:
+        query = query.join(models.Assignment, models.Submission.assignment_id == models.Assignment.id)
+        query = query.join(models.Lesson, models.Assignment.lesson_id == models.Lesson.id)
+        query = query.join(models.Module, models.Lesson.module_id == models.Module.id)
+        if course_ids is not None:
+            query = query.filter(models.Module.course_id.in_(course_ids))
+        if course_id:
+            query = query.filter(models.Module.course_id == course_id)
+        if module_id:
+            query = query.filter(models.Module.id == module_id)
+        if lesson_id:
+            query = query.filter(models.Lesson.id == lesson_id)
+    total = query.count()
+    items = query.order_by(models.Submission.created_at.desc()).offset(offset).limit(limit).all()
+    return items, total
 
 
 def get_submission_course_id(db: Session, submission_id: str) -> Optional[str]:

@@ -460,6 +460,13 @@ class AdminSubmissionListItem(BaseModel):
     reviewed_at: Optional[datetime] = None
 
 
+class AdminSubmissionListResponse(BaseModel):
+    items: List[AdminSubmissionListItem]
+    page: int
+    page_size: int
+    total: int
+
+
 class UserSubmissionListItem(BaseModel):
     id: str
     assignment_id: str
@@ -557,6 +564,13 @@ class AdminUserListItem(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class AdminUserListResponse(BaseModel):
+    items: List[AdminUserListItem]
+    page: int
+    page_size: int
+    total: int
 
 
 class AdminUserDetail(BaseModel):

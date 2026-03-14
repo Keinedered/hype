@@ -16,15 +16,28 @@ import {
   AdminTrackDetail,
   AdminTrackUpdate,
   AdminUserDetail,
-  AdminUserListItem,
+  AdminUserListResponse,
   AdminUserUpdate,
-  AdminSubmissionListItem,
+  AdminSubmissionListResponse,
   AdminSubmissionReview,
   ResetPasswordResponse,
 } from '../types/admin';
 
-export async function getAdminUsers(): Promise<AdminUserListItem[]> {
-  const response = await axiosClient.get<AdminUserListItem[]>('/admin/users');
+export type AdminUsersQuery = {
+  page: number;
+  page_size: number;
+};
+
+export type AdminSubmissionsQuery = {
+  page: number;
+  page_size: number;
+  course_id?: string;
+  module_id?: string;
+  lesson_id?: string;
+};
+
+export async function getAdminUsers(params: AdminUsersQuery): Promise<AdminUserListResponse> {
+  const response = await axiosClient.get<AdminUserListResponse>('/admin/users', { params });
   return response.data;
 }
 
@@ -155,8 +168,8 @@ export async function deleteAdminTrack(trackId: string): Promise<void> {
   await axiosClient.delete(`/admin/tracks/${trackId}`);
 }
 
-export async function getAdminSubmissions(): Promise<AdminSubmissionListItem[]> {
-  const response = await axiosClient.get<AdminSubmissionListItem[]>('/admin/submissions');
+export async function getAdminSubmissions(params: AdminSubmissionsQuery): Promise<AdminSubmissionListResponse> {
+  const response = await axiosClient.get<AdminSubmissionListResponse>('/admin/submissions', { params });
   return response.data;
 }
 
