@@ -2368,9 +2368,20 @@ export function AdminPage() {
                     <div className="font-mono uppercase text-[10px] text-gray-500 mb-1">Файлы</div>
                     {submission.file_urls && submission.file_urls.length > 0 ? (
                       <div className="space-y-1 text-xs">
-                        {submission.file_urls.map((fileUrl) => (
-                          <div key={fileUrl} className="break-all">{fileUrl}</div>
-                        ))}
+                        {submission.file_urls.map((fileUrl) => {
+                          const displayUrl = toAbsolutePublicUrl(fileUrl) ?? fileUrl;
+                          return (
+                            <a
+                              key={fileUrl}
+                              href={displayUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="break-all text-blue-600 hover:text-blue-800"
+                            >
+                              {displayUrl}
+                            </a>
+                          );
+                        })}
                       </div>
                     ) : (
                       <div className="text-xs text-gray-500">—</div>

@@ -8,6 +8,7 @@ import { ArrowLeft, ArrowRight, Upload, Link as LinkIcon, Check, Clock, X, Circl
 import { TrackId, Lesson, Module, Track } from '../types';
 import { coursesAPI, lessonsAPI, modulesAPI, submissionsAPI, tracksAPI } from '../api/client';
 import { normalizeCourse, normalizeLesson, normalizeModule, normalizeTrack, RawCourse, RawLesson, RawModule, RawTrack } from '../api/normalizers';
+import { toAbsolutePublicUrl } from '../api/urls';
 import { Skeleton } from './ui/skeleton';
 
 interface LessonPageProps {
@@ -576,9 +577,18 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
                                   </label>
                                   {fileUrls.length > 0 && (
                                     <div className="space-y-1">
-                                      {fileUrls.map((fileUrl) => (
+                                      {fileUrls.map((fileUrl) => {
+                                        const displayUrl = toAbsolutePublicUrl(fileUrl) ?? fileUrl;
+                                        return (
                                         <div key={fileUrl} className="flex items-center justify-between gap-2 text-xs">
-                                          <span className="break-all">{fileUrl}</span>
+                                          <a
+                                            href={displayUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="break-all text-blue-600 hover:text-blue-800"
+                                          >
+                                            {displayUrl}
+                                          </a>
                                           {!inputsLocked && (
                                             <Button
                                               type="button"
@@ -595,7 +605,8 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
                                             </Button>
                                           )}
                                         </div>
-                                      ))}
+                                      );
+                                      })}
                                     </div>
                                   )}
                                </div>
