@@ -297,8 +297,36 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
             )}
 
             {/* Content Text */}
-            <div className="prose prose-lg max-w-none font-light prose-headings:font-bold prose-headings:font-mono prose-headings:uppercase prose-p:text-gray-800 prose-strong:text-black prose-li:marker:text-black">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{lesson.content}</ReactMarkdown>
+            <div className="max-w-none font-light text-gray-800 space-y-4">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  h1: (props) => (
+                    <h1 className="mt-10 mb-4 text-3xl md:text-4xl font-bold font-mono uppercase tracking-wide text-black" {...props} />
+                  ),
+                  h2: (props) => (
+                    <h2 className="mt-8 mb-3 text-2xl md:text-3xl font-bold font-mono uppercase tracking-wide text-black" {...props} />
+                  ),
+                  h3: (props) => (
+                    <h3 className="mt-6 mb-2 text-xl md:text-2xl font-bold font-mono uppercase tracking-wide text-black" {...props} />
+                  ),
+                  h4: (props) => (
+                    <h4 className="mt-5 mb-2 text-lg md:text-xl font-bold font-mono uppercase tracking-wide text-black" {...props} />
+                  ),
+                  h5: (props) => (
+                    <h5 className="mt-4 mb-2 text-base md:text-lg font-bold font-mono uppercase tracking-wide text-black" {...props} />
+                  ),
+                  h6: (props) => (
+                    <h6 className="mt-4 mb-2 text-sm md:text-base font-bold font-mono uppercase tracking-wide text-black" {...props} />
+                  ),
+                  p: (props) => <p className="leading-relaxed" {...props} />,
+                  ul: (props) => <ul className="list-disc pl-6 space-y-2" {...props} />,
+                  ol: (props) => <ol className="list-decimal pl-6 space-y-2" {...props} />,
+                  li: (props) => <li className="marker:text-black" {...props} />,
+                }}
+              >
+                {lesson.content}
+              </ReactMarkdown>
             </div>
 
             {/* Handbook Reference */}
