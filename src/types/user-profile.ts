@@ -4,9 +4,10 @@ export interface UserProfile {
   email: string;
   fullName: string | null;
   avatarUrl: string | null;
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'course_editor';
   createdAt: string;
   updatedAt: string;
+  courseCreationAllowed: boolean;
 }
 
 export interface ApiErrorResponse {

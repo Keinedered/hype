@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authAPI, usersAPI, getAuthToken } from '../api/client';
 
-export type UserRole = 'user' | 'admin';
+export type UserRole = 'user' | 'admin' | 'course_editor';
 
 interface User {
   id: string;
@@ -9,6 +9,7 @@ interface User {
   email: string;
   full_name?: string;
   role: UserRole;
+  courseCreationAllowed: boolean;
 }
 
 interface AuthContextType {
@@ -18,6 +19,7 @@ interface AuthContextType {
   register: (username: string, email: string, password: string, fullName?: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
+  refreshUser: () => Promise<User>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -55,6 +57,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const refreshUser = async () => {
+    const currentUser = await usersAPI.getCurrentUser();
+    setUser(currentUser);
+    return currentUser;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -63,6 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         register,
         logout,
+        refreshUser,
         isAuthenticated: !!user,
       }}
     >

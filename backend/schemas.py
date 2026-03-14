@@ -57,6 +57,7 @@ class NotificationType(str, Enum):
 class UserRole(str, Enum):
     user = "user"
     admin = "admin"
+    course_editor = "course_editor"
 
 
 # Base schemas
@@ -509,6 +510,7 @@ class User(UserBase):
     avatar_url: Optional[str] = None
     role: UserRole = UserRole.user
     last_login_at: Optional[datetime] = None
+    course_creation_allowed: bool = False
 
     class Config:
         from_attributes = True
@@ -552,6 +554,8 @@ class AdminUserDetail(BaseModel):
     notifications_count: int
     user_courses_count: int
     user_lessons_count: int
+    editable_course_ids: List[str] = []
+    course_creation_allowed: bool = False
 
 
 class AdminUserUpdate(BaseModel):
@@ -560,6 +564,8 @@ class AdminUserUpdate(BaseModel):
     full_name: Optional[str] = None
     role: Optional[UserRole] = None
     is_active: Optional[bool] = None
+    editable_course_ids: Optional[List[str]] = None
+    course_creation_allowed: Optional[bool] = None
 
 
 class ResetPasswordResponse(BaseModel):

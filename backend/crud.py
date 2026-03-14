@@ -453,6 +453,65 @@ def get_admin_courses(db: Session) -> List[models.Course]:
     return db.query(models.Course).options(joinedload(models.Course.authors)).order_by(models.Course.created_at.desc()).all()
 
 
+def get_course_editor_courses(db: Session, user_id: str) -> List[models.Course]:
+    return (
+        db.query(models.Course)
+        .join(models.CourseEditor, models.Course.id == models.CourseEditor.course_id)
+        .options(joinedload(models.Course.authors))
+        .filter(models.CourseEditor.user_id == user_id)
+        .order_by(models.Course.created_at.desc())
+        .all()
+    )
+
+
+def get_course_editor_course_ids(db: Session, user_id: str) -> List[str]:
+    rows = db.query(models.CourseEditor.course_id).filter(models.CourseEditor.user_id == user_id).all()
+    return [row[0] for row in rows]
+
+
+def user_can_edit_course(db: Session, user_id: str, course_id: str) -> bool:
+    return (
+        db.query(models.CourseEditor)
+        .filter(models.CourseEditor.user_id == user_id, models.CourseEditor.course_id == course_id)
+        .first()
+        is not None
+    )
+
+
+def set_course_editor_courses(db: Session, user_id: str, course_ids: List[str]) -> None:
+    unique_ids = sorted(set(course_ids))
+    if unique_ids:
+        existing_ids = {
+            row[0]
+            for row in db.query(models.Course.id).filter(models.Course.id.in_(unique_ids)).all()
+        }
+        missing = sorted(set(unique_ids) - existing_ids)
+        if missing:
+            raise ValueError(f"Courses not found: {', '.join(missing)}")
+
+    db.query(models.CourseEditor).filter(models.CourseEditor.user_id == user_id).delete(synchronize_session=False)
+    for course_id in unique_ids:
+        db.add(models.CourseEditor(user_id=user_id, course_id=course_id))
+    db.commit()
+
+
+def assign_course_editor_course(db: Session, user_id: str, course_id: str) -> None:
+    course = db.query(models.Course).filter(models.Course.id == course_id).first()
+    if not course:
+        raise ValueError(f"Course not found: {course_id}")
+
+    exists = (
+        db.query(models.CourseEditor)
+        .filter(models.CourseEditor.user_id == user_id, models.CourseEditor.course_id == course_id)
+        .first()
+    )
+    if exists:
+        return
+
+    db.add(models.CourseEditor(user_id=user_id, course_id=course_id))
+    db.commit()
+
+
 def get_admin_course(db: Session, course_id: str) -> Optional[models.Course]:
     return db.query(models.Course).options(joinedload(models.Course.authors)).filter(models.Course.id == course_id).first()
 
@@ -754,6 +813,10 @@ def update_admin_user(db: Session, user_id: str, user_update: schemas.AdminUserU
         db_user.role = data["role"]
     if "is_active" in data:
         db_user.is_active = data["is_active"]
+    if "editable_course_ids" in data:
+        set_course_editor_courses(db, user_id, data["editable_course_ids"] or [])
+    if "course_creation_allowed" in data:
+        db_user.course_creation_allowed = data["course_creation_allowed"]
 
     db.commit()
     db.refresh(db_user)

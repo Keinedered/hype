@@ -103,7 +103,15 @@ export const authAPI = {
 // Users API
 export const usersAPI = {
   async getCurrentUser() {
-    return apiFetch('/users/me');
+    const raw = await apiFetch('/users/me');
+    return {
+      id: String(raw.id ?? ''),
+      username: raw.username ?? '',
+      email: raw.email ?? '',
+      full_name: raw.full_name ?? raw.fullName ?? null,
+      role: raw.role ?? 'user',
+      courseCreationAllowed: raw.courseCreationAllowed ?? raw.course_creation_allowed ?? false,
+    };
   },
 };
 

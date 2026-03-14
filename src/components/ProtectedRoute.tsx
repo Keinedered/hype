@@ -7,7 +7,7 @@ interface ProtectedRouteProps {
   onUnauthorized?: () => void;
   fallback?: ReactNode;
   children: ReactNode;
-  requireRole?: UserRole;
+  requireRole?: UserRole | UserRole[];
   userRole?: UserRole;
   onForbidden?: () => void;
 }
@@ -22,7 +22,8 @@ export function ProtectedRoute({
   userRole,
   onForbidden,
 }: ProtectedRouteProps) {
-  const lacksRole = !!requireRole && userRole !== requireRole;
+  const requiredRoles = Array.isArray(requireRole) ? requireRole : requireRole ? [requireRole] : null;
+  const lacksRole = !!requiredRoles && (!userRole || !requiredRoles.includes(userRole));
 
   useEffect(() => {
     if (!isAuthLoading && !isAuthenticated) {
@@ -51,4 +52,3 @@ export function ProtectedRoute({
 
   return <>{children}</>;
 }
-

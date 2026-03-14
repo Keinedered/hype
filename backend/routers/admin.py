@@ -10,11 +10,39 @@ from sqlalchemy.orm import Session
 import crud
 import models
 import schemas
-from auth import get_current_admin_user, get_password_hash
+from auth import get_current_admin_or_course_editor_user, get_current_admin_user, get_password_hash
 from config import settings
 from database import get_db
 
 router = APIRouter(prefix="/admin")
+
+
+def _ensure_course_edit_access(db: Session, user: models.User, course_id: str) -> None:
+    if user.role == "admin":
+        return
+    if user.role != "course_editor":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Course access required")
+    if not crud.user_can_edit_course(db, user.id, course_id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Course access required")
+
+
+def _require_module_with_access(db: Session, user: models.User, module_id: str) -> models.Module:
+    module = crud.get_admin_module(db, module_id)
+    if not module:
+        raise HTTPException(status_code=404, detail="Module not found")
+    _ensure_course_edit_access(db, user, module.course_id)
+    return module
+
+
+def _require_lesson_with_access(db: Session, user: models.User, lesson_id: str) -> models.Lesson:
+    lesson = crud.get_admin_lesson(db, lesson_id)
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    module = crud.get_admin_module(db, lesson.module_id)
+    if not module:
+        raise HTTPException(status_code=404, detail="Module not found")
+    _ensure_course_edit_access(db, user, module.course_id)
+    return lesson
 
 
 def _avatar_upload_dir() -> Path:
@@ -127,6 +155,8 @@ def get_user_details(
         notifications_count=len(user.notifications),
         user_courses_count=len(user.user_courses),
         user_lessons_count=len(user.user_lessons),
+        editable_course_ids=crud.get_course_editor_course_ids(db, user.id),
+        course_creation_allowed=user.course_creation_allowed,
     )
 
 
@@ -165,7 +195,10 @@ def update_user(
         if user_update.is_active is not None and user_update.is_active is False:
             raise HTTPException(status_code=400, detail="You cannot deactivate your own account")
 
-    updated = crud.update_admin_user(db, user_id, user_update)
+    try:
+        updated = crud.update_admin_user(db, user_id, user_update)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     if not updated:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -184,6 +217,8 @@ def update_user(
         notifications_count=len(updated.notifications),
         user_courses_count=len(updated.user_courses),
         user_lessons_count=len(updated.user_lessons),
+        editable_course_ids=crud.get_course_editor_course_ids(db, updated.id),
+        course_creation_allowed=updated.course_creation_allowed,
     )
 
 
@@ -259,9 +294,12 @@ def delete_track(
 @router.get("/courses", response_model=list[schemas.AdminCourseListItem])
 def list_courses(
     db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin_user),
+    current_user: models.User = Depends(get_current_admin_or_course_editor_user),
 ):
-    courses = crud.get_admin_courses(db)
+    if current_user.role == "course_editor":
+        courses = crud.get_course_editor_courses(db, current_user.id)
+    else:
+        courses = crud.get_admin_courses(db)
     result = []
     for course in courses:
         result.append(
@@ -283,8 +321,9 @@ def list_courses(
 def get_course(
     course_id: str,
     db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin_user),
+    current_user: models.User = Depends(get_current_admin_or_course_editor_user),
 ):
+    _ensure_course_edit_access(db, current_user, course_id)
     course = crud.get_admin_course(db, course_id)
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -309,12 +348,20 @@ def get_course(
 def create_course(
     course: schemas.AdminCourseCreate,
     db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin_user),
+    current_user: models.User = Depends(get_current_admin_or_course_editor_user),
 ):
     existing = crud.get_admin_course(db, course.id)
     if existing:
         raise HTTPException(status_code=400, detail="Course already exists")
+    if current_user.role == "course_editor" and not current_user.course_creation_allowed:
+        raise HTTPException(status_code=403, detail="Course creation not allowed")
     created = crud.create_admin_course(db, course)
+    if current_user.role == "course_editor":
+        try:
+            crud.assign_course_editor_course(db, current_user.id, created.id)
+        except ValueError:
+            # Should not happen since course was just created, but safeguard.
+            pass
     return schemas.AdminCourseDetail(
         id=created.id,
         track_id=created.track_id,
@@ -337,8 +384,9 @@ def update_course(
     course_id: str,
     course_update: schemas.AdminCourseUpdate,
     db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin_user),
+    current_user: models.User = Depends(get_current_admin_or_course_editor_user),
 ):
+    _ensure_course_edit_access(db, current_user, course_id)
     updated = crud.update_admin_course(db, course_id, course_update)
     if not updated:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -376,8 +424,9 @@ def delete_course(
 def list_modules(
     course_id: str,
     db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin_user),
+    current_user: models.User = Depends(get_current_admin_or_course_editor_user),
 ):
+    _ensure_course_edit_access(db, current_user, course_id)
     modules = crud.get_admin_modules(db, course_id)
     return [
         schemas.AdminModuleListItem(
@@ -396,11 +445,9 @@ def list_modules(
 def get_module(
     module_id: str,
     db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin_user),
+    current_user: models.User = Depends(get_current_admin_or_course_editor_user),
 ):
-    module = crud.get_admin_module(db, module_id)
-    if not module:
-        raise HTTPException(status_code=404, detail="Module not found")
+    module = _require_module_with_access(db, current_user, module_id)
     return schemas.AdminModuleDetail(
         id=module.id,
         course_id=module.course_id,
@@ -414,8 +461,9 @@ def get_module(
 def create_module(
     module: schemas.AdminModuleCreate,
     db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin_user),
+    current_user: models.User = Depends(get_current_admin_or_course_editor_user),
 ):
+    _ensure_course_edit_access(db, current_user, module.course_id)
     existing = crud.get_admin_module(db, module.id)
     if existing:
         raise HTTPException(status_code=400, detail="Module already exists")
@@ -434,8 +482,12 @@ def update_module(
     module_id: str,
     module_update: schemas.AdminModuleUpdate,
     db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin_user),
+    current_user: models.User = Depends(get_current_admin_or_course_editor_user),
 ):
+    existing = _require_module_with_access(db, current_user, module_id)
+    requested_update = module_update.dict(exclude_unset=True)
+    if "course_id" in requested_update and requested_update["course_id"] != existing.course_id:
+        _ensure_course_edit_access(db, current_user, requested_update["course_id"])
     updated = crud.update_admin_module(db, module_id, module_update)
     if not updated:
         raise HTTPException(status_code=404, detail="Module not found")
@@ -452,8 +504,9 @@ def update_module(
 def delete_module(
     module_id: str,
     db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin_user),
+    current_user: models.User = Depends(get_current_admin_or_course_editor_user),
 ):
+    _require_module_with_access(db, current_user, module_id)
     deleted = crud.delete_admin_module(db, module_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Module not found")
@@ -464,8 +517,9 @@ def delete_module(
 def list_lessons(
     module_id: str,
     db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin_user),
+    current_user: models.User = Depends(get_current_admin_or_course_editor_user),
 ):
+    _require_module_with_access(db, current_user, module_id)
     lessons = crud.get_admin_lessons(db, module_id)
     return [
         schemas.AdminLessonListItem(
@@ -483,11 +537,9 @@ def list_lessons(
 def get_lesson(
     lesson_id: str,
     db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin_user),
+    current_user: models.User = Depends(get_current_admin_or_course_editor_user),
 ):
-    lesson = crud.get_admin_lesson(db, lesson_id)
-    if not lesson:
-        raise HTTPException(status_code=404, detail="Lesson not found")
+    lesson = _require_lesson_with_access(db, current_user, lesson_id)
     return _serialize_admin_lesson(lesson)
 
 
@@ -495,8 +547,12 @@ def get_lesson(
 def create_lesson(
     lesson: schemas.AdminLessonCreate,
     db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin_user),
+    current_user: models.User = Depends(get_current_admin_or_course_editor_user),
 ):
+    module = crud.get_admin_module(db, lesson.module_id)
+    if not module:
+        raise HTTPException(status_code=404, detail="Module not found")
+    _ensure_course_edit_access(db, current_user, module.course_id)
     existing = crud.get_admin_lesson(db, lesson.id)
     if existing:
         raise HTTPException(status_code=400, detail="Lesson already exists")
@@ -509,14 +565,17 @@ def update_lesson(
     lesson_id: str,
     lesson_update: schemas.AdminLessonUpdate,
     db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin_user),
+    current_user: models.User = Depends(get_current_admin_or_course_editor_user),
 ):
-    existing = crud.get_admin_lesson(db, lesson_id)
-    if not existing:
-        raise HTTPException(status_code=404, detail="Lesson not found")
+    existing = _require_lesson_with_access(db, current_user, lesson_id)
 
     previous_video_url = existing.video_url
     requested_update = lesson_update.dict(exclude_unset=True)
+    if "module_id" in requested_update and requested_update["module_id"] != existing.module_id:
+        target_module = crud.get_admin_module(db, requested_update["module_id"])
+        if not target_module:
+            raise HTTPException(status_code=404, detail="Module not found")
+        _ensure_course_edit_access(db, current_user, target_module.course_id)
     updated = crud.update_admin_lesson(db, lesson_id, lesson_update)
     if not updated:
         raise HTTPException(status_code=404, detail="Lesson not found")
@@ -532,14 +591,12 @@ def upload_lesson_video(
     lesson_id: str,
     video: UploadFile = File(...),
     db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin_user),
+    current_user: models.User = Depends(get_current_admin_or_course_editor_user),
 ):
     if not _is_supported_video(video.content_type):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only video files are allowed")
 
-    lesson = crud.get_admin_lesson(db, lesson_id)
-    if not lesson:
-        raise HTTPException(status_code=404, detail="Lesson not found")
+    lesson = _require_lesson_with_access(db, current_user, lesson_id)
 
     extension = Path(video.filename or "video").suffix.lower() or ".mp4"
     safe_lesson_id = "".join(char if char.isalnum() or char in "-_" else "_" for char in lesson_id)
@@ -563,11 +620,9 @@ def upload_lesson_video(
 def delete_lesson_video(
     lesson_id: str,
     db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin_user),
+    current_user: models.User = Depends(get_current_admin_or_course_editor_user),
 ):
-    lesson = crud.get_admin_lesson(db, lesson_id)
-    if not lesson:
-        raise HTTPException(status_code=404, detail="Lesson not found")
+    lesson = _require_lesson_with_access(db, current_user, lesson_id)
 
     _delete_video_file(lesson.video_url)
     lesson.video_url = None
@@ -582,11 +637,9 @@ def delete_lesson_video(
 def delete_lesson(
     lesson_id: str,
     db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin_user),
+    current_user: models.User = Depends(get_current_admin_or_course_editor_user),
 ):
-    lesson = crud.get_admin_lesson(db, lesson_id)
-    if not lesson:
-        raise HTTPException(status_code=404, detail="Lesson not found")
+    lesson = _require_lesson_with_access(db, current_user, lesson_id)
 
     _delete_video_file(lesson.video_url)
     deleted = crud.delete_admin_lesson(db, lesson_id)

@@ -3,7 +3,7 @@ export interface AdminUserListItem {
   username: string;
   email: string;
   full_name: string | null;
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'course_editor';
   is_active: boolean;
   created_at: string;
   last_login_at: string | null;
@@ -14,7 +14,7 @@ export interface AdminUserDetail {
   username: string;
   email: string;
   full_name: string | null;
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'course_editor';
   is_active: boolean;
   avatar_url: string | null;
   created_at: string;
@@ -24,14 +24,18 @@ export interface AdminUserDetail {
   notifications_count: number;
   user_courses_count: number;
   user_lessons_count: number;
+  editable_course_ids: string[];
+  course_creation_allowed: boolean;
 }
 
 export interface AdminUserUpdate {
   email?: string | null;
   username?: string | null;
   full_name?: string | null;
-  role?: 'user' | 'admin';
+  role?: 'user' | 'admin' | 'course_editor';
   is_active?: boolean;
+  editable_course_ids?: string[];
+  course_creation_allowed?: boolean;
 }
 
 export interface ResetPasswordResponse {

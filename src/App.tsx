@@ -360,7 +360,7 @@ export default function App() {
           isAuthenticated={isAuthenticated}
           isAuthLoading={authLoading}
           userRole={user?.role}
-          requireRole="admin"
+          requireRole={['admin', 'course_editor']}
           onUnauthorized={() => handleNavigate('login')}
           onForbidden={() => handleNavigate('profile')}
           fallback={null}
@@ -420,7 +420,6 @@ export default function App() {
     </div>
   );
 }
-
 
 
 

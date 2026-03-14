@@ -61,6 +61,7 @@ import {
 } from './ui/dialog';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
+import { useAuth } from '../context/AuthContext';
 
 function formatDate(value: string | null): string {
   if (!value) {
@@ -90,6 +91,12 @@ const emptyToNull = (value: string): string | null => {
   const trimmed = value.trim();
   return trimmed.length === 0 ? null : trimmed;
 };
+
+const parseCourseIds = (value: string): string[] =>
+  value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
 
 type CourseFormState = {
   id: string;
@@ -195,6 +202,11 @@ const emptyTrackForm = (): TrackFormState => ({
 
 
 export function AdminPage() {
+  const { user, refreshUser } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  const isCourseEditor = user?.role === 'course_editor';
+  const courseCreationAllowed = user?.courseCreationAllowed ?? false;
+  const courseCreationDisabled = isCourseEditor && !courseCreationAllowed;
   const [users, setUsers] = useState<AdminUserListItem[]>([]);
   const [isListLoading, setIsListLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
@@ -205,6 +217,7 @@ export function AdminPage() {
   const [detailsError, setDetailsError] = useState<string | null>(null);
   const [userEditForm, setUserEditForm] = useState<AdminUserUpdate | null>(null);
   const [userEditLoading, setUserEditLoading] = useState(false);
+  const [editableCourseIdsInput, setEditableCourseIdsInput] = useState('');
 
   const [resetLoadingUserId, setResetLoadingUserId] = useState<string | null>(null);
   const [tempPasswordData, setTempPasswordData] = useState<ResetPasswordResponse | null>(null);
@@ -257,6 +270,11 @@ export function AdminPage() {
   const [reviewingSubmissionId, setReviewingSubmissionId] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!isAdmin) {
+      setUsers([]);
+      setIsListLoading(false);
+      return;
+    }
     const loadUsers = async () => {
       setIsListLoading(true);
       setListError(null);
@@ -271,7 +289,7 @@ export function AdminPage() {
     };
 
     void loadUsers();
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => {
     const loadTracks = async () => {
@@ -287,6 +305,11 @@ export function AdminPage() {
   }, []);
 
   useEffect(() => {
+    if (!isAdmin) {
+      setAdminTracks([]);
+      setTracksLoading(false);
+      return;
+    }
     const loadAdminTracks = async () => {
       setTracksLoading(true);
       setTracksError(null);
@@ -301,9 +324,14 @@ export function AdminPage() {
     };
 
     void loadAdminTracks();
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => {
+    if (!isAdmin) {
+      setSubmissions([]);
+      setSubmissionsLoading(false);
+      return;
+    }
     const loadSubmissions = async () => {
       setSubmissionsLoading(true);
       setSubmissionsError(null);
@@ -318,7 +346,7 @@ export function AdminPage() {
     };
 
     void loadSubmissions();
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => {
     if (!selectedTrackId) {
@@ -521,7 +549,9 @@ export function AdminPage() {
         full_name: details.full_name ?? '',
         role: details.role,
         is_active: details.is_active,
+        course_creation_allowed: details.course_creation_allowed,
       });
+      setEditableCourseIdsInput(details.editable_course_ids?.join(', ') ?? '');
     } catch (error) {
       const message = getErrorMessage(error, 'Failed to load user details.');
       setDetailsError(message);
@@ -544,10 +574,26 @@ export function AdminPage() {
         full_name: userEditForm.full_name?.trim() || null,
         role: userEditForm.role,
         is_active: userEditForm.is_active,
+        editable_course_ids: parseCourseIds(editableCourseIdsInput),
+        course_creation_allowed: userEditForm.course_creation_allowed,
       });
       setSelectedDetails(updated);
+      setUserEditForm({
+        email: updated.email,
+        username: updated.username,
+        full_name: updated.full_name ?? '',
+        role: updated.role,
+        is_active: updated.is_active,
+        course_creation_allowed: updated.course_creation_allowed,
+      });
+      setEditableCourseIdsInput(updated.editable_course_ids?.join(', ') ?? '');
       setUsers((prev) => prev.map((user) => (user.id === updated.id ? { ...user, username: updated.username, email: updated.email, role: updated.role, is_active: updated.is_active } : user)));
       setContentMessage(`Пользователь "${updated.username}" обновлен.`);
+      if (updated.id === user?.id) {
+        await refreshUser().catch(() => {
+          /* best effort refresh; ignore errors */
+        });
+      }
     } catch (error) {
       setActionError(getErrorMessage(error, 'Failed to update user.'));
     } finally {
@@ -703,6 +749,10 @@ export function AdminPage() {
   const handleCourseCreate = async () => {
     setContentMessage(null);
     setCoursesError(null);
+    if (courseCreationDisabled) {
+      setCoursesError('Course creation is disabled for your role.');
+      return;
+    }
     if (!courseForm.id.trim()) {
       setCoursesError('Укажите ID курса.');
       return;
@@ -1051,6 +1101,14 @@ export function AdminPage() {
           </p>
         </div>
 
+        {isCourseEditor && (
+          <div className="border-2 border-black bg-emerald-50 p-3">
+            <p className="font-mono text-xs uppercase tracking-wide">
+              Доступ редактора курсов: можно редактировать только назначенные курсы.
+            </p>
+          </div>
+        )}
+
         {tempPasswordData && (
           <div className="border-2 border-black bg-amber-50 p-3">
             <p className="font-mono text-xs mb-1">Temporary password for <strong>{tempPasswordData.username}</strong>:</p>
@@ -1088,8 +1146,9 @@ export function AdminPage() {
           </div>
         )}
 
-        <section className="space-y-4">
-          <h2 className="font-mono text-lg uppercase tracking-wide">Пользователи</h2>
+        {isAdmin && (
+          <section className="space-y-4">
+            <h2 className="font-mono text-lg uppercase tracking-wide">Пользователи</h2>
 
           {detailsOpen && (
             <div className="border-2 border-black bg-white p-4 space-y-3">
@@ -1124,6 +1183,20 @@ export function AdminPage() {
                     <div><strong>Notifications:</strong> {selectedDetails.notifications_count}</div>
                     <div><strong>User courses:</strong> {selectedDetails.user_courses_count}</div>
                     <div><strong>User lessons:</strong> {selectedDetails.user_lessons_count}</div>
+                    {selectedDetails.role === 'course_editor' && (
+                      <div className="md:col-span-2">
+                        <strong>Editable courses:</strong>{' '}
+                        {selectedDetails.editable_course_ids.length > 0
+                          ? selectedDetails.editable_course_ids.join(', ')
+                          : '-'}
+                      </div>
+                    )}
+                    {selectedDetails.role === 'course_editor' && (
+                      <div>
+                        <strong>Can create courses:</strong>{' '}
+                        {selectedDetails.course_creation_allowed ? 'yes' : 'no'}
+                      </div>
+                    )}
                   </div>
 
                   {userEditForm && (
@@ -1158,13 +1231,58 @@ export function AdminPage() {
                           <label className="font-mono text-[10px] uppercase">Role</label>
                           <select
                             value={userEditForm.role ?? 'user'}
-                            onChange={(event) => setUserEditForm((prev) => prev ? { ...prev, role: event.target.value as AdminUserUpdate['role'] } : prev)}
+                            onChange={(event) => {
+                              const nextRole = event.target.value as AdminUserUpdate['role'];
+                              setUserEditForm((prev) => {
+                                if (!prev) {
+                                  return prev;
+                                }
+                                return {
+                                  ...prev,
+                                  role: nextRole,
+                                  course_creation_allowed:
+                                    nextRole === 'course_editor'
+                                      ? prev.course_creation_allowed ?? false
+                                      : prev.course_creation_allowed,
+                                };
+                              });
+                              if (nextRole !== 'course_editor') {
+                                setEditableCourseIdsInput('');
+                              }
+                            }}
                             className="h-9 w-full rounded-none border-2 border-black px-2 font-mono text-xs uppercase"
                           >
                             <option value="user">user</option>
                             <option value="admin">admin</option>
+                            <option value="course_editor">course_editor</option>
                           </select>
                         </div>
+                        {userEditForm.role === 'course_editor' && (
+                          <div className="space-y-1 md:col-span-2">
+                            <label className="font-mono text-[10px] uppercase">Editable course IDs</label>
+                            <Input
+                              value={editableCourseIdsInput}
+                              onChange={(event) => setEditableCourseIdsInput(event.target.value)}
+                              className="rounded-none border-2 border-black font-mono"
+                              placeholder="course-1, course-2"
+                            />
+                          </div>
+                        )}
+                        {userEditForm.role === 'course_editor' && (
+                          <div className="space-y-1">
+                            <label className="font-mono text-[10px] uppercase">Course creation</label>
+                            <div className="flex items-center gap-2 text-[10px] uppercase">
+                              <input
+                                type="checkbox"
+                                checked={Boolean(userEditForm.course_creation_allowed)}
+                                onChange={(event) =>
+                                  setUserEditForm((prev) => prev ? { ...prev, course_creation_allowed: event.target.checked } : prev)
+                                }
+                              />
+                              Can create courses
+                            </div>
+                          </div>
+                        )}
                         <div className="space-y-1">
                           <label className="font-mono text-[10px] uppercase">Active</label>
                           <div className="flex items-center gap-2 text-[10px] uppercase">
@@ -1310,9 +1428,11 @@ export function AdminPage() {
               </table>
             </div>
           )}
-        </section>
+          </section>
+        )}
 
-        <section className="space-y-6 border-t-2 border-black pt-6">
+        {isAdmin && (
+          <section className="space-y-6 border-t-2 border-black pt-6">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
               <h2 className="font-mono text-lg uppercase tracking-wide">Треки</h2>
@@ -1453,7 +1573,8 @@ export function AdminPage() {
               </div>
             </div>
           </div>
-        </section>
+          </section>
+        )}
 
         <section className="space-y-6 border-t-2 border-black pt-6">
           <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -1495,22 +1616,31 @@ export function AdminPage() {
           <div className="grid lg:grid-cols-3 gap-6">
             <div className="space-y-3 border-2 border-black p-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-mono text-sm uppercase tracking-wide">Курсы</h3>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="border-2 border-black rounded-none text-xs uppercase"
-                  onClick={() => {
-                    setSelectedCourseId(null);
-                    setCourseForm(emptyCourseForm());
-                    setSelectedModuleId(null);
-                    setSelectedLessonId(null);
-                    setModuleForm(emptyModuleForm(''));
-                    setLessonForm(emptyLessonForm(''));
-                  }}
-                >
-                  Новый
-                </Button>
+                <div>
+                  <h3 className="font-mono text-sm uppercase tracking-wide">Курсы</h3>
+                  {courseCreationDisabled && (
+                    <p className="font-mono text-[10px] uppercase text-muted-foreground">
+                      У вас нет прав на создание курсов.
+                    </p>
+                  )}
+                </div>
+                {!courseCreationDisabled && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-2 border-black rounded-none text-xs uppercase"
+                    onClick={() => {
+                      setSelectedCourseId(null);
+                      setCourseForm(emptyCourseForm());
+                      setSelectedModuleId(null);
+                      setSelectedLessonId(null);
+                      setModuleForm(emptyModuleForm(''));
+                      setLessonForm(emptyLessonForm(''));
+                    }}
+                  >
+                    Новый
+                  </Button>
+                )}
               </div>
 
               {coursesLoading ? (
@@ -1633,7 +1763,7 @@ export function AdminPage() {
               </div>
 
               <div className="flex flex-wrap gap-2">
-                {!selectedCourseId && (
+                {!selectedCourseId && !courseCreationDisabled && (
                   <Button
                     type="button"
                     className="border-2 border-black rounded-none font-mono uppercase tracking-wide"
@@ -2173,41 +2303,42 @@ export function AdminPage() {
           </div>
         </section>
 
-        <section className="space-y-6 border-t-2 border-black pt-6">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div>
-              <h2 className="font-mono text-lg uppercase tracking-wide">Проверка заданий</h2>
-              <p className="font-mono text-xs text-muted-foreground">
-                Проверяйте отправленные работы и оставляйте комментарии.
-              </p>
+        {isAdmin && (
+          <section className="space-y-6 border-t-2 border-black pt-6">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <h2 className="font-mono text-lg uppercase tracking-wide">Проверка заданий</h2>
+                <p className="font-mono text-xs text-muted-foreground">
+                  Проверяйте отправленные работы и оставляйте комментарии.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="border-2 border-black rounded-none font-mono uppercase tracking-wide"
+                onClick={async () => {
+                  setSubmissionsError(null);
+                  try {
+                    const data = await getAdminSubmissions();
+                    setSubmissions(data);
+                  } catch (error) {
+                    setSubmissionsError(getErrorMessage(error, 'Не удалось обновить список заданий.'));
+                  }
+                }}
+              >
+                Обновить
+              </Button>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              className="border-2 border-black rounded-none font-mono uppercase tracking-wide"
-              onClick={async () => {
-                setSubmissionsError(null);
-                try {
-                  const data = await getAdminSubmissions();
-                  setSubmissions(data);
-                } catch (error) {
-                  setSubmissionsError(getErrorMessage(error, 'Не удалось обновить список заданий.'));
-                }
-              }}
-            >
-              Обновить
-            </Button>
-          </div>
 
-          {submissionsError && (
-            <div className="border-2 border-red-600 bg-red-50 p-3">
-              <p className="font-mono text-sm text-red-700">{submissionsError}</p>
-            </div>
-          )}
+            {submissionsError && (
+              <div className="border-2 border-red-600 bg-red-50 p-3">
+                <p className="font-mono text-sm text-red-700">{submissionsError}</p>
+              </div>
+            )}
 
-          {submissionsLoading ? (
-            <p className="font-mono text-xs uppercase">Загрузка...</p>
-          ) : (
+            {submissionsLoading ? (
+              <p className="font-mono text-xs uppercase">Загрузка...</p>
+            ) : (
             <div className="space-y-4">
               {submissions.map((submission) => (
                 <div key={submission.id} className="border-2 border-black p-4 space-y-3">
@@ -2284,7 +2415,8 @@ export function AdminPage() {
               )}
             </div>
           )}
-        </section>
+          </section>
+        )}
       </div>
       <Dialog open={tempPasswordOpen} onOpenChange={(open) => { setTempPasswordOpen(open); if (!open) { setTempPasswordData(null); } }}>
         <DialogContent className="border-2 border-black rounded-none" onInteractOutside={(event) => event.preventDefault()}>

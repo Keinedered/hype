@@ -29,7 +29,7 @@ export function Header({ currentPage = 'home', onNavigate }: HeaderProps) {
     { id: 'about', label: 'О ПРОЕКТЕ' }
   ];
 
-  const navigationItems = user?.role === 'admin'
+  const navigationItems = user?.role === 'admin' || user?.role === 'course_editor'
     ? [...navigation, { id: 'admin', label: 'АДМИН' }]
     : navigation;
 
@@ -273,7 +273,6 @@ export function Header({ currentPage = 'home', onNavigate }: HeaderProps) {
     </header>
   );
 }
-
 
 
 

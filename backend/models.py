@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Float, ForeignKey, DateTime, Boolean, Text, Enum as SQLEnum, Table
+from sqlalchemy import Column, String, Integer, Float, ForeignKey, DateTime, Boolean, Text, Enum as SQLEnum, Table, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func, expression
 from database import Base
@@ -72,6 +72,8 @@ class User(Base):
     notifications = relationship("Notification", back_populates="user")
     user_courses = relationship("UserCourse", back_populates="user")
     user_lessons = relationship("UserLesson", back_populates="user")
+    course_editor_courses = relationship("CourseEditor", back_populates="user", cascade="all, delete-orphan")
+    course_creation_allowed = Column(Boolean, nullable=False, default=False, server_default=expression.false())
 
 
 class Track(Base):
@@ -107,6 +109,21 @@ class Course(Base):
     modules = relationship("Module", back_populates="course", cascade="all, delete-orphan")
     authors = relationship("CourseAuthor", back_populates="course", cascade="all, delete-orphan")
     user_courses = relationship("UserCourse", back_populates="course")
+    editors = relationship("CourseEditor", back_populates="course", cascade="all, delete-orphan")
+
+
+class CourseEditor(Base):
+    __tablename__ = "course_editors"
+    __table_args__ = (
+        UniqueConstraint("user_id", "course_id", name="uq_course_editors_user_course"),
+    )
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    course_id = Column(String, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    user = relationship("User", back_populates="course_editor_courses")
+    course = relationship("Course", back_populates="editors")
 
 
 class CourseAuthor(Base):

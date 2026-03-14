@@ -10,11 +10,13 @@ interface RawUserProfile {
   full_name?: string | null;
   avatarUrl?: string | null;
   avatar_url?: string | null;
-  role?: 'user' | 'admin';
+  role?: 'user' | 'admin' | 'course_editor';
   createdAt?: string;
   created_at?: string;
   updatedAt?: string;
   updated_at?: string;
+  courseCreationAllowed?: boolean;
+  course_creation_allowed?: boolean;
 }
 
 export interface UpdateUserProfilePayload {
@@ -33,9 +35,10 @@ function normalizeUserProfile(raw: RawUserProfile): UserProfile {
     email: raw.email ?? '',
     fullName: raw.fullName ?? raw.full_name ?? null,
     avatarUrl: toAbsolutePublicUrl(raw.avatarUrl ?? raw.avatar_url),
-    role: raw.role === 'admin' ? 'admin' : 'user',
+    role: raw.role === 'admin' || raw.role === 'course_editor' ? raw.role : 'user',
     createdAt,
     updatedAt,
+    courseCreationAllowed: raw.courseCreationAllowed ?? raw.course_creation_allowed ?? false,
   };
 }
 
