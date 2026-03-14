@@ -107,6 +107,17 @@ type ModuleFormState = {
   orderIndex: number;
 };
 
+type AssignmentFormState = {
+  enabled: boolean;
+  existing: boolean;
+  id: string;
+  description: string;
+  criteria: string;
+  requiresText: boolean;
+  requiresFile: boolean;
+  requiresLink: boolean;
+};
+
 type LessonFormState = {
   id: string;
   moduleId: string;
@@ -116,6 +127,7 @@ type LessonFormState = {
   videoDuration: string;
   content: string;
   orderIndex: number;
+  assignment: AssignmentFormState;
 };
 
 type TrackFormState = {
@@ -155,6 +167,16 @@ const emptyLessonForm = (moduleId: string): LessonFormState => ({
   videoDuration: '',
   content: '',
   orderIndex: 0,
+  assignment: {
+    enabled: false,
+    existing: false,
+    id: '',
+    description: '',
+    criteria: '',
+    requiresText: false,
+    requiresFile: false,
+    requiresLink: false,
+  },
 });
 
 const emptyTrackForm = (): TrackFormState => ({
@@ -417,6 +439,27 @@ export function AdminPage() {
           videoDuration: data.video_duration ?? '',
           content: data.content ?? '',
           orderIndex: data.order_index,
+          assignment: data.assignment
+            ? {
+                enabled: true,
+                existing: true,
+                id: data.assignment.id,
+                description: data.assignment.description ?? '',
+                criteria: data.assignment.criteria ?? '',
+                requiresText: data.assignment.requires_text,
+                requiresFile: data.assignment.requires_file,
+                requiresLink: data.assignment.requires_link,
+              }
+            : {
+                enabled: false,
+                existing: false,
+                id: data.id ? `${data.id}-assignment` : '',
+                description: '',
+                criteria: '',
+                requiresText: false,
+                requiresFile: false,
+                requiresLink: false,
+              },
         });
       } catch (error) {
         setLessonsError(getErrorMessage(error, 'Не удалось загрузить урок.'));
@@ -776,6 +819,16 @@ export function AdminPage() {
     setContentMessage(null);
 
     try {
+      const assignmentPayload = lessonForm.assignment.enabled
+        ? {
+            id: lessonForm.assignment.id.trim() || `${lessonForm.id.trim()}-assignment`,
+            description: lessonForm.assignment.description.trim(),
+            criteria: lessonForm.assignment.criteria.trim(),
+            requires_text: lessonForm.assignment.requiresText,
+            requires_file: lessonForm.assignment.requiresFile,
+            requires_link: lessonForm.assignment.requiresLink,
+          }
+        : undefined;
       const created = await createAdminLesson({
         id: lessonForm.id.trim(),
         module_id: selectedModuleId,
@@ -785,6 +838,7 @@ export function AdminPage() {
         video_duration: lessonForm.videoDuration.trim() || null,
         content: emptyToNull(lessonForm.content),
         order_index: Number(lessonForm.orderIndex) || 0,
+        assignment: assignmentPayload,
       });
       setLessons(await getAdminLessons(selectedModuleId));
       setSelectedLessonId(created.id);
@@ -804,6 +858,16 @@ export function AdminPage() {
 
     try {
       const moduleId = lessonForm.moduleId.trim();
+      const assignmentPayload = lessonForm.assignment.enabled
+        ? {
+            id: lessonForm.assignment.id.trim() || `${lessonForm.id.trim()}-assignment`,
+            description: lessonForm.assignment.description.trim(),
+            criteria: lessonForm.assignment.criteria.trim(),
+            requires_text: lessonForm.assignment.requiresText,
+            requires_file: lessonForm.assignment.requiresFile,
+            requires_link: lessonForm.assignment.requiresLink,
+          }
+        : null;
       await updateAdminLesson(selectedLessonId, {
         module_id: moduleId.length > 0 ? moduleId : undefined,
         title: lessonForm.title.trim(),
@@ -812,6 +876,7 @@ export function AdminPage() {
         video_duration: emptyToNull(lessonForm.videoDuration),
         content: emptyToNull(lessonForm.content),
         order_index: Number(lessonForm.orderIndex) || 0,
+        assignment: assignmentPayload,
       });
       if (selectedModuleId) {
         setLessons(await getAdminLessons(selectedModuleId));
@@ -1790,6 +1855,126 @@ export function AdminPage() {
                       </div>
                     )}
                   </div>
+                </div>
+                <div className="space-y-3 border-2 border-black/40 p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <h4 className="font-mono text-xs uppercase tracking-wide">Задание</h4>
+                    <label className="flex items-center gap-2 text-[10px] uppercase tracking-wide">
+                      <input
+                        type="checkbox"
+                        checked={lessonForm.assignment.enabled}
+                        onChange={(event) => {
+                          const enabled = event.target.checked;
+                          setLessonForm((prev) => ({
+                            ...prev,
+                            assignment: {
+                              ...prev.assignment,
+                              enabled,
+                              id: enabled && !prev.assignment.id && prev.id
+                                ? `${prev.id}-assignment`
+                                : prev.assignment.id,
+                            },
+                          }));
+                        }}
+                      />
+                      Есть задание
+                    </label>
+                  </div>
+                  {lessonForm.assignment.enabled && (
+                    <div className="grid gap-3">
+                      <div className="space-y-1">
+                        <label className="font-mono text-xs uppercase">ID задания</label>
+                        <Input
+                          value={lessonForm.assignment.id}
+                          onChange={(event) =>
+                            setLessonForm((prev) => ({
+                              ...prev,
+                              assignment: { ...prev.assignment, id: event.target.value },
+                            }))
+                          }
+                          disabled={lessonForm.assignment.existing}
+                          className="rounded-none border-2 border-black font-mono"
+                        />
+                        {lessonForm.assignment.existing && (
+                          <p className="font-mono text-[10px] uppercase text-gray-500">
+                            ID нельзя менять после создания.
+                          </p>
+                        )}
+                      </div>
+                      <div className="space-y-1">
+                        <label className="font-mono text-xs uppercase">Описание задания</label>
+                        <Textarea
+                          value={lessonForm.assignment.description}
+                          onChange={(event) =>
+                            setLessonForm((prev) => ({
+                              ...prev,
+                              assignment: { ...prev.assignment, description: event.target.value },
+                            }))
+                          }
+                          className="rounded-none border-2 border-black font-mono"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="font-mono text-xs uppercase">Критерии</label>
+                        <Textarea
+                          value={lessonForm.assignment.criteria}
+                          onChange={(event) =>
+                            setLessonForm((prev) => ({
+                              ...prev,
+                              assignment: { ...prev.assignment, criteria: event.target.value },
+                            }))
+                          }
+                          className="rounded-none border-2 border-black font-mono"
+                        />
+                      </div>
+                      <div className="flex flex-wrap gap-4 text-[10px] uppercase tracking-wide">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={lessonForm.assignment.requiresText}
+                            onChange={(event) =>
+                              setLessonForm((prev) => ({
+                                ...prev,
+                                assignment: { ...prev.assignment, requiresText: event.target.checked },
+                              }))
+                            }
+                          />
+                          Текст
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={lessonForm.assignment.requiresLink}
+                            onChange={(event) =>
+                              setLessonForm((prev) => ({
+                                ...prev,
+                                assignment: { ...prev.assignment, requiresLink: event.target.checked },
+                              }))
+                            }
+                          />
+                          Ссылка
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={lessonForm.assignment.requiresFile}
+                            onChange={(event) =>
+                              setLessonForm((prev) => ({
+                                ...prev,
+                                assignment: { ...prev.assignment, requiresFile: event.target.checked },
+                              }))
+                            }
+                          />
+                          Файл
+                        </label>
+                      </div>
+                      {lessonForm.assignment.requiresFile && (
+                        <p className="font-mono text-[10px] uppercase text-gray-500">
+                          Загрузка файлов в заданиях пока не поддерживается.
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-1">
                   <label className="font-mono text-xs uppercase">Порядок</label>

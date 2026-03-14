@@ -477,7 +477,9 @@ def get_admin_lessons(db: Session, module_id: str) -> List[models.Lesson]:
 
 
 def get_admin_lesson(db: Session, lesson_id: str) -> Optional[models.Lesson]:
-    return db.query(models.Lesson).filter(models.Lesson.id == lesson_id).first()
+    return db.query(models.Lesson).options(
+        joinedload(models.Lesson.assignment)
+    ).filter(models.Lesson.id == lesson_id).first()
 
 
 def create_admin_lesson(db: Session, lesson: schemas.AdminLessonCreate) -> models.Lesson:
@@ -492,6 +494,21 @@ def create_admin_lesson(db: Session, lesson: schemas.AdminLessonCreate) -> model
         order_index=lesson.order_index,
     )
     db.add(db_lesson)
+
+    if lesson.assignment:
+        assignment_id = lesson.assignment.id or str(uuid.uuid4())
+        db_assignment = models.Assignment(
+            id=assignment_id,
+            lesson_id=db_lesson.id,
+            description=lesson.assignment.description or "",
+            criteria=lesson.assignment.criteria or "",
+            requires_text=lesson.assignment.requires_text,
+            requires_file=lesson.assignment.requires_file,
+            requires_link=lesson.assignment.requires_link,
+        )
+        db.add(db_assignment)
+        db_lesson.assignment = db_assignment
+
     db.commit()
 
     module = db.query(models.Module).filter(models.Module.id == lesson.module_id).first()
@@ -509,6 +526,8 @@ def update_admin_lesson(db: Session, lesson_id: str, lesson_update: schemas.Admi
     old_module_id = db_lesson.module_id
 
     data = lesson_update.dict(exclude_unset=True)
+    assignment_present = "assignment" in data
+    assignment_data = data.pop("assignment", None) if assignment_present else None
 
     if "module_id" in data:
         db_lesson.module_id = data["module_id"]
@@ -524,6 +543,37 @@ def update_admin_lesson(db: Session, lesson_id: str, lesson_update: schemas.Admi
         db_lesson.content = data["content"]
     if "order_index" in data:
         db_lesson.order_index = data["order_index"]
+
+    if assignment_present:
+        if assignment_data is None:
+            if db_lesson.assignment:
+                db.delete(db_lesson.assignment)
+                db_lesson.assignment = None
+        else:
+            if db_lesson.assignment:
+                if "description" in assignment_data:
+                    db_lesson.assignment.description = assignment_data.get("description") or ""
+                if "criteria" in assignment_data:
+                    db_lesson.assignment.criteria = assignment_data.get("criteria") or ""
+                if "requires_text" in assignment_data:
+                    db_lesson.assignment.requires_text = assignment_data["requires_text"]
+                if "requires_file" in assignment_data:
+                    db_lesson.assignment.requires_file = assignment_data["requires_file"]
+                if "requires_link" in assignment_data:
+                    db_lesson.assignment.requires_link = assignment_data["requires_link"]
+            else:
+                assignment_id = assignment_data.get("id") or str(uuid.uuid4())
+                db_assignment = models.Assignment(
+                    id=assignment_id,
+                    lesson_id=db_lesson.id,
+                    description=assignment_data.get("description") or "",
+                    criteria=assignment_data.get("criteria") or "",
+                    requires_text=assignment_data.get("requires_text", False),
+                    requires_file=assignment_data.get("requires_file", False),
+                    requires_link=assignment_data.get("requires_link", False),
+                )
+                db.add(db_assignment)
+                db_lesson.assignment = db_assignment
 
     db.commit()
     db.refresh(db_lesson)

@@ -216,6 +216,37 @@ class Assignment(AssignmentBase):
         from_attributes = True
 
 
+class AdminAssignmentDetail(BaseModel):
+    id: str
+    lesson_id: str
+    description: str
+    criteria: str
+    requires_text: bool
+    requires_file: bool
+    requires_link: bool
+
+    class Config:
+        from_attributes = True
+
+
+class AdminAssignmentCreate(BaseModel):
+    id: Optional[str] = None
+    description: Optional[str] = ""
+    criteria: Optional[str] = ""
+    requires_text: bool = False
+    requires_file: bool = False
+    requires_link: bool = False
+
+
+class AdminAssignmentUpdate(BaseModel):
+    id: Optional[str] = None
+    description: Optional[str] = None
+    criteria: Optional[str] = None
+    requires_text: Optional[bool] = None
+    requires_file: Optional[bool] = None
+    requires_link: Optional[bool] = None
+
+
 class LessonBase(BaseModel):
     id: str
     module_id: str
@@ -310,6 +341,7 @@ class AdminLessonDetail(BaseModel):
     video_duration: Optional[str] = None
     content: Optional[str] = None
     order_index: int
+    assignment: Optional[AdminAssignmentDetail] = None
 
     class Config:
         from_attributes = True
@@ -324,6 +356,7 @@ class AdminLessonCreate(BaseModel):
     video_duration: Optional[str] = None
     content: Optional[str] = None
     order_index: int = 0
+    assignment: Optional[AdminAssignmentCreate] = None
 
 
 class AdminLessonUpdate(BaseModel):
@@ -334,6 +367,7 @@ class AdminLessonUpdate(BaseModel):
     video_duration: Optional[str] = None
     content: Optional[str] = None
     order_index: Optional[int] = None
+    assignment: Optional[AdminAssignmentUpdate] = None
 
 
 class GraphNodeBase(BaseModel):

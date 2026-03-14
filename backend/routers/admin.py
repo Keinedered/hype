@@ -76,6 +76,19 @@ def _serialize_admin_lesson(lesson: models.Lesson) -> schemas.AdminLessonDetail:
         video_duration=lesson.video_duration,
         content=lesson.content,
         order_index=lesson.order_index,
+        assignment=(
+            schemas.AdminAssignmentDetail(
+                id=lesson.assignment.id,
+                lesson_id=lesson.assignment.lesson_id,
+                description=lesson.assignment.description or "",
+                criteria=lesson.assignment.criteria or "",
+                requires_text=lesson.assignment.requires_text,
+                requires_file=lesson.assignment.requires_file,
+                requires_link=lesson.assignment.requires_link,
+            )
+            if lesson.assignment
+            else None
+        ),
     )
 
 

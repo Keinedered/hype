@@ -136,6 +136,34 @@ export interface AdminLessonListItem {
   order_index: number;
 }
 
+export interface AdminAssignmentDetail {
+  id: string;
+  lesson_id: string;
+  description: string;
+  criteria: string;
+  requires_text: boolean;
+  requires_file: boolean;
+  requires_link: boolean;
+}
+
+export interface AdminAssignmentCreate {
+  id?: string | null;
+  description?: string | null;
+  criteria?: string | null;
+  requires_text: boolean;
+  requires_file: boolean;
+  requires_link: boolean;
+}
+
+export interface AdminAssignmentUpdate {
+  id?: string | null;
+  description?: string | null;
+  criteria?: string | null;
+  requires_text?: boolean | null;
+  requires_file?: boolean | null;
+  requires_link?: boolean | null;
+}
+
 export interface AdminLessonDetail {
   id: string;
   module_id: string;
@@ -145,6 +173,7 @@ export interface AdminLessonDetail {
   video_duration?: string | null;
   content?: string | null;
   order_index: number;
+  assignment?: AdminAssignmentDetail | null;
 }
 
 export interface AdminLessonCreate {
@@ -156,6 +185,7 @@ export interface AdminLessonCreate {
   video_duration?: string | null;
   content?: string | null;
   order_index: number;
+  assignment?: AdminAssignmentCreate | null;
 }
 
 export interface AdminLessonUpdate {
@@ -166,4 +196,5 @@ export interface AdminLessonUpdate {
   video_duration?: string | null;
   content?: string | null;
   order_index?: number;
+  assignment?: AdminAssignmentUpdate | null;
 }
