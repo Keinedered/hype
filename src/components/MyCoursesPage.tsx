@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { coursesAPI, tracksAPI } from '../api/client';
+import { normalizeTrack, RawTrack } from '../api/normalizers';
 import { Course, Track, TrackId } from '../types';
 import { CourseCard } from './CourseCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
@@ -14,10 +15,10 @@ interface MyCoursesPageProps {
 type RawCourse = {
   id: string;
   track_id: TrackId;
-  title: string;
-  version: string;
-  description: string;
-  short_description: string;
+  title?: string | null;
+  version?: string | null;
+  description?: string | null;
+  short_description?: string | null;
   level: Course['level'];
   module_count: number;
   lesson_count: number;
@@ -31,10 +32,10 @@ type RawCourse = {
 const normalizeCourse = (raw: RawCourse): Course => ({
   id: raw.id,
   trackId: raw.track_id,
-  title: raw.title,
-  version: raw.version,
-  description: raw.description,
-  shortDescription: raw.short_description,
+  title: raw.title ?? '',
+  version: raw.version ?? '',
+  description: raw.description ?? '',
+  shortDescription: raw.short_description ?? '',
   level: raw.level,
   moduleCount: raw.module_count,
   lessonCount: raw.lesson_count,
@@ -67,7 +68,7 @@ export function MyCoursesPage({ onCourseSelect }: MyCoursesPageProps) {
         ]);
         if (!isMounted) return;
         setCourses((rawCourses as RawCourse[]).map(normalizeCourse));
-        setTracks(rawTracks as Track[]);
+        setTracks((rawTracks as RawTrack[]).map(normalizeTrack));
       } catch (err) {
         if (!isMounted) return;
         setError(err instanceof Error ? err.message : 'Не удалось загрузить курсы');

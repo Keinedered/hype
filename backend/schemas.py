@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, validator
 from typing import Optional, List
 from datetime import datetime
 from enum import Enum
@@ -63,7 +63,7 @@ class UserRole(str, Enum):
 class TrackBase(BaseModel):
     id: TrackId
     name: str
-    description: str
+    description: Optional[str] = None
     color: str
 
 
@@ -76,7 +76,7 @@ class AdminTrackDetail(BaseModel):
     id: TrackId
     name: str
     description: Optional[str] = None
-    color: Optional[str] = None
+    color: str
 
     class Config:
         from_attributes = True
@@ -86,7 +86,7 @@ class AdminTrackCreate(BaseModel):
     id: TrackId
     name: str
     description: Optional[str] = None
-    color: Optional[str] = None
+    color: str
 
 
 class AdminTrackUpdate(BaseModel):
@@ -94,14 +94,20 @@ class AdminTrackUpdate(BaseModel):
     description: Optional[str] = None
     color: Optional[str] = None
 
+    @validator("color")
+    def validate_color_not_null(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            raise ValueError("Track color cannot be null.")
+        return value
+
 
 class CourseBase(BaseModel):
     id: str
     track_id: TrackId
     title: str
-    version: str
-    description: str
-    short_description: str
+    version: Optional[str] = None
+    description: Optional[str] = None
+    short_description: Optional[str] = None
     level: CourseLevel
     module_count: int
     lesson_count: int
@@ -126,7 +132,7 @@ class AdminCourseListItem(BaseModel):
     id: str
     track_id: TrackId
     title: str
-    version: str
+    version: Optional[str] = None
     level: CourseLevel
     module_count: int
     lesson_count: int
@@ -140,9 +146,9 @@ class AdminCourseDetail(BaseModel):
     id: str
     track_id: TrackId
     title: str
-    version: str
-    description: str
-    short_description: str
+    version: Optional[str] = None
+    description: Optional[str] = None
+    short_description: Optional[str] = None
     level: CourseLevel
     module_count: int
     lesson_count: int
@@ -159,9 +165,9 @@ class AdminCourseCreate(BaseModel):
     id: str
     track_id: TrackId
     title: str
-    version: str
-    description: str
-    short_description: str
+    version: Optional[str] = None
+    description: Optional[str] = None
+    short_description: Optional[str] = None
     level: CourseLevel
     task_count: int = 0
     enrollment_deadline: Optional[str] = None
@@ -214,10 +220,10 @@ class LessonBase(BaseModel):
     id: str
     module_id: str
     title: str
-    description: str
+    description: Optional[str] = None
     video_url: Optional[str] = None
     video_duration: Optional[str] = None
-    content: str
+    content: Optional[str] = None
     order_index: int
 
 
@@ -234,7 +240,7 @@ class ModuleBase(BaseModel):
     id: str
     course_id: str
     title: str
-    description: str
+    description: Optional[str] = None
     order_index: int
 
 
@@ -250,7 +256,7 @@ class AdminModuleListItem(BaseModel):
     id: str
     course_id: str
     title: str
-    description: str
+    description: Optional[str] = None
     order_index: int
     lesson_count: int
 
@@ -262,7 +268,7 @@ class AdminModuleDetail(BaseModel):
     id: str
     course_id: str
     title: str
-    description: str
+    description: Optional[str] = None
     order_index: int
 
     class Config:
@@ -273,7 +279,7 @@ class AdminModuleCreate(BaseModel):
     id: str
     course_id: str
     title: str
-    description: str
+    description: Optional[str] = None
     order_index: int = 0
 
 
@@ -288,7 +294,7 @@ class AdminLessonListItem(BaseModel):
     id: str
     module_id: str
     title: str
-    description: str
+    description: Optional[str] = None
     order_index: int
 
     class Config:
@@ -299,10 +305,10 @@ class AdminLessonDetail(BaseModel):
     id: str
     module_id: str
     title: str
-    description: str
+    description: Optional[str] = None
     video_url: Optional[str] = None
     video_duration: Optional[str] = None
-    content: str
+    content: Optional[str] = None
     order_index: int
 
     class Config:
@@ -313,10 +319,10 @@ class AdminLessonCreate(BaseModel):
     id: str
     module_id: str
     title: str
-    description: str
+    description: Optional[str] = None
     video_url: Optional[str] = None
     video_duration: Optional[str] = None
-    content: str
+    content: Optional[str] = None
     order_index: int = 0
 
 
@@ -484,4 +490,3 @@ class ResetPasswordResponse(BaseModel):
     user_id: str
     username: str
     temporary_password: str
-

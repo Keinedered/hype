@@ -314,10 +314,10 @@ export function AdminPage() {
         setCourseForm({
           id: data.id,
           trackId: data.track_id,
-          title: data.title,
-          version: data.version,
-          description: data.description,
-          shortDescription: data.short_description,
+          title: data.title ?? '',
+          version: data.version ?? '',
+          description: data.description ?? '',
+          shortDescription: data.short_description ?? '',
           level: data.level,
           taskCount: data.task_count,
           enrollmentDeadline: data.enrollment_deadline ?? '',
@@ -362,8 +362,8 @@ export function AdminPage() {
         setModuleForm({
           id: data.id,
           courseId: data.course_id,
-          title: data.title,
-          description: data.description,
+          title: data.title ?? '',
+          description: data.description ?? '',
           orderIndex: data.order_index,
         });
       } catch (error) {
@@ -402,11 +402,11 @@ export function AdminPage() {
         setLessonForm({
           id: data.id,
           moduleId: data.module_id,
-          title: data.title,
-          description: data.description,
+          title: data.title ?? '',
+          description: data.description ?? '',
           videoUrl: data.video_url ?? '',
           videoDuration: data.video_duration ?? '',
-          content: data.content,
+          content: data.content ?? '',
           orderIndex: data.order_index,
         });
       } catch (error) {
@@ -521,12 +521,16 @@ export function AdminPage() {
       setTracksError('Укажите название трека.');
       return;
     }
+    if (!trackForm.color.trim()) {
+      setTracksError('Укажите цвет трека.');
+      return;
+    }
     try {
       const created = await createAdminTrack({
         id: trackForm.id.trim() as AdminTrackDetail['id'],
         name: trackForm.name.trim(),
         description: emptyToNull(trackForm.description),
-        color: emptyToNull(trackForm.color),
+        color: trackForm.color.trim(),
       });
       setContentMessage(`Трек "${created.name}" создан.`);
       await refreshTracks();
@@ -543,11 +547,15 @@ export function AdminPage() {
     }
     setTracksError(null);
     setContentMessage(null);
+    if (!trackForm.color.trim()) {
+      setTracksError('Укажите цвет трека.');
+      return;
+    }
     try {
       const updated = await updateAdminTrack(selectedTrackId, {
         name: trackForm.name.trim(),
         description: emptyToNull(trackForm.description),
-        color: emptyToNull(trackForm.color),
+        color: trackForm.color.trim(),
       });
       setContentMessage(`Трек "${updated.name}" обновлен.`);
       await refreshTracks();
@@ -596,9 +604,9 @@ export function AdminPage() {
         id: courseForm.id.trim(),
         track_id: courseForm.trackId,
         title: courseForm.title.trim(),
-        version: courseForm.version.trim() || 'v1.0',
-        description: courseForm.description.trim(),
-        short_description: courseForm.shortDescription.trim(),
+        version: emptyToNull(courseForm.version) ?? 'v1.0',
+        description: emptyToNull(courseForm.description),
+        short_description: emptyToNull(courseForm.shortDescription),
         level: courseForm.level,
         task_count: Number(courseForm.taskCount) || 0,
         enrollment_deadline: courseForm.enrollmentDeadline.trim() || null,
@@ -632,7 +640,7 @@ export function AdminPage() {
       const updated = await updateAdminCourse(selectedCourseId, {
         track_id: courseForm.trackId || undefined,
         title: courseForm.title.trim(),
-        version: courseForm.version.trim(),
+        version: emptyToNull(courseForm.version),
         description: emptyToNull(courseForm.description),
         short_description: emptyToNull(courseForm.shortDescription),
         level: courseForm.level,
@@ -687,7 +695,7 @@ export function AdminPage() {
         id: moduleForm.id.trim(),
         course_id: selectedCourseId,
         title: moduleForm.title.trim(),
-        description: moduleForm.description.trim(),
+        description: emptyToNull(moduleForm.description),
         order_index: Number(moduleForm.orderIndex) || 0,
       });
       setModules(await getAdminModules(selectedCourseId));
@@ -763,10 +771,10 @@ export function AdminPage() {
         id: lessonForm.id.trim(),
         module_id: selectedModuleId,
         title: lessonForm.title.trim(),
-        description: lessonForm.description.trim(),
+        description: emptyToNull(lessonForm.description),
         video_url: lessonForm.videoUrl.trim() || null,
         video_duration: lessonForm.videoDuration.trim() || null,
-        content: lessonForm.content.trim(),
+        content: emptyToNull(lessonForm.content),
         order_index: Number(lessonForm.orderIndex) || 0,
       });
       setLessons(await getAdminLessons(selectedModuleId));

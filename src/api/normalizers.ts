@@ -3,17 +3,17 @@ import { Assignment, Course, HandbookExcerpt, Lesson, Module, Track } from '../t
 export type RawTrack = {
   id: string;
   name: string;
-  description: string;
+  description?: string | null;
   color: string;
 };
 
 export type RawCourse = {
   id: string;
   track_id: string;
-  title: string;
-  version: string;
-  description: string;
-  short_description: string;
+  title?: string | null;
+  version?: string | null;
+  description?: string | null;
+  short_description?: string | null;
   level: Course['level'];
   module_count: number;
   lesson_count: number;
@@ -45,11 +45,11 @@ export type RawAssignment = {
 export type RawLesson = {
   id: string;
   module_id: string;
-  title: string;
-  description: string;
+  title?: string | null;
+  description?: string | null;
   video_url?: string | null;
   video_duration?: string | null;
-  content: string;
+  content?: string | null;
   order_index?: number | null;
   handbook_excerpts?: RawHandbookExcerpt[] | null;
   assignment?: RawAssignment | null;
@@ -59,8 +59,8 @@ export type RawLesson = {
 export type RawModule = {
   id: string;
   course_id: string;
-  title: string;
-  description: string;
+  title?: string | null;
+  description?: string | null;
   order_index?: number | null;
   progress?: number | null;
   lessons?: RawLesson[] | null;
@@ -86,18 +86,18 @@ export type RawGraphEdge = {
 
 export const normalizeTrack = (raw: RawTrack): Track => ({
   id: raw.id as Track['id'],
-  name: raw.name,
-  description: raw.description,
+  name: raw.name ?? '',
+  description: raw.description ?? '',
   color: raw.color,
 });
 
 export const normalizeCourse = (raw: RawCourse): Course => ({
   id: raw.id,
   trackId: raw.track_id as Course['trackId'],
-  title: raw.title,
-  version: raw.version,
-  description: raw.description,
-  shortDescription: raw.short_description,
+  title: raw.title ?? '',
+  version: raw.version ?? '',
+  description: raw.description ?? '',
+  shortDescription: raw.short_description ?? '',
   level: raw.level,
   moduleCount: raw.module_count,
   lessonCount: raw.lesson_count,
@@ -128,11 +128,11 @@ export const normalizeAssignment = (raw: RawAssignment): Assignment => ({
 export const normalizeLesson = (raw: RawLesson): Lesson => ({
   id: raw.id,
   moduleId: raw.module_id,
-  title: raw.title,
-  description: raw.description,
+  title: raw.title ?? '',
+  description: raw.description ?? '',
   videoUrl: raw.video_url ?? undefined,
   videoDuration: raw.video_duration ?? undefined,
-  content: raw.content,
+  content: raw.content ?? '',
   orderIndex: raw.order_index ?? undefined,
   handbookExcerpts: (raw.handbook_excerpts ?? []).map(normalizeHandbookExcerpt),
   assignment: raw.assignment ? normalizeAssignment(raw.assignment) : undefined,
@@ -142,8 +142,8 @@ export const normalizeLesson = (raw: RawLesson): Lesson => ({
 export const normalizeModule = (raw: RawModule): Module => ({
   id: raw.id,
   courseId: raw.course_id,
-  title: raw.title,
-  description: raw.description,
+  title: raw.title ?? '',
+  description: raw.description ?? '',
   orderIndex: raw.order_index ?? undefined,
   progress: raw.progress ?? undefined,
   lessons: (raw.lessons ?? []).map(normalizeLesson),

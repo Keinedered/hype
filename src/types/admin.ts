@@ -36,27 +36,27 @@ export interface AdminTrackDetail {
   id: string;
   name: string;
   description?: string | null;
-  color?: string | null;
+  color: string;
 }
 
 export interface AdminTrackCreate {
   id: AdminTrackDetail['id'];
   name: string;
   description?: string | null;
-  color?: string | null;
+  color: string;
 }
 
 export interface AdminTrackUpdate {
   name?: string | null;
   description?: string | null;
-  color?: string | null;
+  color?: string;
 }
 
 export interface AdminCourseListItem {
   id: string;
   track_id: 'event' | 'digital' | 'communication' | 'design';
   title: string;
-  version: string;
+  version?: string | null;
   level: 'beginner' | 'intermediate' | 'advanced';
   module_count: number;
   lesson_count: number;
@@ -64,8 +64,8 @@ export interface AdminCourseListItem {
 }
 
 export interface AdminCourseDetail extends AdminCourseListItem {
-  description: string;
-  short_description: string;
+  description?: string | null;
+  short_description?: string | null;
   authors: string[];
   enrollment_deadline?: string | null;
   created_at?: string | null;
@@ -75,9 +75,9 @@ export interface AdminCourseCreate {
   id: string;
   track_id: AdminCourseDetail['track_id'];
   title: string;
-  version: string;
-  description: string;
-  short_description: string;
+  version?: string | null;
+  description?: string | null;
+  short_description?: string | null;
   level: AdminCourseDetail['level'];
   task_count: number;
   enrollment_deadline?: string | null;
@@ -86,10 +86,10 @@ export interface AdminCourseCreate {
 
 export interface AdminCourseUpdate {
   track_id?: AdminCourseDetail['track_id'];
-  title?: string;
-  version?: string;
-  description?: string;
-  short_description?: string;
+  title?: string | null;
+  version?: string | null;
+  description?: string | null;
+  short_description?: string | null;
   level?: AdminCourseDetail['level'];
   task_count?: number;
   enrollment_deadline?: string | null;
@@ -100,7 +100,7 @@ export interface AdminModuleListItem {
   id: string;
   course_id: string;
   title: string;
-  description: string;
+  description?: string | null;
   order_index: number;
   lesson_count: number;
 }
@@ -109,7 +109,7 @@ export interface AdminModuleDetail {
   id: string;
   course_id: string;
   title: string;
-  description: string;
+  description?: string | null;
   order_index: number;
 }
 
@@ -117,14 +117,14 @@ export interface AdminModuleCreate {
   id: string;
   course_id: string;
   title: string;
-  description: string;
+  description?: string | null;
   order_index: number;
 }
 
 export interface AdminModuleUpdate {
   course_id?: string;
-  title?: string;
-  description?: string;
+  title?: string | null;
+  description?: string | null;
   order_index?: number;
 }
 
@@ -132,7 +132,7 @@ export interface AdminLessonListItem {
   id: string;
   module_id: string;
   title: string;
-  description: string;
+  description?: string | null;
   order_index: number;
 }
 
@@ -140,10 +140,10 @@ export interface AdminLessonDetail {
   id: string;
   module_id: string;
   title: string;
-  description: string;
+  description?: string | null;
   video_url?: string | null;
   video_duration?: string | null;
-  content: string;
+  content?: string | null;
   order_index: number;
 }
 
@@ -151,19 +151,19 @@ export interface AdminLessonCreate {
   id: string;
   module_id: string;
   title: string;
-  description: string;
+  description?: string | null;
   video_url?: string | null;
   video_duration?: string | null;
-  content: string;
+  content?: string | null;
   order_index: number;
 }
 
 export interface AdminLessonUpdate {
   module_id?: string;
-  title?: string;
-  description?: string;
+  title?: string | null;
+  description?: string | null;
   video_url?: string | null;
   video_duration?: string | null;
-  content?: string;
+  content?: string | null;
   order_index?: number;
 }
