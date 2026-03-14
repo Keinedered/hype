@@ -235,10 +235,21 @@ export function CoursePage({
                 <span>{course.moduleCount} МОДУЛЕЙ</span>
               </div>
               <div className="hidden sm:block w-px h-6 bg-black" />
-              <div className="flex items-center gap-3 font-mono text-sm sm:text-base">
-                <Play className="w-5 h-5 shrink-0" />
-                <span>{course.lessonCount} ВИДЕОЛЕКЦИЙ</span>
-              </div>
+              {course.lessonCount > 0 && (
+                <div className="flex items-center gap-3 font-mono text-sm sm:text-base">
+                  <BookOpen className="w-5 h-5 shrink-0" />
+                  <span>{course.lessonCount} УРОКА(ОВ)</span>
+                </div>
+              )}
+              {course.videoCount !== undefined && course.videoCount > 0 && (
+                <>
+                  <div className="hidden sm:block w-px h-6 bg-black" />
+                  <div className="flex items-center gap-3 font-mono text-sm sm:text-base">
+                    <Play className="w-5 h-5 shrink-0" />
+                    <span>{course.videoCount} ВИДЕОУРОКОВ</span>
+                  </div>
+                </>
+              )}
               <div className="hidden sm:block w-px h-6 bg-black" />
               <div className="flex items-center gap-3 font-mono text-sm sm:text-base">
                 <CheckCircle2 className="w-5 h-5 shrink-0" />

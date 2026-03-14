@@ -19,6 +19,7 @@ export type RawCourse = {
   module_count: number;
   lesson_count: number;
   task_count: number;
+  video_count?: number | null;
   authors: string[];
   enrollment_deadline?: string | null;
   progress?: number | null;
@@ -104,6 +105,7 @@ export const normalizeCourse = (raw: RawCourse): Course => ({
   moduleCount: raw.module_count,
   lessonCount: raw.lesson_count,
   taskCount: raw.task_count,
+  videoCount: raw.video_count ?? undefined,
   authors: raw.authors ?? [],
   enrollmentDeadline: raw.enrollment_deadline ?? undefined,
   progress: raw.progress ?? undefined,

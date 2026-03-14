@@ -18,6 +18,7 @@ export interface Course {
   moduleCount: number;
   lessonCount: number;
   taskCount: number;
+  videoCount?: number;
   authors: string[];
   enrollmentDeadline?: string;
   progress?: number;

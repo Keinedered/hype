@@ -115,6 +115,15 @@ def get_courses(db: Session, track_id: Optional[str] = None, user_id: Optional[s
                 models.UserCourse.user_id == user_id,
                 models.UserCourse.course_id == course.id
             ).first()
+            # Подсчёт видеоуроков: уроки с video_url
+            video_count = (
+                db.query(func.count(models.Lesson.id))
+                .join(models.Module, models.Lesson.module_id == models.Module.id)
+                .filter(models.Module.course_id == course.id, models.Lesson.video_url.isnot(None))
+                .scalar()
+                or 0
+            )
+            course_dict["video_count"] = video_count
             progress = user_course.progress if user_course else None
             status_value = (
                 user_course.status.value if hasattr(user_course.status, "value") else user_course.status
@@ -262,7 +271,7 @@ def get_course(db: Session, course_id: str, user_id: Optional[str] = None) -> Op
             )
 
             computed_progress = round((completed_lessons / total_lessons) * 100, 2)
-            if progress is None or progress == 0:
+            if progress is None:
                 progress = computed_progress
 
             if completed_lessons == total_lessons and total_lessons > 0:
