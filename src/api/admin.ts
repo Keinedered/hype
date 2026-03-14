@@ -107,6 +107,23 @@ export async function updateAdminLesson(lessonId: string, payload: AdminLessonUp
   return response.data;
 }
 
+export async function uploadAdminLessonVideo(lessonId: string, file: File): Promise<AdminLessonDetail> {
+  const formData = new FormData();
+  formData.append('video', file);
+
+  const response = await axiosClient.post<AdminLessonDetail>(`/admin/lessons/${lessonId}/video`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+}
+
+export async function deleteAdminLessonVideo(lessonId: string): Promise<AdminLessonDetail> {
+  const response = await axiosClient.delete<AdminLessonDetail>(`/admin/lessons/${lessonId}/video`);
+  return response.data;
+}
+
 export async function deleteAdminLesson(lessonId: string): Promise<void> {
   await axiosClient.delete(`/admin/lessons/${lessonId}`);
 }

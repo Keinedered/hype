@@ -1,4 +1,5 @@
 import { Assignment, Course, HandbookExcerpt, Lesson, Module, Track } from '../types';
+import { toAbsolutePublicUrl } from './urls';
 
 export type RawTrack = {
   id: string;
@@ -130,7 +131,7 @@ export const normalizeLesson = (raw: RawLesson): Lesson => ({
   moduleId: raw.module_id,
   title: raw.title ?? '',
   description: raw.description ?? '',
-  videoUrl: raw.video_url ?? undefined,
+  videoUrl: toAbsolutePublicUrl(raw.video_url) ?? undefined,
   videoDuration: raw.video_duration ?? undefined,
   content: raw.content ?? '',
   orderIndex: raw.order_index ?? undefined,

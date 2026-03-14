@@ -1,5 +1,6 @@
 import { axiosClient } from './axiosClient';
 import { UserProfile } from '../types/user-profile';
+import { toAbsolutePublicUrl } from './urls';
 
 interface RawUserProfile {
   id?: string | number;
@@ -22,20 +23,6 @@ export interface UpdateUserProfilePayload {
   full_name?: string;
 }
 
-function toAbsoluteAvatarUrl(rawUrl: string | null | undefined): string | null {
-  if (!rawUrl) {
-    return null;
-  }
-
-  if (/^https?:\/\//i.test(rawUrl)) {
-    return rawUrl;
-  }
-
-  const baseURL = axiosClient.defaults.baseURL ?? '';
-  const normalizedBase = baseURL.replace(/\/api\/v1\/?$/, '');
-  return `${normalizedBase}${rawUrl}`;
-}
-
 function normalizeUserProfile(raw: RawUserProfile): UserProfile {
   const createdAt = raw.createdAt ?? raw.created_at ?? '';
   const updatedAt = raw.updatedAt ?? raw.updated_at ?? createdAt;
@@ -45,7 +32,7 @@ function normalizeUserProfile(raw: RawUserProfile): UserProfile {
     username: raw.username ?? '',
     email: raw.email ?? '',
     fullName: raw.fullName ?? raw.full_name ?? null,
-    avatarUrl: toAbsoluteAvatarUrl(raw.avatarUrl ?? raw.avatar_url),
+    avatarUrl: toAbsolutePublicUrl(raw.avatarUrl ?? raw.avatar_url),
     role: raw.role === 'admin' ? 'admin' : 'user',
     createdAt,
     updatedAt,

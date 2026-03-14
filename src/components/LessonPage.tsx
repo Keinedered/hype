@@ -261,7 +261,7 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
                   <span className="px-2 py-1 bg-black text-white font-mono text-xs uppercase tracking-wider">
                     {lessonIndex >= 0 ? `Урок ${lessonIndex + 1}` : 'Урок'}
                   </span>
-                  {lesson.videoDuration && (
+                  {lesson.videoUrl && lesson.videoDuration && (
                     <span className="flex items-center gap-1 text-xs font-mono text-gray-500 uppercase">
                        <Clock className="w-3 h-3" /> {lesson.videoDuration}
                     </span>

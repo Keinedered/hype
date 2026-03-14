@@ -1,8 +1,10 @@
 import secrets
+import shutil
 import string
+import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
 import crud
@@ -35,9 +37,46 @@ def _delete_avatar_file(avatar_url: str | None) -> None:
         avatar_file.unlink(missing_ok=True)
 
 
+def _video_upload_dir() -> Path:
+    upload_dir = Path(settings.UPLOAD_DIR) / settings.VIDEO_UPLOAD_SUBDIR
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    return upload_dir
+
+
+def _is_supported_video(content_type: str | None) -> bool:
+    return bool(content_type and content_type.startswith("video/"))
+
+
+def _delete_video_file(video_url: str | None) -> None:
+    if not video_url:
+        return
+
+    prefix = f"{settings.PUBLIC_UPLOADS_URL_PREFIX}/{settings.VIDEO_UPLOAD_SUBDIR}/"
+    if not video_url.startswith(prefix):
+        return
+
+    file_name = video_url.removeprefix(prefix)
+    video_file = _video_upload_dir() / file_name
+    if video_file.exists() and video_file.is_file():
+        video_file.unlink(missing_ok=True)
+
+
 def _generate_temporary_password(length: int = 12) -> str:
     alphabet = string.ascii_letters + string.digits
     return "".join(secrets.choice(alphabet) for _ in range(length))
+
+
+def _serialize_admin_lesson(lesson: models.Lesson) -> schemas.AdminLessonDetail:
+    return schemas.AdminLessonDetail(
+        id=lesson.id,
+        module_id=lesson.module_id,
+        title=lesson.title,
+        description=lesson.description,
+        video_url=lesson.video_url,
+        video_duration=lesson.video_duration,
+        content=lesson.content,
+        order_index=lesson.order_index,
+    )
 
 
 @router.get("/users", response_model=list[schemas.AdminUserListItem])
@@ -400,16 +439,7 @@ def get_lesson(
     lesson = crud.get_admin_lesson(db, lesson_id)
     if not lesson:
         raise HTTPException(status_code=404, detail="Lesson not found")
-    return schemas.AdminLessonDetail(
-        id=lesson.id,
-        module_id=lesson.module_id,
-        title=lesson.title,
-        description=lesson.description,
-        video_url=lesson.video_url,
-        video_duration=lesson.video_duration,
-        content=lesson.content,
-        order_index=lesson.order_index,
-    )
+    return _serialize_admin_lesson(lesson)
 
 
 @router.post("/lessons", response_model=schemas.AdminLessonDetail, status_code=status.HTTP_201_CREATED)
@@ -422,16 +452,7 @@ def create_lesson(
     if existing:
         raise HTTPException(status_code=400, detail="Lesson already exists")
     created = crud.create_admin_lesson(db, lesson)
-    return schemas.AdminLessonDetail(
-        id=created.id,
-        module_id=created.module_id,
-        title=created.title,
-        description=created.description,
-        video_url=created.video_url,
-        video_duration=created.video_duration,
-        content=created.content,
-        order_index=created.order_index,
-    )
+    return _serialize_admin_lesson(created)
 
 
 @router.patch("/lessons/{lesson_id}", response_model=schemas.AdminLessonDetail)
@@ -441,19 +462,71 @@ def update_lesson(
     db: Session = Depends(get_db),
     _: models.User = Depends(get_current_admin_user),
 ):
+    existing = crud.get_admin_lesson(db, lesson_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+
+    previous_video_url = existing.video_url
+    requested_update = lesson_update.dict(exclude_unset=True)
     updated = crud.update_admin_lesson(db, lesson_id, lesson_update)
     if not updated:
         raise HTTPException(status_code=404, detail="Lesson not found")
-    return schemas.AdminLessonDetail(
-        id=updated.id,
-        module_id=updated.module_id,
-        title=updated.title,
-        description=updated.description,
-        video_url=updated.video_url,
-        video_duration=updated.video_duration,
-        content=updated.content,
-        order_index=updated.order_index,
-    )
+
+    if "video_url" in requested_update and previous_video_url != updated.video_url:
+        _delete_video_file(previous_video_url)
+
+    return _serialize_admin_lesson(updated)
+
+
+@router.post("/lessons/{lesson_id}/video", response_model=schemas.AdminLessonDetail)
+def upload_lesson_video(
+    lesson_id: str,
+    video: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_admin_user),
+):
+    if not _is_supported_video(video.content_type):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only video files are allowed")
+
+    lesson = crud.get_admin_lesson(db, lesson_id)
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+
+    extension = Path(video.filename or "video").suffix.lower() or ".mp4"
+    safe_lesson_id = "".join(char if char.isalnum() or char in "-_" else "_" for char in lesson_id)
+    file_name = f"{safe_lesson_id}_{uuid.uuid4().hex}{extension}"
+    upload_dir = _video_upload_dir()
+    destination = upload_dir / file_name
+
+    with destination.open("wb") as buffer:
+        shutil.copyfileobj(video.file, buffer)
+
+    _delete_video_file(lesson.video_url)
+    lesson.video_url = f"{settings.PUBLIC_UPLOADS_URL_PREFIX}/{settings.VIDEO_UPLOAD_SUBDIR}/{file_name}"
+
+    db.add(lesson)
+    db.commit()
+    db.refresh(lesson)
+    return _serialize_admin_lesson(lesson)
+
+
+@router.delete("/lessons/{lesson_id}/video", response_model=schemas.AdminLessonDetail)
+def delete_lesson_video(
+    lesson_id: str,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_admin_user),
+):
+    lesson = crud.get_admin_lesson(db, lesson_id)
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+
+    _delete_video_file(lesson.video_url)
+    lesson.video_url = None
+
+    db.add(lesson)
+    db.commit()
+    db.refresh(lesson)
+    return _serialize_admin_lesson(lesson)
 
 
 @router.delete("/lessons/{lesson_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -462,6 +535,11 @@ def delete_lesson(
     db: Session = Depends(get_db),
     _: models.User = Depends(get_current_admin_user),
 ):
+    lesson = crud.get_admin_lesson(db, lesson_id)
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+
+    _delete_video_file(lesson.video_url)
     deleted = crud.delete_admin_lesson(db, lesson_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Lesson not found")

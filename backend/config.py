@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     # Uploads
     UPLOAD_DIR: str = "/uploads"
     AVATAR_UPLOAD_SUBDIR: str = "avatars"
+    VIDEO_UPLOAD_SUBDIR: str = "videos"
     PUBLIC_UPLOADS_URL_PREFIX: str = "/uploads"
 
     class Config:

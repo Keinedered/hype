@@ -9,6 +9,7 @@ import {
   createAdminTrack,
   deleteAdminCourse,
   deleteAdminLesson,
+  deleteAdminLessonVideo,
   deleteAdminModule,
   deleteAdminTrack,
   deleteAdminUser,
@@ -22,6 +23,7 @@ import {
   getAdminUserDetails,
   getAdminUsers,
   resetAdminUserPassword,
+  uploadAdminLessonVideo,
   updateAdminCourse,
   updateAdminLesson,
   updateAdminModule,
@@ -29,6 +31,7 @@ import {
 } from '../api/admin';
 import { tracksAPI } from '../api/client';
 import { normalizeTrack, RawTrack } from '../api/normalizers';
+import { toAbsolutePublicUrl } from '../api/urls';
 import {
   AdminCourseDetail,
   AdminCourseListItem,
@@ -211,6 +214,8 @@ export function AdminPage() {
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [, setSelectedLesson] = useState<AdminLessonDetail | null>(null);
   const [lessonForm, setLessonForm] = useState<LessonFormState>(emptyLessonForm(''));
+  const [videoUploading, setVideoUploading] = useState(false);
+  const [videoUploadMessage, setVideoUploadMessage] = useState<string | null>(null);
 
   const [contentMessage, setContentMessage] = useState<string | null>(null);
 
@@ -393,11 +398,13 @@ export function AdminPage() {
   useEffect(() => {
     if (!selectedLessonId) {
       setSelectedLesson(null);
+      setVideoUploadMessage(null);
       return;
     }
 
     const loadLesson = async () => {
       setLessonsError(null);
+      setVideoUploadMessage(null);
       try {
         const data = await getAdminLesson(selectedLessonId);
         setSelectedLesson(data);
@@ -812,6 +819,54 @@ export function AdminPage() {
       setContentMessage('Урок обновлен.');
     } catch (error) {
       setLessonsError(getErrorMessage(error, 'Не удалось обновить урок.'));
+    }
+  };
+
+  const handleLessonVideoUpload = async (file: File) => {
+    if (!selectedLessonId) {
+      setLessonsError('Сначала выберите урок.');
+      return;
+    }
+
+    setVideoUploading(true);
+    setVideoUploadMessage(null);
+    setLessonsError(null);
+
+    try {
+      const updated = await uploadAdminLessonVideo(selectedLessonId, file);
+      setLessonForm((prev) => ({
+        ...prev,
+        videoUrl: updated.video_url ?? '',
+      }));
+      setVideoUploadMessage('Видео загружено.');
+    } catch (error) {
+      setVideoUploadMessage(getErrorMessage(error, 'Не удалось загрузить видео.'));
+    } finally {
+      setVideoUploading(false);
+    }
+  };
+
+  const handleLessonVideoDelete = async () => {
+    if (!selectedLessonId) {
+      setLessonsError('Сначала выберите урок.');
+      return;
+    }
+
+    setVideoUploading(true);
+    setVideoUploadMessage(null);
+    setLessonsError(null);
+
+    try {
+      const updated = await deleteAdminLessonVideo(selectedLessonId);
+      setLessonForm((prev) => ({
+        ...prev,
+        videoUrl: updated.video_url ?? '',
+      }));
+      setVideoUploadMessage('Видео удалено.');
+    } catch (error) {
+      setVideoUploadMessage(getErrorMessage(error, 'Не удалось удалить видео.'));
+    } finally {
+      setVideoUploading(false);
     }
   };
 
@@ -1637,6 +1692,58 @@ export function AdminPage() {
                       className="rounded-none border-2 border-black font-mono"
                     />
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="font-mono text-xs uppercase">Загрузка видео</label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Input
+                      type="file"
+                      accept="video/*"
+                      disabled={!selectedLessonId || videoUploading}
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (file) {
+                          void handleLessonVideoUpload(file);
+                        }
+                        event.target.value = '';
+                      }}
+                      className="rounded-none border-2 border-black font-mono"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="border-2 border-black rounded-none text-xs uppercase"
+                      disabled={!lessonForm.videoUrl.trim() || videoUploading}
+                      onClick={() => {
+                        void handleLessonVideoDelete();
+                      }}
+                    >
+                      Удалить
+                    </Button>
+                  </div>
+                  <p className="font-mono text-[10px] uppercase text-gray-500">
+                    {lessonForm.videoUrl.trim().length > 0
+                      ? `Текущее видео: ${toAbsolutePublicUrl(lessonForm.videoUrl) ?? lessonForm.videoUrl}`
+                      : 'Видео не загружено.'}
+                  </p>
+                  {videoUploadMessage && (
+                    <p className="font-mono text-xs text-gray-600">{videoUploadMessage}</p>
+                  )}
+                  {lessonForm.videoUrl.trim().length > 0 && (
+                    <div className="border-2 border-black bg-black/5 p-3">
+                      <div className="font-mono text-[10px] uppercase tracking-widest text-gray-500 mb-2">
+                        Превью видео
+                      </div>
+                      <div className="aspect-video w-full border-2 border-black bg-black">
+                        <video
+                          key={lessonForm.videoUrl}
+                          controls
+                          className="w-full h-full"
+                          src={toAbsolutePublicUrl(lessonForm.videoUrl) ?? lessonForm.videoUrl}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-1">
                   <label className="font-mono text-xs uppercase">Контент (Markdown)</label>
