@@ -32,6 +32,27 @@ export interface ResetPasswordResponse {
   temporary_password: string;
 }
 
+export interface AdminSubmissionListItem {
+  id: string;
+  assignment_id: string;
+  user_id: string;
+  username: string;
+  lesson_id: string;
+  version: number;
+  text_answer?: string | null;
+  link_url?: string | null;
+  file_urls?: string[];
+  status: 'not_submitted' | 'pending' | 'accepted' | 'needs_revision';
+  curator_comment?: string | null;
+  submitted_at?: string | null;
+  reviewed_at?: string | null;
+}
+
+export interface AdminSubmissionReview {
+  status: 'pending' | 'accepted' | 'needs_revision';
+  curator_comment?: string | null;
+}
+
 export interface AdminTrackDetail {
   id: string;
   name: string;

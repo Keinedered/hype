@@ -54,6 +54,15 @@ def upload_submission_file(
     )
 
 
+@router.post("/upload/delete", status_code=status.HTTP_204_NO_CONTENT)
+def delete_submission_upload(
+    payload: schemas.SubmissionFileDeleteRequest,
+    _: models.User = Depends(get_current_active_user),
+):
+    _delete_submission_file(payload.file_url)
+    return None
+
+
 @router.post("/", response_model=schemas.Submission)
 def create_submission(
     submission: schemas.SubmissionCreate,

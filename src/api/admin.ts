@@ -17,6 +17,8 @@ import {
   AdminTrackUpdate,
   AdminUserDetail,
   AdminUserListItem,
+  AdminSubmissionListItem,
+  AdminSubmissionReview,
   ResetPasswordResponse,
 } from '../types/admin';
 
@@ -145,4 +147,16 @@ export async function updateAdminTrack(trackId: string, payload: AdminTrackUpdat
 
 export async function deleteAdminTrack(trackId: string): Promise<void> {
   await axiosClient.delete(`/admin/tracks/${trackId}`);
+}
+
+export async function getAdminSubmissions(): Promise<AdminSubmissionListItem[]> {
+  const response = await axiosClient.get<AdminSubmissionListItem[]>('/admin/submissions');
+  return response.data;
+}
+
+export async function reviewAdminSubmission(
+  submissionId: string,
+  payload: AdminSubmissionReview
+): Promise<void> {
+  await axiosClient.post(`/admin/submissions/${submissionId}/review`, payload);
 }

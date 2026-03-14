@@ -187,6 +187,12 @@ export const submissionsAPI = {
       body: formData,
     });
   },
+  async deleteUpload(fileUrl: string) {
+    return apiFetch('/submissions/upload/delete', {
+      method: 'POST',
+      body: JSON.stringify({ file_url: fileUrl }),
+    });
+  },
 
   async create(data: {
     assignment_id: string;

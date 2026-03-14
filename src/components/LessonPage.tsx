@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Button } from './ui/button';
@@ -33,8 +33,45 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
   const [fileUrls, setFileUrls] = useState<string[]>([]);
   const [fileUploading, setFileUploading] = useState(false);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
+  const [submissionsList, setSubmissionsList] = useState<Array<{
+    id: string;
+    assignment_id: string;
+    version: number;
+    text_answer?: string | null;
+    link_url?: string | null;
+    file_urls?: string[];
+    status?: typeof submissionStatus;
+    curator_comment?: string | null;
+    submitted_at?: string | null;
+  }>>([]);
   const [submissionStatus, setSubmissionStatus] = useState<'not_submitted' | 'pending' | 'accepted' | 'needs_revision'>('not_submitted');
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+
+  const fileUrlsRef = useRef<string[]>([]);
+  const submissionIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    fileUrlsRef.current = fileUrls;
+  }, [fileUrls]);
+
+  useEffect(() => {
+    submissionIdRef.current = submissionId;
+  }, [submissionId]);
+
+  useEffect(() => {
+    return () => {
+      if (submissionIdRef.current) {
+        return;
+      }
+      const pendingFiles = fileUrlsRef.current;
+      if (pendingFiles.length === 0) {
+        return;
+      }
+      pendingFiles.forEach((fileUrl) => {
+        void submissionsAPI.deleteUpload(fileUrl);
+      });
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -97,11 +134,14 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
               link_url?: string | null;
               file_urls?: string[];
               status?: typeof submissionStatus;
+              curator_comment?: string | null;
+              submitted_at?: string | null;
             }>;
             const assignmentSubmissions = submissions
               .filter((submission) => submission.assignment_id === normalizedLesson.assignment?.id)
               .sort((a, b) => (b.version ?? 0) - (a.version ?? 0));
             const latest = assignmentSubmissions[0];
+            setSubmissionsList(assignmentSubmissions);
             if (latest) {
               setSubmissionId(latest.id);
               setSubmissionStatus(latest.status ?? 'pending');
@@ -125,6 +165,7 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
         setSubmissionId(null);
         setSubmissionStatus('not_submitted');
         setSubmissionError(null);
+        setSubmissionsList([]);
         await loadExistingSubmission();
       } catch (err) {
         if (!isMounted) return;
@@ -177,18 +218,42 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
     try {
       setSubmissionError(null);
       setSubmissionStatus('pending');
-      const response = await submissionsAPI.create({
-        assignment_id: lesson.assignment.id,
+      const payload = {
         text_answer: textAnswer.trim() || undefined,
         link_url: linkUrl.trim() || undefined,
         file_urls: fileUrls,
-      });
+      };
+      const response = submissionId && submissionStatus === 'needs_revision'
+        ? await submissionsAPI.update(submissionId, payload)
+        : await submissionsAPI.create({
+          assignment_id: lesson.assignment.id,
+          ...payload,
+        });
       const status = (response as { status?: string }).status as typeof submissionStatus | undefined;
       const id = (response as { id?: string }).id;
       if (id) {
         setSubmissionId(id);
       }
       setSubmissionStatus(status ?? 'pending');
+      try {
+        const submissions = (await submissionsAPI.getAll()) as Array<{
+          id: string;
+          assignment_id: string;
+          version: number;
+          text_answer?: string | null;
+          link_url?: string | null;
+          file_urls?: string[];
+          status?: typeof submissionStatus;
+          curator_comment?: string | null;
+          submitted_at?: string | null;
+        }>;
+        const assignmentSubmissions = submissions
+          .filter((submission) => submission.assignment_id === lesson.assignment.id)
+          .sort((a, b) => (b.version ?? 0) - (a.version ?? 0));
+        setSubmissionsList(assignmentSubmissions);
+      } catch {
+        // ignore refresh errors
+      }
     } catch (err) {
       setSubmissionStatus('not_submitted');
       setSubmissionError(err instanceof Error ? err.message : 'Не удалось отправить задание');
@@ -225,6 +290,7 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
       await submissionsAPI.delete(submissionId);
       setSubmissionStatus('not_submitted');
       setSubmissionId(null);
+      setSubmissionsList((prev) => prev.filter((item) => item.id !== submissionId));
     } catch (err) {
       setSubmissionError(err instanceof Error ? err.message : 'Не удалось отозвать задание');
     }
@@ -518,7 +584,12 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
                                               type="button"
                                               variant="outline"
                                               className="h-7 px-2 text-xs"
-                                              onClick={() => setFileUrls((prev) => prev.filter((url) => url !== fileUrl))}
+                                              onClick={() => {
+                                                setFileUrls((prev) => prev.filter((url) => url !== fileUrl));
+                                                if (!submissionId) {
+                                                  void submissionsAPI.deleteUpload(fileUrl);
+                                                }
+                                              }}
                                             >
                                               Удалить
                                             </Button>
@@ -555,6 +626,29 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
                        )}
                        {submissionError && (
                          <p className="text-sm font-mono text-red-600">{submissionError}</p>
+                       )}
+                       {submissionsList.length > 0 && (
+                         <div className="mt-6 border-t border-gray-200 pt-4 space-y-3">
+                           <div className="font-mono text-xs uppercase tracking-wide text-gray-500">Мои отправки</div>
+                           <div className="space-y-2">
+                             {submissionsList.map((item) => (
+                               <div key={item.id} className="border border-black/10 p-3 text-xs space-y-2">
+                                 <div className="flex flex-wrap items-center justify-between gap-2">
+                                   <span className="font-mono uppercase">v{item.version}</span>
+                                   <span className="font-mono uppercase">{item.status ?? 'pending'}</span>
+                                 </div>
+                                 {item.submitted_at && (
+                                   <div className="text-gray-500">Отправлено: {new Date(item.submitted_at).toLocaleString('ru-RU')}</div>
+                                 )}
+                                 {item.curator_comment && (
+                                   <div className="text-gray-700">
+                                     Комментарий: {item.curator_comment}
+                                   </div>
+                                 )}
+                               </div>
+                             ))}
+                           </div>
+                         </div>
                        )}
                     </div>
                  </div>

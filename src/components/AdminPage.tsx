@@ -19,9 +19,11 @@ import {
   getAdminLessons,
   getAdminModule,
   getAdminModules,
+  getAdminSubmissions,
   getAdminTracks,
   getAdminUserDetails,
   getAdminUsers,
+  reviewAdminSubmission,
   resetAdminUserPassword,
   uploadAdminLessonVideo,
   updateAdminCourse,
@@ -39,6 +41,7 @@ import {
   AdminLessonListItem,
   AdminModuleDetail,
   AdminModuleListItem,
+  AdminSubmissionListItem,
   AdminTrackDetail,
   AdminUserDetail,
   AdminUserListItem,
@@ -243,6 +246,12 @@ export function AdminPage() {
 
   const [contentMessage, setContentMessage] = useState<string | null>(null);
 
+  const [submissions, setSubmissions] = useState<AdminSubmissionListItem[]>([]);
+  const [submissionsLoading, setSubmissionsLoading] = useState(false);
+  const [submissionsError, setSubmissionsError] = useState<string | null>(null);
+  const [submissionNotes, setSubmissionNotes] = useState<Record<string, string>>({});
+  const [reviewingSubmissionId, setReviewingSubmissionId] = useState<string | null>(null);
+
   useEffect(() => {
     const loadUsers = async () => {
       setIsListLoading(true);
@@ -288,6 +297,23 @@ export function AdminPage() {
     };
 
     void loadAdminTracks();
+  }, []);
+
+  useEffect(() => {
+    const loadSubmissions = async () => {
+      setSubmissionsLoading(true);
+      setSubmissionsError(null);
+      try {
+        const data = await getAdminSubmissions();
+        setSubmissions(data);
+      } catch (error) {
+        setSubmissionsError(getErrorMessage(error, 'Не удалось загрузить задания.'));
+      } finally {
+        setSubmissionsLoading(false);
+      }
+    };
+
+    void loadSubmissions();
   }, []);
 
   useEffect(() => {
@@ -957,6 +983,26 @@ export function AdminPage() {
       setContentMessage('Урок удален.');
     } catch (error) {
       setLessonsError(getErrorMessage(error, 'Не удалось удалить урок.'));
+    }
+  };
+
+  const handleSubmissionReview = async (
+    submission: AdminSubmissionListItem,
+    status: 'accepted' | 'needs_revision'
+  ) => {
+    setSubmissionsError(null);
+    setReviewingSubmissionId(submission.id);
+    try {
+      await reviewAdminSubmission(submission.id, {
+        status,
+        curator_comment: submissionNotes[submission.id] ?? submission.curator_comment ?? '',
+      });
+      const updated = await getAdminSubmissions();
+      setSubmissions(updated);
+    } catch (error) {
+      setSubmissionsError(getErrorMessage(error, 'Не удалось обновить статус.'));
+    } finally {
+      setReviewingSubmissionId(null);
     }
   };
 
@@ -2027,6 +2073,119 @@ export function AdminPage() {
               </div>
             </div>
           </div>
+        </section>
+
+        <section className="space-y-6 border-t-2 border-black pt-6">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <h2 className="font-mono text-lg uppercase tracking-wide">Проверка заданий</h2>
+              <p className="font-mono text-xs text-muted-foreground">
+                Проверяйте отправленные работы и оставляйте комментарии.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-2 border-black rounded-none font-mono uppercase tracking-wide"
+              onClick={async () => {
+                setSubmissionsError(null);
+                try {
+                  const data = await getAdminSubmissions();
+                  setSubmissions(data);
+                } catch (error) {
+                  setSubmissionsError(getErrorMessage(error, 'Не удалось обновить список заданий.'));
+                }
+              }}
+            >
+              Обновить
+            </Button>
+          </div>
+
+          {submissionsError && (
+            <div className="border-2 border-red-600 bg-red-50 p-3">
+              <p className="font-mono text-sm text-red-700">{submissionsError}</p>
+            </div>
+          )}
+
+          {submissionsLoading ? (
+            <p className="font-mono text-xs uppercase">Загрузка...</p>
+          ) : (
+            <div className="space-y-4">
+              {submissions.map((submission) => (
+                <div key={submission.id} className="border-2 border-black p-4 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="font-mono text-xs uppercase tracking-wide">
+                      {submission.username} · {submission.lesson_id} · v{submission.version}
+                    </div>
+                    <div className="font-mono text-xs uppercase tracking-wide">
+                      {submission.status}
+                    </div>
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <div className="font-mono uppercase text-[10px] text-gray-500 mb-1">Текст</div>
+                      <div className="border border-black/10 p-2 min-h-[40px] whitespace-pre-wrap">
+                        {submission.text_answer ?? '—'}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="font-mono uppercase text-[10px] text-gray-500 mb-1">Ссылка</div>
+                      <div className="border border-black/10 p-2 min-h-[40px] break-all">
+                        {submission.link_url ?? '—'}
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-mono uppercase text-[10px] text-gray-500 mb-1">Файлы</div>
+                    {submission.file_urls && submission.file_urls.length > 0 ? (
+                      <div className="space-y-1 text-xs">
+                        {submission.file_urls.map((fileUrl) => (
+                          <div key={fileUrl} className="break-all">{fileUrl}</div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-gray-500">—</div>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <label className="font-mono text-[10px] uppercase text-gray-500">Комментарий</label>
+                    <Textarea
+                      value={submissionNotes[submission.id] ?? submission.curator_comment ?? ''}
+                      onChange={(event) =>
+                        setSubmissionNotes((prev) => ({
+                          ...prev,
+                          [submission.id]: event.target.value,
+                        }))
+                      }
+                      className="rounded-none border-2 border-black font-mono min-h-[80px]"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      className="border-2 border-black rounded-none font-mono uppercase tracking-wide"
+                      disabled={reviewingSubmissionId === submission.id}
+                      onClick={() => void handleSubmissionReview(submission, 'accepted')}
+                    >
+                      Принять
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="border-2 border-black rounded-none font-mono uppercase tracking-wide"
+                      disabled={reviewingSubmissionId === submission.id}
+                      onClick={() => void handleSubmissionReview(submission, 'needs_revision')}
+                    >
+                      На доработку
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {submissions.length === 0 && (
+                <p className="font-mono text-xs text-muted-foreground">Отправленных заданий нет.</p>
+              )}
+            </div>
+          )}
         </section>
       </div>
       <Dialog open={tempPasswordOpen} onOpenChange={(open) => { setTempPasswordOpen(open); if (!open) { setTempPasswordData(null); } }}>

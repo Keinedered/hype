@@ -437,6 +437,10 @@ class SubmissionFileUploadResponse(BaseModel):
     file_url: str
 
 
+class SubmissionFileDeleteRequest(BaseModel):
+    file_url: str
+
+
 class AdminSubmissionListItem(BaseModel):
     id: str
     assignment_id: str
