@@ -306,6 +306,22 @@ export function AdminPage() {
     return submissions;
   }, [selectedCourseId, selectedLessonId, selectedModuleId, submissions]);
 
+  const formatSubmissionStatus = (status: string) => {
+    const normalized = status.replace(/_/g, ' ');
+    switch (status) {
+      case 'pending':
+        return 'На проверке';
+      case 'accepted':
+        return 'Принято';
+      case 'needs_revision':
+        return 'Нужна доработка';
+      case 'not_submitted':
+        return 'Не отправлено';
+      default:
+        return normalized;
+    }
+  };
+
   const renderSubmissionIndicators = (stats?: { total: number; pending: number }) => {
     if (!stats || stats.total === 0) {
       return null;
@@ -335,7 +351,7 @@ export function AdminPage() {
         const data = await getAdminUsers();
         setUsers(data);
       } catch (error) {
-        setListError(getErrorMessage(error, 'Failed to load users list.'));
+        setListError(getErrorMessage(error, 'Не удалось загрузить список пользователей.'));
       } finally {
         setIsListLoading(false);
       }
@@ -606,7 +622,7 @@ export function AdminPage() {
       });
       setEditableCourseIdsInput(details.editable_course_ids?.join(', ') ?? '');
     } catch (error) {
-      const message = getErrorMessage(error, 'Failed to load user details.');
+      const message = getErrorMessage(error, 'Не удалось загрузить данные пользователя.');
       setDetailsError(message);
       setActionError(message);
     } finally {
@@ -648,7 +664,7 @@ export function AdminPage() {
         });
       }
     } catch (error) {
-      setActionError(getErrorMessage(error, 'Failed to update user.'));
+      setActionError(getErrorMessage(error, 'Не удалось обновить пользователя.'));
     } finally {
       setUserEditLoading(false);
     }
@@ -664,7 +680,7 @@ export function AdminPage() {
       const response = await resetAdminUserPassword(userId)
       setTempPasswordData(response);
     } catch (error) {
-      setActionError(getErrorMessage(error, 'Failed to reset password.'));
+      setActionError(getErrorMessage(error, 'Не удалось сбросить пароль.'));
     } finally {
       setResetLoadingUserId(null);
     }
@@ -692,7 +708,7 @@ export function AdminPage() {
       setDeleteCandidate(null);
       setDeleteConfirmed(false);
     } catch (error) {
-      const message = getErrorMessage(error, 'Failed to delete user.');
+      const message = getErrorMessage(error, 'Не удалось удалить пользователя.');
       setDeleteError(message);
       setActionError(message);
     } finally {
@@ -803,7 +819,7 @@ export function AdminPage() {
     setContentMessage(null);
     setCoursesError(null);
     if (courseCreationDisabled) {
-      setCoursesError('Course creation is disabled for your role.');
+      setCoursesError('Создание курсов недоступно для вашей роли.');
       return;
     }
     if (!courseForm.id.trim()) {
@@ -1148,7 +1164,7 @@ export function AdminPage() {
     <div className="container mx-auto px-6 py-12">
       <div className="mx-auto max-w-6xl border-2 border-black bg-white p-6 space-y-6">
         <div className="space-y-1">
-          <h1 className="font-mono text-2xl uppercase tracking-wide">Admin Panel</h1>
+          <h1 className="font-mono text-2xl uppercase tracking-wide">Админ-панель</h1>
           <p className="font-mono text-sm text-muted-foreground">
             Управляйте пользователями, курсами, модулями и уроками.
           </p>
@@ -1164,7 +1180,7 @@ export function AdminPage() {
 
         {tempPasswordData && (
           <div className="border-2 border-black bg-amber-50 p-3">
-            <p className="font-mono text-xs mb-1">Temporary password for <strong>{tempPasswordData.username}</strong>:</p>
+            <p className="font-mono text-xs mb-1">Временный пароль для <strong>{tempPasswordData.username}</strong>:</p>
             <p className="font-mono text-lg tracking-wide break-all">{tempPasswordData.temporary_password}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               <Button
@@ -1206,7 +1222,7 @@ export function AdminPage() {
           {detailsOpen && (
             <div className="border-2 border-black bg-white p-4 space-y-3">
               <div className="flex items-center justify-between gap-3">
-                <p className="font-mono text-sm uppercase tracking-wide">User details</p>
+                <p className="font-mono text-sm uppercase tracking-wide">Данные пользователя</p>
                 <Button
                   type="button"
                   variant="outline"
@@ -1218,7 +1234,7 @@ export function AdminPage() {
                     setUserEditForm(null);
                   }}
                 >
-                  Close
+                  Закрыть
                 </Button>
               </div>
 
@@ -1231,7 +1247,7 @@ export function AdminPage() {
                     <div><strong>Avatar:</strong> {selectedDetails.avatar_url ?? '-'}</div>
                     <div><strong>Created:</strong> {formatDate(selectedDetails.created_at)}</div>
                     <div><strong>Last login:</strong> {formatDate(selectedDetails.last_login_at)}</div>
-                    <div className="md:col-span-2"><strong>Hashed password:</strong> {selectedDetails.hashed_password}</div>
+                    <div className="md:col-span-2"><strong>Хэш пароля:</strong> {selectedDetails.hashed_password}</div>
                     <div><strong>Submissions:</strong> {selectedDetails.submissions_count}</div>
                     <div><strong>Notifications:</strong> {selectedDetails.notifications_count}</div>
                     <div><strong>User courses:</strong> {selectedDetails.user_courses_count}</div>
@@ -1257,7 +1273,7 @@ export function AdminPage() {
                       <div className="font-mono text-xs uppercase tracking-wide">Редактирование</div>
                       <div className="grid md:grid-cols-2 gap-3">
                         <div className="space-y-1">
-                          <label className="font-mono text-[10px] uppercase">Username</label>
+                          <label className="font-mono text-[10px] uppercase">Логин</label>
                           <Input
                             value={userEditForm.username ?? ''}
                             onChange={(event) => setUserEditForm((prev) => prev ? { ...prev, username: event.target.value } : prev)}
@@ -1273,7 +1289,7 @@ export function AdminPage() {
                           />
                         </div>
                         <div className="space-y-1 md:col-span-2">
-                          <label className="font-mono text-[10px] uppercase">Full name</label>
+                          <label className="font-mono text-[10px] uppercase">Полное имя</label>
                           <Input
                             value={userEditForm.full_name ?? ''}
                             onChange={(event) => setUserEditForm((prev) => prev ? { ...prev, full_name: event.target.value } : prev)}
@@ -1281,7 +1297,7 @@ export function AdminPage() {
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="font-mono text-[10px] uppercase">Role</label>
+                          <label className="font-mono text-[10px] uppercase">Роль</label>
                           <select
                             value={userEditForm.role ?? 'user'}
                             onChange={(event) => {
@@ -1305,14 +1321,14 @@ export function AdminPage() {
                             }}
                             className="h-9 w-full rounded-none border-2 border-black px-2 font-mono text-xs uppercase"
                           >
-                            <option value="user">user</option>
-                            <option value="admin">admin</option>
-                            <option value="course_editor">course_editor</option>
+                            <option value="user">пользователь</option>
+                            <option value="admin">админ</option>
+                            <option value="course_editor">редактор курса</option>
                           </select>
                         </div>
                         {userEditForm.role === 'course_editor' && (
                           <div className="space-y-1 md:col-span-2">
-                            <label className="font-mono text-[10px] uppercase">Editable course IDs</label>
+                            <label className="font-mono text-[10px] uppercase">Доступные курсы (ID)</label>
                             <Input
                               value={editableCourseIdsInput}
                               onChange={(event) => setEditableCourseIdsInput(event.target.value)}
@@ -1323,7 +1339,7 @@ export function AdminPage() {
                         )}
                         {userEditForm.role === 'course_editor' && (
                           <div className="space-y-1">
-                            <label className="font-mono text-[10px] uppercase">Course creation</label>
+                            <label className="font-mono text-[10px] uppercase">Создание курсов</label>
                             <div className="flex items-center gap-2 text-[10px] uppercase">
                               <input
                                 type="checkbox"
@@ -1332,12 +1348,12 @@ export function AdminPage() {
                                   setUserEditForm((prev) => prev ? { ...prev, course_creation_allowed: event.target.checked } : prev)
                                 }
                               />
-                              Can create courses
+                              Может создавать курсы
                             </div>
                           </div>
                         )}
                         <div className="space-y-1">
-                          <label className="font-mono text-[10px] uppercase">Active</label>
+                          <label className="font-mono text-[10px] uppercase">Активен</label>
                           <div className="flex items-center gap-2 text-[10px] uppercase">
                             <input
                               type="checkbox"
@@ -1362,16 +1378,16 @@ export function AdminPage() {
                   )}
                 </div>
               ) : (
-                <p className="font-mono text-sm">Loading details...</p>
+                <p className="font-mono text-sm">Загрузка данных...</p>
               )}
             </div>
           )}
 
           {deleteDialogOpen && deleteCandidate && (
             <div className="border-2 border-black bg-red-50 p-4 space-y-3">
-              <p className="font-mono text-sm uppercase tracking-wide">Delete user?</p>
+              <p className="font-mono text-sm uppercase tracking-wide">Удалить пользователя?</p>
               <p className="font-mono text-sm">
-                Target: <strong>{deleteCandidate.username}</strong>
+                Цель: <strong>{deleteCandidate.username}</strong>
               </p>
               {deleteError && (
                 <p className="font-mono text-sm text-red-700">{deleteError}</p>
@@ -1382,7 +1398,7 @@ export function AdminPage() {
                   checked={deleteConfirmed}
                   onChange={(event) => setDeleteConfirmed(event.target.checked)}
                 />
-                I am sure
+                Я подтверждаю
               </label>
               <div className="flex flex-wrap gap-2">
                 <Button
@@ -1396,7 +1412,7 @@ export function AdminPage() {
                     setDeleteError(null);
                   }}
                 >
-                  Cancel
+                  Отмена
                 </Button>
                 <Button
                   type="button"
@@ -1404,14 +1420,14 @@ export function AdminPage() {
                   disabled={!deleteConfirmed || deleteLoadingUserId === deleteCandidate.id}
                   onClick={() => void confirmDelete()}
                 >
-                  {deleteLoadingUserId === deleteCandidate.id ? 'Deleting...' : 'Delete'}
+                  {deleteLoadingUserId === deleteCandidate.id ? 'Удаляем...' : 'Удалить'}
                 </Button>
               </div>
             </div>
           )}
 
           {isListLoading ? (
-            <p className="font-mono text-sm uppercase">Loading users...</p>
+            <p className="font-mono text-sm uppercase">Загрузка пользователей...</p>
           ) : listError ? (
             <div className="border-2 border-red-600 bg-red-50 p-3">
               <p className="font-mono text-sm text-red-700">{listError}</p>
@@ -1421,12 +1437,12 @@ export function AdminPage() {
               <table className="w-full min-w-[900px] font-mono text-sm">
                 <thead className="bg-black text-white uppercase text-xs tracking-wide">
                   <tr>
-                    <th className="px-3 py-2 text-left">Username</th>
+                    <th className="px-3 py-2 text-left">Логин</th>
                     <th className="px-3 py-2 text-left">Email</th>
-                    <th className="px-3 py-2 text-left">Role</th>
-                    <th className="px-3 py-2 text-left">Created</th>
-                    <th className="px-3 py-2 text-left">Last Login</th>
-                    <th className="px-3 py-2 text-left">Actions</th>
+                    <th className="px-3 py-2 text-left">Роль</th>
+                    <th className="px-3 py-2 text-left">Создан</th>
+                    <th className="px-3 py-2 text-left">Последний вход</th>
+                    <th className="px-3 py-2 text-left">Действия</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1440,43 +1456,43 @@ export function AdminPage() {
                       <td className="px-3 py-2">
                         <div className="flex flex-wrap gap-2">
                           <Button
-                            type="button"
-                            variant="outline"
-                            className="border-2 border-black rounded-none font-mono uppercase tracking-wide"
-                            disabled={detailsLoadingUserId === user.id}
-                            onClick={() => void openDetails(user.id)}
-                          >
-                            {detailsLoadingUserId === user.id ? 'Loading...' : 'Details'}
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="border-2 border-black rounded-none font-mono uppercase tracking-wide"
-                            disabled={resetLoadingUserId === user.id}
-                            onClick={() => void handleResetPassword(user.id)}
-                          >
-                            {resetLoadingUserId === user.id ? 'Reset...' : 'Reset Password'}
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className="border-2 border-black rounded-none font-mono uppercase tracking-wide text-red-700"
-                            disabled={deleteLoadingUserId === user.id}
-                            onClick={() => openDeleteDialog(user)}
-                          >
-                            {deleteLoadingUserId === user.id ? 'Deleting...' : 'Delete'}
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {sortedUsers.length === 0 && (
-                    <tr>
-                      <td className="px-3 py-6 text-center text-muted-foreground" colSpan={6}>
-                        No users found.
-                      </td>
-                    </tr>
-                  )}
+                          type="button"
+                          variant="outline"
+                          className="border-2 border-black rounded-none font-mono uppercase tracking-wide"
+                          disabled={detailsLoadingUserId === user.id}
+                          onClick={() => void openDetails(user.id)}
+                        >
+                          {detailsLoadingUserId === user.id ? 'Загрузка...' : 'Детали'}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-2 border-black rounded-none font-mono uppercase tracking-wide"
+                          disabled={resetLoadingUserId === user.id}
+                          onClick={() => void handleResetPassword(user.id)}
+                        >
+                          {resetLoadingUserId === user.id ? 'Сбрасываем...' : 'Сбросить пароль'}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-2 border-black rounded-none font-mono uppercase tracking-wide text-red-700"
+                          disabled={deleteLoadingUserId === user.id}
+                          onClick={() => openDeleteDialog(user)}
+                        >
+                          {deleteLoadingUserId === user.id ? 'Удаляем...' : 'Удалить'}
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {sortedUsers.length === 0 && (
+                  <tr>
+                    <td className="px-3 py-6 text-center text-muted-foreground" colSpan={6}>
+                      Пользователи не найдены.
+                    </td>
+                  </tr>
+                )}
                 </tbody>
               </table>
             </div>
@@ -2133,7 +2149,7 @@ export function AdminPage() {
                   {lessonForm.videoUrl.trim().length > 0 && (
                     <div className="border-2 border-black bg-black/5 p-3">
                       <div className="font-mono text-[10px] uppercase tracking-widest text-gray-500 mb-2">
-                        Превью видео
+                        Предпросмотр видео
                       </div>
                       <div className="aspect-video w-full border-2 border-black bg-black">
                         <video
@@ -2154,9 +2170,9 @@ export function AdminPage() {
                     className="rounded-none border-2 border-black font-mono min-h-[160px]"
                   />
                   <div className="border-2 border-dashed border-black/30 bg-white/80 p-4 space-y-4">
-                    <div className="font-mono text-[10px] uppercase tracking-widest text-gray-500">Превью</div>
+                    <div className="font-mono text-[10px] uppercase tracking-widest text-gray-500">Предпросмотр</div>
                     {lessonForm.content.trim().length === 0 ? (
-                      <p className="text-sm text-gray-500">Введите markdown, чтобы увидеть превью.</p>
+                      <p className="text-sm text-gray-500">Введите markdown, чтобы увидеть предпросмотр.</p>
                     ) : (
                       <div className="max-w-none font-light text-gray-800 space-y-4">
                         <ReactMarkdown
@@ -2408,7 +2424,7 @@ export function AdminPage() {
                       {submission.username} · {submission.lesson_id} · v{submission.version}
                     </div>
                     <div className="font-mono text-xs uppercase tracking-wide">
-                      {submission.status}
+                      {formatSubmissionStatus(submission.status)}
                     </div>
                   </div>
                   <div className="grid md:grid-cols-2 gap-3 text-xs">
@@ -2497,14 +2513,14 @@ export function AdminPage() {
       <Dialog open={tempPasswordOpen} onOpenChange={(open) => { setTempPasswordOpen(open); if (!open) { setTempPasswordData(null); } }}>
         <DialogContent className="border-2 border-black rounded-none" onInteractOutside={(event) => event.preventDefault()}>
           <DialogHeader>
-            <DialogTitle className="font-mono uppercase tracking-wide">Temporary Password</DialogTitle>
+            <DialogTitle className="font-mono uppercase tracking-wide">Временный пароль</DialogTitle>
             <DialogDescription className="font-mono text-sm">
-              Copy and transfer this password to the user securely.
+              Скопируйте и передайте этот пароль пользователю безопасным способом.
             </DialogDescription>
           </DialogHeader>
 
           <div className="border-2 border-black p-3 bg-gray-50">
-            <p className="font-mono text-xs mb-2">User: {tempPasswordData?.username}</p>
+            <p className="font-mono text-xs mb-2">Пользователь: {tempPasswordData?.username}</p>
             <p className="font-mono text-lg tracking-wide break-all">{tempPasswordData?.temporary_password}</p>
           </div>
 
@@ -2519,10 +2535,10 @@ export function AdminPage() {
                 }
               }}
             >
-              Copy
+              Скопировать
             </Button>
             <Button type="button" className="border-2 border-black rounded-none" onClick={() => setTempPasswordData(null)}>
-              Close
+              Закрыть
             </Button>
           </DialogFooter>
         </DialogContent>

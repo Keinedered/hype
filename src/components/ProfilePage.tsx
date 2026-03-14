@@ -305,7 +305,7 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
     return (
       <div className="container mx-auto px-6 py-12">
         <div className="mx-auto max-w-xl border-2 border-black bg-white p-6">
-          <p className="font-mono text-sm uppercase tracking-wide">Loading profile...</p>
+          <p className="font-mono text-sm uppercase tracking-wide">Загрузка профиля...</p>
         </div>
       </div>
     );
@@ -316,7 +316,7 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
     return (
       <div className="container mx-auto px-6 py-12">
         <div className="mx-auto max-w-xl border-2 border-black bg-white p-6 space-y-4">
-          <p className="font-mono text-sm uppercase tracking-wide text-red-600">Profile request error</p>
+          <p className="font-mono text-sm uppercase tracking-wide text-red-600">Ошибка загрузки профиля</p>
           <p className="font-mono text-sm">{message}</p>
         </div>
       </div>
@@ -355,7 +355,7 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
           <div className="flex items-center gap-4 w-full md:w-auto justify-end md:justify-end">
             <div className="text-right">
               <div className="font-mono font-bold uppercase text-sm sm:text-base">{displayName}</div>
-              <div className="text-xs sm:text-sm text-gray-500 font-mono">Registered: {registeredAt}</div>
+              <div className="text-xs sm:text-sm text-gray-500 font-mono">Зарегистрирован: {registeredAt}</div>
             </div>
             <div className="w-16 h-16 border-2 border-black overflow-hidden bg-white relative shrink-0">
               {currentAvatarSrc ? (
@@ -584,15 +584,15 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
               </div>
               <div className="space-y-4">
                 <div className="p-4 border-2 border-black bg-gray-50">
-                  <div className="font-mono font-bold text-sm uppercase mb-2">Log out</div>
-                  <p className="text-xs font-mono text-gray-600 mb-4">End the current session on this device.</p>
+                  <div className="font-mono font-bold text-sm uppercase mb-2">Выйти</div>
+                  <p className="text-xs font-mono text-gray-600 mb-4">Завершить текущую сессию на этом устройстве.</p>
                   <Button
                     type="button"
                     variant="outline"
                     className="border-2 border-black bg-white text-black hover:bg-black hover:text-white font-mono uppercase tracking-wide"
                     onClick={runLogoutFlow}
                   >
-                    Log out
+                    Выйти
                   </Button>
                 </div>
 
@@ -811,4 +811,3 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
     </div>
   );
 }
-
