@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
@@ -28,10 +28,9 @@ def get_lesson(lesson_id: str, db: Session = Depends(get_db)):
 @router.post("/{lesson_id}/progress")
 def update_lesson_progress(
     lesson_id: str,
-    status: str,
+    status: str = Body(..., embed=True),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_active_user)
 ):
     """Обновить прогресс по уроку"""
     return crud.update_lesson_progress(db, current_user.id, lesson_id, status)
-

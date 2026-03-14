@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from database import get_db
@@ -38,11 +38,10 @@ def get_course(
 @router.post("/{course_id}/progress")
 def update_course_progress(
     course_id: str,
-    progress: float,
-    status: str,
+    progress: float = Body(..., embed=True),
+    status: str = Body(..., embed=True),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_active_user)
 ):
     """Обновить прогресс по курсу"""
     return crud.update_course_progress(db, current_user.id, course_id, progress, status)
-
