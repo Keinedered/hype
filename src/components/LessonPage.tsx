@@ -274,25 +274,11 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
             </div>
 
             {/* Video Player */}
-            {lesson.videoUrl ? (
+            {lesson.videoUrl && (
               <div className="relative aspect-video bg-black w-full border-2 border-black shadow-[12px_12px_0px_0px_rgba(182,226,200,1)] overflow-hidden">
                 <video controls className="w-full h-full">
                   <source src={lesson.videoUrl} />
                 </video>
-              </div>
-            ) : (
-              <div className="relative aspect-video bg-black w-full border-2 border-black shadow-[12px_12px_0px_0px_rgba(182,226,200,1)] group overflow-hidden">
-                 <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1200&q=80')] bg-cover bg-center opacity-40"></div>
-                 <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg">
-                       <div className="w-0 h-0 border-t-[12px] border-t-transparent border-l-[20px] border-l-black border-b-[12px] border-b-transparent ml-1"></div>
-                    </div>
-                 </div>
-
-                 <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent text-white">
-                    <div className="font-mono text-xs mb-1 opacity-70">ВИДЕО-ЛЕКЦИЯ</div>
-                    <div className="font-bold text-lg">Видео не доступно</div>
-                 </div>
               </div>
             )}
 
