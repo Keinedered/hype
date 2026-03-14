@@ -1,4 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { AxiosError } from 'axios';
 import {
   createAdminCourse,
@@ -1643,6 +1645,44 @@ export function AdminPage() {
                     onChange={(event) => setLessonForm((prev) => ({ ...prev, content: event.target.value }))}
                     className="rounded-none border-2 border-black font-mono min-h-[160px]"
                   />
+                  <div className="border-2 border-dashed border-black/30 bg-white/80 p-4 space-y-4">
+                    <div className="font-mono text-[10px] uppercase tracking-widest text-gray-500">Превью</div>
+                    {lessonForm.content.trim().length === 0 ? (
+                      <p className="text-sm text-gray-500">Введите markdown, чтобы увидеть превью.</p>
+                    ) : (
+                      <div className="max-w-none font-light text-gray-800 space-y-4">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            h1: (props) => (
+                              <h1 className="mt-10 mb-4 text-3xl md:text-4xl font-bold font-mono uppercase tracking-wide text-black" {...props} />
+                            ),
+                            h2: (props) => (
+                              <h2 className="mt-8 mb-3 text-2xl md:text-3xl font-bold font-mono uppercase tracking-wide text-black" {...props} />
+                            ),
+                            h3: (props) => (
+                              <h3 className="mt-6 mb-2 text-xl md:text-2xl font-bold font-mono uppercase tracking-wide text-black" {...props} />
+                            ),
+                            h4: (props) => (
+                              <h4 className="mt-5 mb-2 text-lg md:text-xl font-bold font-mono uppercase tracking-wide text-black" {...props} />
+                            ),
+                            h5: (props) => (
+                              <h5 className="mt-4 mb-2 text-base md:text-lg font-bold font-mono uppercase tracking-wide text-black" {...props} />
+                            ),
+                            h6: (props) => (
+                              <h6 className="mt-4 mb-2 text-sm md:text-base font-bold font-mono uppercase tracking-wide text-black" {...props} />
+                            ),
+                            p: (props) => <p className="leading-relaxed" {...props} />,
+                            ul: (props) => <ul className="list-disc pl-6 space-y-2" {...props} />,
+                            ol: (props) => <ol className="list-decimal pl-6 space-y-2" {...props} />,
+                            li: (props) => <li className="marker:text-black" {...props} />,
+                          }}
+                        >
+                          {lessonForm.content}
+                        </ReactMarkdown>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-1">
                   <label className="font-mono text-xs uppercase">Порядок</label>
