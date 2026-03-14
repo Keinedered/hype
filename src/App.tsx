@@ -56,94 +56,180 @@ export default function App() {
       cancelled = true;
     };
   }, []);
-  useEffect(() => {
-    if (window.location.pathname === '/login') {
+  const pushPath = (path: string) => {
+    if (window.location.pathname !== path) {
+      window.history.pushState({}, '', path);
+    }
+  };
+
+  const applyPathFromLocation = (pathname: string) => {
+    if (pathname === '/login') {
+      setSelectedCourseId(null);
+      setSelectedLessonId(null);
       setCurrentPage('login');
-    } else if (window.location.pathname === '/profile') {
-      setCurrentPage('profile');
-    } else if (window.location.pathname === '/admin') {
-      setCurrentPage('admin');
+      return;
     }
 
-    const handlePopState = () => {
-      if (window.location.pathname === '/login') {
-      setCurrentPage('login');
-    } else if (window.location.pathname === '/profile') {
+    if (pathname === '/profile') {
+      setSelectedCourseId(null);
+      setSelectedLessonId(null);
       setCurrentPage('profile');
-    } else if (window.location.pathname === '/admin') {
-      setCurrentPage('admin');
-    } else {
-        setCurrentPage('home');
-      }
-    };
+      return;
+    }
 
+    if (pathname === '/admin') {
+      setSelectedCourseId(null);
+      setSelectedLessonId(null);
+      setCurrentPage('admin');
+      return;
+    }
+
+    if (pathname.startsWith('/course/')) {
+      const courseId = pathname.split('/')[2] ?? '';
+      setSelectedCourseId(courseId);
+      setSelectedLessonId(null);
+      setCurrentPage('course');
+      return;
+    }
+
+    if (pathname === '/course') {
+      setSelectedCourseId(null);
+      setSelectedLessonId(null);
+      setCurrentPage('course');
+      return;
+    }
+
+    if (pathname.startsWith('/lesson/')) {
+      const lessonId = pathname.split('/')[2] ?? '';
+      setSelectedLessonId(lessonId);
+      setCurrentPage('lesson');
+      return;
+    }
+
+    if (pathname === '/lesson') {
+      setSelectedLessonId(null);
+      setCurrentPage('lesson');
+      return;
+    }
+
+    if (pathname.startsWith('/handbook/')) {
+      const courseId = pathname.split('/')[2] ?? '';
+      setSelectedCourseId(courseId || null);
+      setCurrentPage('handbook');
+      return;
+    }
+
+    if (pathname === '/handbook') {
+      setCurrentPage('handbook');
+      return;
+    }
+
+    setSelectedCourseId(null);
+    setSelectedLessonId(null);
+    setCatalogSelectedTrack('all');
+    setCurrentPage('home');
+  };
+
+  useEffect(() => {
+    applyPathFromLocation(window.location.pathname);
+    const handlePopState = () => {
+      applyPathFromLocation(window.location.pathname);
+    };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   const handleNavigate = (page: string) => {
-    if (page.startsWith('lesson/')) {
-       const lessonId = page.split('/')[1]?.split('?')[0] || '';
-       setSelectedLessonId(lessonId);
-       setCurrentPage('lesson');
-       return;
-    }
-    if (page.startsWith('course/')) {
-       const courseId = page.split('/')[1]?.split('?')[0] || '';
-       setSelectedCourseId(courseId);
-       setCurrentPage('course');
-       return;
-    }
-    if (page.startsWith('handbook/')) {
-       const courseId = page.split('/')[1]?.split('?')[0] || '';
-       setSelectedCourseId(courseId);
-       setCurrentPage('handbook');
-       return;
+    const normalized = page.split('?')[0];
+
+    if (normalized.startsWith('course/')) {
+      const courseId = normalized.split('/')[1] ?? '';
+      setSelectedCourseId(courseId);
+      setSelectedLessonId(null);
+      setCurrentPage('course');
+      pushPath(`/course/${courseId}`);
+      return;
     }
 
-    if (page === 'login') {
+    if (normalized === 'course') {
+      setSelectedCourseId(null);
+      setSelectedLessonId(null);
+      setCurrentPage('course');
+      pushPath('/course');
+      return;
+    }
+
+    if (normalized.startsWith('lesson/')) {
+      const lessonId = normalized.split('/')[1] ?? '';
+      setSelectedLessonId(lessonId);
+      setCurrentPage('lesson');
+      pushPath(`/lesson/${lessonId}`);
+      return;
+    }
+
+    if (normalized === 'lesson') {
+      setSelectedLessonId(null);
+      setCurrentPage('lesson');
+      pushPath('/lesson');
+      return;
+    }
+
+    if (normalized.startsWith('handbook/')) {
+      const courseId = normalized.split('/')[1] ?? '';
+      setSelectedCourseId(courseId || null);
+      setCurrentPage('handbook');
+      pushPath(`/handbook/${courseId}`);
+      return;
+    }
+
+    if (normalized === 'handbook') {
+      setCurrentPage('handbook');
+      pushPath('/handbook');
+      return;
+    }
+
+    if (normalized === 'login') {
       setCurrentPage('login');
-      if (window.location.pathname !== '/login') {
-        window.history.pushState({}, '', '/login');
-      }
+      pushPath('/login');
       return;
     }
 
-    if (page === 'profile-notifications') {
+    if (normalized === 'profile-notifications') {
+      setSelectedCourseId(null);
+      setSelectedLessonId(null);
       setCurrentPage('profile');
-      if (window.location.pathname !== '/profile') {
-        window.history.pushState({}, '', '/profile');
-      }
+      pushPath('/profile');
       return;
     }
 
-    if (page === 'admin') {
+    if (normalized === 'profile') {
+      setSelectedCourseId(null);
+      setSelectedLessonId(null);
+      setCurrentPage('profile');
+      pushPath('/profile');
+      return;
+    }
+
+    if (normalized === 'admin') {
+      setSelectedCourseId(null);
+      setSelectedLessonId(null);
       setCurrentPage('admin');
-      if (window.location.pathname !== '/admin') {
-        window.history.pushState({}, '', '/admin');
-      }
+      pushPath('/admin');
       return;
     }
 
-    if (
-      (window.location.pathname === '/login' && page !== 'login') ||
-      (window.location.pathname === '/profile' && page !== 'profile') ||
-      (window.location.pathname === '/admin' && page !== 'admin')
-    ) {
-      window.history.pushState({}, '', '/');
-    }
-
-    switch (page) {
+    switch (normalized) {
       case 'home':
-        setCurrentPage('home');
-        setSelectedCourseId(null);
-        setSelectedLessonId(null);
-        break;
-      case 'catalog':
-        setCurrentPage('catalog');
         setSelectedCourseId(null);
         setSelectedLessonId(null);
         setCatalogSelectedTrack('all');
+        setCurrentPage('home');
+        break;
+      case 'catalog':
+        setSelectedCourseId(null);
+        setSelectedLessonId(null);
+        setCatalogSelectedTrack('all');
+        setCurrentPage('catalog');
         break;
       case 'path':
         setCurrentPage('path');
@@ -154,24 +240,13 @@ export default function App() {
       case 'about':
         setCurrentPage('about');
         break;
-      case 'profile':
-        setCurrentPage('profile');
-        if (window.location.pathname !== '/profile') {
-          window.history.pushState({}, '', '/profile');
-        }
-        break;
-      case 'admin':
-        setCurrentPage('admin');
-        if (window.location.pathname !== '/admin') {
-          window.history.pushState({}, '', '/admin');
-        }
-        break;
-      case 'handbook':
-        setCurrentPage('handbook');
-        break;
       default:
+        setSelectedCourseId(null);
+        setSelectedLessonId(null);
         setCurrentPage('home');
     }
+
+    pushPath('/');
   };
 
   const openCatalog = (trackId: TrackId | 'all' = 'all') => {
@@ -179,11 +254,11 @@ export default function App() {
     setCurrentPage('catalog');
     setSelectedCourseId(null);
     setSelectedLessonId(null);
+    pushPath('/');
   };
 
   const handleCourseSelect = (courseId: string) => {
-    setSelectedCourseId(courseId);
-    setCurrentPage('course');
+    handleNavigate(`course/${courseId}`);
   };
 
   const handleBackToCatalog = () => {
@@ -191,21 +266,24 @@ export default function App() {
   };
 
   const handleBackToCourse = () => {
-    setCurrentPage('course');
+    if (selectedCourseId) {
+      handleNavigate(`course/${selectedCourseId}`);
+    } else {
+      handleNavigate('course');
+    }
   };
 
   const handleStartCourse = () => {
-    setCurrentPage('lesson');
+    handleNavigate('lesson');
   };
 
   const handleSelectLesson = (lessonId: string) => {
-    console.log('Selected lesson:', lessonId);
-    setSelectedLessonId(lessonId?.split('?')[0] || '');
-    setCurrentPage('lesson');
+    if (!lessonId) return;
+    handleNavigate(`lesson/${lessonId.split('?')[0]}`);
   };
 
   const handleOpenMap = () => {
-    setCurrentPage('path');
+    handleNavigate('path');
   };
 
   return (
@@ -241,11 +319,14 @@ export default function App() {
             if (nodeId === 'root') return;
 
             // Try to find if it's a course
-            setSelectedCourseId(nodeId);
-            setCurrentPage('course');
+            handleNavigate(`course/${nodeId}`);
           }}
           onOpenHandbook={() => {
-            setCurrentPage('handbook');
+            if (selectedCourseId) {
+              handleNavigate(`handbook/${selectedCourseId}`);
+            } else {
+              handleNavigate('handbook');
+            }
           }}
         />
       )}
@@ -374,7 +455,7 @@ export default function App() {
           onUnauthorized={() => handleNavigate('login')}
           fallback={null}
         >
-          <ProfilePage onUnauthorized={() => handleNavigate('login')} onNavigateToLesson={(lessonId) => { setSelectedLessonId(lessonId); setCurrentPage('lesson'); }} />
+          <ProfilePage onUnauthorized={() => handleNavigate('login')} onNavigateToLesson={(lessonId) => handleNavigate(`lesson/${lessonId}`)} />
         </ProtectedRoute>
       )}
 
@@ -400,7 +481,11 @@ export default function App() {
           onOpenMap={handleOpenMap}
           onSelectLesson={handleSelectLesson}
           onOpenHandbook={() => {
-            setCurrentPage('handbook');
+            if (selectedCourseId) {
+              handleNavigate(`handbook/${selectedCourseId}`);
+            } else {
+              handleNavigate('handbook');
+            }
           }}
         />
       )}
@@ -416,7 +501,11 @@ export default function App() {
           }}
           onOpenMap={handleOpenMap}
           onOpenHandbook={() => {
-            setCurrentPage('handbook');
+            if (selectedCourseId) {
+              handleNavigate(`handbook/${selectedCourseId}`);
+            } else {
+              handleNavigate('handbook');
+            }
           }}
         />
       )}
@@ -431,9 +520,9 @@ export default function App() {
         <HandbookPage
           onBack={() => {
             if (selectedCourseId) {
-              setCurrentPage('course');
+              handleNavigate(`course/${selectedCourseId}`);
             } else {
-              setCurrentPage('path');
+              handleNavigate('path');
             }
           }}
           courseId={selectedCourseId || undefined}
@@ -443,10 +532,3 @@ export default function App() {
     </div>
   );
 }
-
-
-
-
-
-
-
