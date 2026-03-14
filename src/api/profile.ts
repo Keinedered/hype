@@ -73,3 +73,13 @@ export async function deleteMyAvatar(): Promise<UserProfile> {
 export async function deleteMyAccount(): Promise<void> {
   await axiosClient.delete('/users/me');
 }
+
+export type ChangePasswordPayload = {
+  current_password: string;
+  new_password: string;
+};
+
+export async function changeMyPassword(payload: ChangePasswordPayload): Promise<{ message: string }> {
+  const response = await axiosClient.post<{ message: string }>('/users/me/change-password', payload);
+  return response.data;
+}

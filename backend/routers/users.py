@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 import crud
 import models
 import schemas
-from auth import get_current_active_user
+from auth import get_current_active_user, get_password_hash, verify_password
 from config import settings
 from database import get_db
 
@@ -120,3 +120,17 @@ def delete_my_account(
 
     return None
 
+
+@router.post("/me/change-password", response_model=schemas.ChangePasswordResponse)
+def change_my_password(
+    payload: schemas.ChangePasswordRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user),
+):
+    if not verify_password(payload.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Incorrect current password")
+
+    current_user.hashed_password = get_password_hash(payload.new_password)
+    db.add(current_user)
+    db.commit()
+    return schemas.ChangePasswordResponse(message="Password updated")

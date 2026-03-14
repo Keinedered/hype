@@ -3,7 +3,7 @@ import { AxiosError } from 'axios';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { useUserProfile } from '../hooks/useUserProfile';
-import { deleteMyAccount, deleteMyAvatar, updateMyProfile, uploadMyAvatar } from '../api/profile';
+import { changeMyPassword, deleteMyAccount, deleteMyAvatar, updateMyProfile, uploadMyAvatar } from '../api/profile';
 import { ApiErrorResponse } from '../types/user-profile';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Button } from './ui/button';
@@ -49,6 +49,11 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
   const [formEmail, setFormEmail] = useState('');
   const [formAbout, setFormAbout] = useState('');
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [avatarMessage, setAvatarMessage] = useState<string | null>(null);
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
   const avatarPreviewObjectUrlRef = useRef<string | null>(null);
@@ -165,6 +170,25 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
     onError: (mutationError: AxiosError<ApiErrorResponse>) => {
       const message = mutationError.response?.data?.message || mutationError.response?.data?.detail || 'Failed to delete account.';
       setSaveMessage(message);
+    },
+  });
+
+  const changePasswordMutation = useMutation({
+    mutationFn: () => changeMyPassword({
+      current_password: currentPassword,
+      new_password: newPassword,
+    }),
+    onSuccess: (response) => {
+      setPasswordMessage(response.message || 'Пароль обновлен.');
+      setPasswordError(null);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    },
+    onError: (mutationError: AxiosError<ApiErrorResponse>) => {
+      const message = mutationError.response?.data?.message || mutationError.response?.data?.detail || 'Не удалось обновить пароль.';
+      setPasswordError(message);
+      setPasswordMessage(null);
     },
   });
 
@@ -288,6 +312,21 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
     event.preventDefault();
     setSaveMessage(null);
     await saveProfileMutation.mutateAsync();
+  };
+
+  const handlePasswordChange = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setPasswordMessage(null);
+    setPasswordError(null);
+    if (!currentPassword || !newPassword) {
+      setPasswordError('Заполните текущий и новый пароль.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Новый пароль и подтверждение не совпадают.');
+      return;
+    }
+    await changePasswordMutation.mutateAsync();
   };
   const getStatusText = (status: string) => {
      switch (status) {
@@ -569,6 +608,66 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
                   </button>
                 </div>
               </div>
+            </div>
+
+            {/* Password Settings */}
+            <div className="bg-white/90 backdrop-blur-sm border-2 border-black p-6 relative">
+              <div className="absolute top-0 right-0 w-px h-6 bg-black" />
+              <div className="absolute top-0 right-0 w-6 h-px bg-black" />
+              <div className="absolute bottom-0 left-0 w-px h-6 bg-black" />
+              <div className="absolute bottom-0 left-0 w-6 h-px bg-black" />
+
+              <div className="bg-black text-white px-3 py-2 inline-block mb-6 font-mono text-sm tracking-wide">
+                БЕЗОПАСНОСТЬ
+              </div>
+
+              <form className="space-y-4" onSubmit={handlePasswordChange}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-mono uppercase tracking-wide mb-2">Текущий пароль</label>
+                    <input
+                      type="password"
+                      value={currentPassword}
+                      onChange={(event) => setCurrentPassword(event.target.value)}
+                      className="w-full px-3 py-2 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-black"
+                      autoComplete="current-password"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-mono uppercase tracking-wide mb-2">Новый пароль</label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(event) => setNewPassword(event.target.value)}
+                      className="w-full px-3 py-2 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-black"
+                      autoComplete="new-password"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-mono uppercase tracking-wide mb-2">Повторите пароль</label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(event) => setConfirmPassword(event.target.value)}
+                      className="w-full px-3 py-2 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-black"
+                      autoComplete="new-password"
+                    />
+                  </div>
+                </div>
+                {passwordError && (
+                  <p className="font-mono text-xs text-red-700">{passwordError}</p>
+                )}
+                {passwordMessage && (
+                  <p className="font-mono text-xs">{passwordMessage}</p>
+                )}
+                <Button
+                  type="submit"
+                  disabled={changePasswordMutation.isPending}
+                  className="border-2 border-black bg-white text-black hover:bg-black hover:text-white font-mono uppercase tracking-wide mt-4"
+                >
+                  {changePasswordMutation.isPending ? 'Saving...' : 'Change password'}
+                </Button>
+              </form>
             </div>
 
             {/* Danger Zone */}

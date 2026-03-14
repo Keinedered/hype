@@ -606,3 +606,12 @@ class ResetPasswordResponse(BaseModel):
     user_id: str
     username: str
     temporary_password: str
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+class ChangePasswordResponse(BaseModel):
+    message: str
