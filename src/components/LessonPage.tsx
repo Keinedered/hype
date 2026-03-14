@@ -155,10 +155,11 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
           }
         };
 
-        // отмечаем урок без задания как начатый
-        if (!normalizedLesson.assignment) {
+        // отмечаем урок без задания как начатый (не трогаем завершенный)
+        if (!normalizedLesson.assignment && normalizedLesson.status !== 'completed') {
           try {
             await lessonsAPI.updateProgress(normalizedLesson.id, 'in_progress');
+            normalizedLesson.status = 'in_progress';
             setLessonStatus('in_progress');
           } catch {
             // ignore errors
@@ -167,6 +168,7 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
 
         if (!isMounted) return;
         setLesson(normalizedLesson);
+        setLessonStatus(normalizedLesson.status ?? 'not_started');
         setModule(normalizedModule);
         setTrack(normalizedTrack);
         setModuleLessons(normalizedModuleLessons);
@@ -175,7 +177,6 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
         setFileUrls([]);
         setSubmissionId(null);
         setSubmissionStatus('not_submitted');
-        setLessonStatus('not_started');
         setSubmissionError(null);
         setSubmissionsList([]);
         await loadExistingSubmission();

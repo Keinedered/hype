@@ -115,6 +115,12 @@ export function CoursePage({
 
   const firstLessonId = useMemo(() => {
     for (const module of sortedModules) {
+      const lessons = module.lessons || [];
+      const unfinished = lessons.find((lesson) => lesson.status !== 'completed');
+      if (unfinished) return unfinished.id;
+    }
+    // если все завершены, вернем самый первый урок
+    for (const module of sortedModules) {
       if (module.lessons.length > 0) return module.lessons[0].id;
     }
     return null;
