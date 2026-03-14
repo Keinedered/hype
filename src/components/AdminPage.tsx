@@ -270,6 +270,58 @@ export function AdminPage() {
   const [submissionNotes, setSubmissionNotes] = useState<Record<string, string>>({});
   const [reviewingSubmissionId, setReviewingSubmissionId] = useState<string | null>(null);
 
+  const submissionStats = useMemo(() => {
+    const course = new Map<string, { total: number; pending: number }>();
+    const module = new Map<string, { total: number; pending: number }>();
+    const lesson = new Map<string, { total: number; pending: number }>();
+
+    const bump = (map: Map<string, { total: number; pending: number }>, id: string, pending: boolean) => {
+      if (!id) return;
+      const current = map.get(id) ?? { total: 0, pending: 0 };
+      current.total += 1;
+      if (pending) current.pending += 1;
+      map.set(id, current);
+    };
+
+    submissions.forEach((submission) => {
+      const isPending = submission.status === 'pending';
+      bump(course, submission.course_id, isPending);
+      bump(module, submission.module_id, isPending);
+      bump(lesson, submission.lesson_id, isPending);
+    });
+
+    return { course, module, lesson };
+  }, [submissions]);
+
+  const filteredSubmissions = useMemo(() => {
+    if (selectedLessonId) {
+      return submissions.filter((submission) => submission.lesson_id === selectedLessonId);
+    }
+    if (selectedModuleId) {
+      return submissions.filter((submission) => submission.module_id === selectedModuleId);
+    }
+    if (selectedCourseId) {
+      return submissions.filter((submission) => submission.course_id === selectedCourseId);
+    }
+    return submissions;
+  }, [selectedCourseId, selectedLessonId, selectedModuleId, submissions]);
+
+  const renderSubmissionIndicators = (stats?: { total: number; pending: number }) => {
+    if (!stats || stats.total === 0) {
+      return null;
+    }
+    return (
+      <div className="mt-2 flex flex-wrap gap-2 text-[10px] uppercase">
+        <span className="border border-black px-2 py-0.5">Есть работы</span>
+        {stats.pending > 0 && (
+          <span className="border border-amber-600 px-2 py-0.5 text-amber-700">
+            Непроверенные: {stats.pending}
+          </span>
+        )}
+      </div>
+    );
+  };
+
   useEffect(() => {
     if (!isAdmin) {
       setUsers([]);
@@ -1657,6 +1709,7 @@ export function AdminPage() {
                       <div className="font-mono text-sm uppercase tracking-wide">{course.title}</div>
                       <div className="font-mono text-xs opacity-70">{course.id}</div>
                       <div className="font-mono text-[10px] uppercase opacity-60">Модулей: {course.module_count} · Уроков: {course.lesson_count}</div>
+                      {renderSubmissionIndicators(submissionStats.course.get(course.id))}
                     </div>
                   ))}
                   {courses.length === 0 && (
@@ -1835,6 +1888,7 @@ export function AdminPage() {
                       <div className="font-mono text-sm uppercase tracking-wide">{module.title}</div>
                       <div className="font-mono text-xs opacity-70">{module.id}</div>
                       <div className="font-mono text-[10px] uppercase opacity-60">Уроков: {module.lesson_count}</div>
+                      {renderSubmissionIndicators(submissionStats.module.get(module.id))}
                       <div className="mt-2 flex gap-2">
                         <Button
                           type="button"
@@ -1962,6 +2016,7 @@ export function AdminPage() {
                     >
                       <div className="font-mono text-sm uppercase tracking-wide">{lesson.title}</div>
                       <div className="font-mono text-xs opacity-70">{lesson.id}</div>
+                      {renderSubmissionIndicators(submissionStats.lesson.get(lesson.id))}
                       <div className="mt-2 flex gap-2">
                         <Button
                           type="button"
@@ -2304,7 +2359,7 @@ export function AdminPage() {
           </div>
         </section>
 
-        {isAdmin && (
+        {canReviewSubmissions && (
           <section className="space-y-6 border-t-2 border-black pt-6">
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div>
@@ -2341,7 +2396,12 @@ export function AdminPage() {
               <p className="font-mono text-xs uppercase">Загрузка...</p>
             ) : (
             <div className="space-y-4">
-              {submissions.map((submission) => (
+              {(selectedLessonId || selectedModuleId || selectedCourseId) && (
+                <div className="border border-black/10 bg-gray-50 p-2 text-[10px] uppercase font-mono">
+                  Фильтр: {selectedLessonId ? `урок ${selectedLessonId}` : selectedModuleId ? `модуль ${selectedModuleId}` : `курс ${selectedCourseId}`}
+                </div>
+              )}
+              {(filteredSubmissions).map((submission) => (
                 <div key={submission.id} className="border-2 border-black p-4 space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="font-mono text-xs uppercase tracking-wide">
@@ -2422,8 +2482,12 @@ export function AdminPage() {
                   </div>
                 </div>
               ))}
-              {submissions.length === 0 && (
-                <p className="font-mono text-xs text-muted-foreground">Отправленных заданий нет.</p>
+              {filteredSubmissions.length === 0 && (
+                <p className="font-mono text-xs text-muted-foreground">
+                  {selectedLessonId || selectedModuleId || selectedCourseId
+                    ? 'Нет заданий по выбранному фильтру.'
+                    : 'Отправленных заданий нет.'}
+                </p>
               )}
             </div>
           )}

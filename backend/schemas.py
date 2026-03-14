@@ -448,6 +448,8 @@ class AdminSubmissionListItem(BaseModel):
     user_id: str
     username: str
     lesson_id: str
+    module_id: str
+    course_id: str
     version: int
     text_answer: Optional[str] = None
     link_url: Optional[str] = None

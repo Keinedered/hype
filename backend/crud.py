@@ -291,6 +291,36 @@ def update_submission(
 
     _validate_submission_payload(assignment, submission_update)
 
+    if db_submission.status == models.SubmissionStatus.needs_revision:
+        existing = db.query(models.Submission).filter(
+            models.Submission.assignment_id == db_submission.assignment_id,
+            models.Submission.user_id == user_id
+        ).order_by(models.Submission.version.desc()).first()
+        version = existing.version + 1 if existing else 1
+
+        new_submission = models.Submission(
+            id=str(uuid.uuid4()),
+            assignment_id=db_submission.assignment_id,
+            user_id=user_id,
+            version=version,
+            text_answer=submission_update.text_answer,
+            link_url=submission_update.link_url,
+            status=models.SubmissionStatus.pending,
+            submitted_at=func.now(),
+        )
+        db.add(new_submission)
+
+        for file_url in submission_update.file_urls or []:
+            db_file = models.SubmissionFile(
+                submission_id=new_submission.id,
+                file_url=file_url,
+            )
+            db.add(db_file)
+
+        db.commit()
+        db.refresh(new_submission)
+        return new_submission
+
     if "text_answer" in submission_update.dict(exclude_unset=True):
         db_submission.text_answer = submission_update.text_answer
     if "link_url" in submission_update.dict(exclude_unset=True):
@@ -339,7 +369,9 @@ def get_admin_submissions(db: Session, course_ids: Optional[List[str]] = None) -
     query = db.query(models.Submission).options(
         joinedload(models.Submission.files),
         joinedload(models.Submission.user),
-        joinedload(models.Submission.assignment),
+        joinedload(models.Submission.assignment)
+        .joinedload(models.Assignment.lesson)
+        .joinedload(models.Lesson.module),
     )
     if course_ids is not None:
         query = query.join(models.Assignment, models.Submission.assignment_id == models.Assignment.id)

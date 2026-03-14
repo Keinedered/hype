@@ -50,6 +50,8 @@ export interface AdminSubmissionListItem {
   user_id: string;
   username: string;
   lesson_id: string;
+  module_id: string;
+  course_id: string;
   version: number;
   text_answer?: string | null;
   link_url?: string | null;

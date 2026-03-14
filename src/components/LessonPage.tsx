@@ -224,12 +224,13 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
         link_url: linkUrl.trim() || undefined,
         file_urls: fileUrls,
       };
-      const response = submissionId && submissionStatus === 'needs_revision'
-        ? await submissionsAPI.update(submissionId, payload)
-        : await submissionsAPI.create({
+      const shouldCreateNewVersion = !submissionId || submissionStatus === 'needs_revision';
+      const response = shouldCreateNewVersion
+        ? await submissionsAPI.create({
           assignment_id: lesson.assignment.id,
           ...payload,
-        });
+        })
+        : await submissionsAPI.update(submissionId, payload);
       const status = (response as { status?: string }).status as typeof submissionStatus | undefined;
       const id = (response as { id?: string }).id;
       if (id) {

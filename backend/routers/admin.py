@@ -662,13 +662,17 @@ def list_submissions(
     response: list[schemas.AdminSubmissionListItem] = []
     for submission in submissions:
         assignment = submission.assignment
+        lesson = assignment.lesson if assignment else None
+        module = lesson.module if lesson else None
         response.append(
             schemas.AdminSubmissionListItem(
                 id=submission.id,
                 assignment_id=submission.assignment_id,
                 user_id=submission.user_id,
                 username=submission.user.username if submission.user else "unknown",
-                lesson_id=assignment.lesson_id if assignment else "",
+                lesson_id=lesson.id if lesson else (assignment.lesson_id if assignment else ""),
+                module_id=module.id if module else "",
+                course_id=module.course_id if module else "",
                 version=submission.version,
                 text_answer=submission.text_answer,
                 link_url=submission.link_url,
