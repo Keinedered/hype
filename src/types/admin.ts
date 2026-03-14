@@ -144,6 +144,7 @@ export interface AdminAssignmentDetail {
   requires_text: boolean;
   requires_file: boolean;
   requires_link: boolean;
+  requires_any: boolean;
 }
 
 export interface AdminAssignmentCreate {
@@ -153,6 +154,7 @@ export interface AdminAssignmentCreate {
   requires_text: boolean;
   requires_file: boolean;
   requires_link: boolean;
+  requires_any: boolean;
 }
 
 export interface AdminAssignmentUpdate {
@@ -162,6 +164,7 @@ export interface AdminAssignmentUpdate {
   requires_text?: boolean | null;
   requires_file?: boolean | null;
   requires_link?: boolean | null;
+  requires_any?: boolean | null;
 }
 
 export interface AdminLessonDetail {

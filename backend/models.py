@@ -1,6 +1,6 @@
 from sqlalchemy import Column, String, Integer, Float, ForeignKey, DateTime, Boolean, Text, Enum as SQLEnum, Table
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
+from sqlalchemy.sql import func, expression
 from database import Base
 import enum
 
@@ -208,6 +208,7 @@ class Assignment(Base):
     requires_text = Column(Boolean, default=False)
     requires_file = Column(Boolean, default=False)
     requires_link = Column(Boolean, default=False)
+    requires_any = Column(Boolean, server_default=expression.false(), default=False, nullable=False)
 
     # Relationships
     lesson = relationship("Lesson", back_populates="assignment")
@@ -233,6 +234,10 @@ class Submission(Base):
     assignment = relationship("Assignment", back_populates="submissions")
     user = relationship("User", back_populates="submissions")
     files = relationship("SubmissionFile", back_populates="submission", cascade="all, delete-orphan")
+
+    @property
+    def file_urls(self) -> list[str]:
+        return [file.file_url for file in self.files or []]
 
 
 class SubmissionFile(Base):

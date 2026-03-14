@@ -63,6 +63,7 @@ export interface Assignment {
   requiresText: boolean;
   requiresFile: boolean;
   requiresLink: boolean;
+  requiresAny: boolean;
 }
 
 export interface Submission {
@@ -107,4 +108,3 @@ export interface Notification {
   createdAt: Date;
   relatedUrl?: string;
 }
-

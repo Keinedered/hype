@@ -31,8 +31,9 @@ export function getAuthToken(): string | null {
 
 // Base fetch wrapper
 async function apiFetch(endpoint: string, options: RequestInit = {}) {
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
   const headers: HeadersInit = {
-    'Content-Type': 'application/json',
+    ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
     ...options.headers,
   };
 
@@ -54,6 +55,10 @@ async function apiFetch(endpoint: string, options: RequestInit = {}) {
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
     throw new Error(error.detail || 'Request failed');
+  }
+
+  if (response.status === 204) {
+    return null;
   }
 
   return response.json();
@@ -174,6 +179,15 @@ export const graphAPI = {
 
 // Submissions API
 export const submissionsAPI = {
+  async uploadFile(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiFetch('/submissions/upload', {
+      method: 'POST',
+      body: formData,
+    });
+  },
+
   async create(data: {
     assignment_id: string;
     text_answer?: string;
@@ -183,6 +197,23 @@ export const submissionsAPI = {
     return apiFetch('/submissions/', {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+  },
+
+  async update(submissionId: string, data: {
+    text_answer?: string;
+    link_url?: string;
+    file_urls?: string[];
+  }) {
+    return apiFetch(`/submissions/${submissionId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async delete(submissionId: string) {
+    return apiFetch(`/submissions/${submissionId}`, {
+      method: 'DELETE',
     });
   },
 

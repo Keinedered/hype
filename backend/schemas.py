@@ -207,6 +207,7 @@ class AssignmentBase(BaseModel):
     requires_text: bool
     requires_file: bool
     requires_link: bool
+    requires_any: bool = False
 
 
 class Assignment(AssignmentBase):
@@ -224,6 +225,7 @@ class AdminAssignmentDetail(BaseModel):
     requires_text: bool
     requires_file: bool
     requires_link: bool
+    requires_any: bool
 
     class Config:
         from_attributes = True
@@ -236,6 +238,7 @@ class AdminAssignmentCreate(BaseModel):
     requires_text: bool = False
     requires_file: bool = False
     requires_link: bool = False
+    requires_any: bool = False
 
 
 class AdminAssignmentUpdate(BaseModel):
@@ -245,6 +248,7 @@ class AdminAssignmentUpdate(BaseModel):
     requires_text: Optional[bool] = None
     requires_file: Optional[bool] = None
     requires_link: Optional[bool] = None
+    requires_any: Optional[bool] = None
 
 
 class LessonBase(BaseModel):
@@ -427,6 +431,32 @@ class Submission(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class SubmissionFileUploadResponse(BaseModel):
+    file_url: str
+
+
+class AdminSubmissionListItem(BaseModel):
+    id: str
+    assignment_id: str
+    user_id: str
+    username: str
+    lesson_id: str
+    version: int
+    text_answer: Optional[str] = None
+    link_url: Optional[str] = None
+    file_urls: List[str] = []
+    status: SubmissionStatus
+    curator_comment: Optional[str] = None
+    submitted_at: Optional[datetime] = None
+    reviewed_at: Optional[datetime] = None
+
+
+class AdminSubmissionReview(BaseModel):
+    status: SubmissionStatus
+    curator_comment: Optional[str] = None
+
 
 
 class NotificationBase(BaseModel):

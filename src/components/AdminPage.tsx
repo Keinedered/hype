@@ -116,6 +116,7 @@ type AssignmentFormState = {
   requiresText: boolean;
   requiresFile: boolean;
   requiresLink: boolean;
+  requiresAny: boolean;
 };
 
 type LessonFormState = {
@@ -176,6 +177,7 @@ const emptyLessonForm = (moduleId: string): LessonFormState => ({
     requiresText: false,
     requiresFile: false,
     requiresLink: false,
+    requiresAny: false,
   },
 });
 
@@ -449,6 +451,7 @@ export function AdminPage() {
                 requiresText: data.assignment.requires_text,
                 requiresFile: data.assignment.requires_file,
                 requiresLink: data.assignment.requires_link,
+                requiresAny: data.assignment.requires_any,
               }
             : {
                 enabled: false,
@@ -459,6 +462,7 @@ export function AdminPage() {
                 requiresText: false,
                 requiresFile: false,
                 requiresLink: false,
+                requiresAny: false,
               },
         });
       } catch (error) {
@@ -827,6 +831,7 @@ export function AdminPage() {
             requires_text: lessonForm.assignment.requiresText,
             requires_file: lessonForm.assignment.requiresFile,
             requires_link: lessonForm.assignment.requiresLink,
+            requires_any: lessonForm.assignment.requiresAny,
           }
         : undefined;
       const created = await createAdminLesson({
@@ -866,6 +871,7 @@ export function AdminPage() {
             requires_text: lessonForm.assignment.requiresText,
             requires_file: lessonForm.assignment.requiresFile,
             requires_link: lessonForm.assignment.requiresLink,
+            requires_any: lessonForm.assignment.requiresAny,
           }
         : null;
       await updateAdminLesson(selectedLessonId, {
@@ -1968,6 +1974,19 @@ export function AdminPage() {
                           Файл
                         </label>
                       </div>
+                      <label className="flex items-center gap-2 text-[10px] uppercase tracking-wide">
+                        <input
+                          type="checkbox"
+                          checked={lessonForm.assignment.requiresAny}
+                          onChange={(event) =>
+                            setLessonForm((prev) => ({
+                              ...prev,
+                              assignment: { ...prev.assignment, requiresAny: event.target.checked },
+                            }))
+                          }
+                        />
+                        Достаточно одного типа ответа
+                      </label>
                       {lessonForm.assignment.requiresFile && (
                         <p className="font-mono text-[10px] uppercase text-gray-500">
                           Загрузка файлов в заданиях пока не поддерживается.

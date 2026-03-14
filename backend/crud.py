@@ -205,8 +205,36 @@ def get_graph_edges(db: Session) -> List[models.GraphEdge]:
 
 
 # Submissions
+def _validate_submission_payload(assignment: models.Assignment, submission: schemas.SubmissionCreate | schemas.SubmissionUpdate) -> None:
+    requires_text = assignment.requires_text
+    requires_link = assignment.requires_link
+    requires_file = assignment.requires_file
+    requires_any = assignment.requires_any
+
+    has_text = bool(submission.text_answer and submission.text_answer.strip())
+    has_link = bool(submission.link_url and submission.link_url.strip())
+    has_files = bool(submission.file_urls)
+
+    if requires_any:
+        if requires_text or requires_link or requires_file:
+            if not (has_text or has_link or has_files):
+                raise ValueError("Submission does not satisfy assignment requirements.")
+        return
+
+    if requires_text and not has_text:
+        raise ValueError("Text answer is required.")
+    if requires_link and not has_link:
+        raise ValueError("Link is required.")
+    if requires_file and not has_files:
+        raise ValueError("File is required.")
+
+
 def create_submission(db: Session, submission: schemas.SubmissionCreate, user_id: str) -> models.Submission:
     """Ð¡Ð¾Ð·Ð´Ð°Ñ‚ÑŒ submission"""
+    assignment = db.query(models.Assignment).filter(models.Assignment.id == submission.assignment_id).first()
+    if not assignment:
+        raise ValueError("Assignment not found")
+    _validate_submission_payload(assignment, submission)
     # ÐŸÑ€Ð¾Ð²ÐµÑ€ÑÐµÐ¼ ÑÑƒÑ‰ÐµÑÑ‚Ð²ÑƒÑŽÑ‰Ð¸Ðµ submissions
     existing = db.query(models.Submission).filter(
         models.Submission.assignment_id == submission.assignment_id,
@@ -241,11 +269,95 @@ def create_submission(db: Session, submission: schemas.SubmissionCreate, user_id
     return db_submission
 
 
+def update_submission(
+    db: Session,
+    submission_id: str,
+    submission_update: schemas.SubmissionUpdate,
+    user_id: str
+) -> Optional[models.Submission]:
+    db_submission = db.query(models.Submission).filter(
+        models.Submission.id == submission_id,
+        models.Submission.user_id == user_id,
+    ).first()
+    if not db_submission:
+        return None
+
+    assignment = db.query(models.Assignment).filter(models.Assignment.id == db_submission.assignment_id).first()
+    if not assignment:
+        return None
+
+    if db_submission.status not in [models.SubmissionStatus.pending, models.SubmissionStatus.needs_revision]:
+        raise ValueError("Submission cannot be edited in current status")
+
+    _validate_submission_payload(assignment, submission_update)
+
+    if "text_answer" in submission_update.dict(exclude_unset=True):
+        db_submission.text_answer = submission_update.text_answer
+    if "link_url" in submission_update.dict(exclude_unset=True):
+        db_submission.link_url = submission_update.link_url
+
+    if "file_urls" in submission_update.dict(exclude_unset=True):
+        db_submission.files.clear()
+        for file_url in submission_update.file_urls or []:
+            db_file = models.SubmissionFile(
+                submission_id=db_submission.id,
+                file_url=file_url,
+            )
+            db.add(db_file)
+
+    db_submission.status = models.SubmissionStatus.pending
+    db_submission.submitted_at = func.now()
+    db_submission.reviewed_at = None
+
+    db.commit()
+    db.refresh(db_submission)
+    return db_submission
+
+
+def delete_submission(db: Session, submission_id: str, user_id: str) -> bool:
+    db_submission = db.query(models.Submission).filter(
+        models.Submission.id == submission_id,
+        models.Submission.user_id == user_id,
+    ).first()
+    if not db_submission:
+        return False
+    if db_submission.status != models.SubmissionStatus.pending:
+        raise ValueError("Only pending submissions can be deleted")
+    db.delete(db_submission)
+    db.commit()
+    return True
+
+
 def get_user_submissions(db: Session, user_id: str) -> List[models.Submission]:
     """ÐŸÐ¾Ð»ÑƒÑ‡Ð¸Ñ‚ÑŒ Ð²ÑÐµ submissions Ð¿Ð¾Ð»ÑŒÐ·Ð¾Ð²Ð°Ñ‚ÐµÐ»Ñ"""
     return db.query(models.Submission).filter(
         models.Submission.user_id == user_id
     ).order_by(models.Submission.created_at.desc()).all()
+
+
+def get_admin_submissions(db: Session) -> List[models.Submission]:
+    return db.query(models.Submission).options(
+        joinedload(models.Submission.files),
+        joinedload(models.Submission.user),
+        joinedload(models.Submission.assignment),
+    ).order_by(models.Submission.created_at.desc()).all()
+
+
+def review_submission(
+    db: Session,
+    submission_id: str,
+    status: schemas.SubmissionStatus,
+    curator_comment: Optional[str] = None,
+) -> Optional[models.Submission]:
+    submission = db.query(models.Submission).filter(models.Submission.id == submission_id).first()
+    if not submission:
+        return None
+    submission.status = status
+    submission.curator_comment = curator_comment
+    submission.reviewed_at = func.now()
+    db.commit()
+    db.refresh(submission)
+    return submission
 
 
 # Notifications
@@ -505,6 +617,7 @@ def create_admin_lesson(db: Session, lesson: schemas.AdminLessonCreate) -> model
             requires_text=lesson.assignment.requires_text,
             requires_file=lesson.assignment.requires_file,
             requires_link=lesson.assignment.requires_link,
+            requires_any=lesson.assignment.requires_any,
         )
         db.add(db_assignment)
         db_lesson.assignment = db_assignment
@@ -561,6 +674,8 @@ def update_admin_lesson(db: Session, lesson_id: str, lesson_update: schemas.Admi
                     db_lesson.assignment.requires_file = assignment_data["requires_file"]
                 if "requires_link" in assignment_data:
                     db_lesson.assignment.requires_link = assignment_data["requires_link"]
+                if "requires_any" in assignment_data:
+                    db_lesson.assignment.requires_any = assignment_data["requires_any"]
             else:
                 assignment_id = assignment_data.get("id") or str(uuid.uuid4())
                 db_assignment = models.Assignment(
@@ -571,6 +686,7 @@ def update_admin_lesson(db: Session, lesson_id: str, lesson_update: schemas.Admi
                     requires_text=assignment_data.get("requires_text", False),
                     requires_file=assignment_data.get("requires_file", False),
                     requires_link=assignment_data.get("requires_link", False),
+                    requires_any=assignment_data.get("requires_any", False),
                 )
                 db.add(db_assignment)
                 db_lesson.assignment = db_assignment

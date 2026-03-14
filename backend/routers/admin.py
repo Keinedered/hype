@@ -85,6 +85,7 @@ def _serialize_admin_lesson(lesson: models.Lesson) -> schemas.AdminLessonDetail:
                 requires_text=lesson.assignment.requires_text,
                 requires_file=lesson.assignment.requires_file,
                 requires_link=lesson.assignment.requires_link,
+                requires_any=lesson.assignment.requires_any,
             )
             if lesson.assignment
             else None
@@ -557,3 +558,45 @@ def delete_lesson(
     if not deleted:
         raise HTTPException(status_code=404, detail="Lesson not found")
     return None
+
+
+@router.get("/submissions", response_model=list[schemas.AdminSubmissionListItem])
+def list_submissions(
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_admin_user),
+):
+    submissions = crud.get_admin_submissions(db)
+    response: list[schemas.AdminSubmissionListItem] = []
+    for submission in submissions:
+        assignment = submission.assignment
+        response.append(
+            schemas.AdminSubmissionListItem(
+                id=submission.id,
+                assignment_id=submission.assignment_id,
+                user_id=submission.user_id,
+                username=submission.user.username if submission.user else "unknown",
+                lesson_id=assignment.lesson_id if assignment else "",
+                version=submission.version,
+                text_answer=submission.text_answer,
+                link_url=submission.link_url,
+                file_urls=submission.file_urls,
+                status=submission.status,
+                curator_comment=submission.curator_comment,
+                submitted_at=submission.submitted_at,
+                reviewed_at=submission.reviewed_at,
+            )
+        )
+    return response
+
+
+@router.post("/submissions/{submission_id}/review", response_model=schemas.Submission)
+def review_submission(
+    submission_id: str,
+    review: schemas.AdminSubmissionReview,
+    db: Session = Depends(get_db),
+    _: models.User = Depends(get_current_admin_user),
+):
+    updated = crud.review_submission(db, submission_id, review.status, review.curator_comment)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    return updated

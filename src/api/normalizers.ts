@@ -41,6 +41,7 @@ export type RawAssignment = {
   requires_text: boolean;
   requires_file: boolean;
   requires_link: boolean;
+  requires_any?: boolean | null;
 };
 
 export type RawLesson = {
@@ -124,6 +125,7 @@ export const normalizeAssignment = (raw: RawAssignment): Assignment => ({
   requiresText: raw.requires_text,
   requiresFile: raw.requires_file,
   requiresLink: raw.requires_link,
+  requiresAny: raw.requires_any ?? false,
 });
 
 export const normalizeLesson = (raw: RawLesson): Lesson => ({

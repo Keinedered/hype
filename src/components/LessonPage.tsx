@@ -30,6 +30,9 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
 
   const [textAnswer, setTextAnswer] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
+  const [fileUrls, setFileUrls] = useState<string[]>([]);
+  const [fileUploading, setFileUploading] = useState(false);
+  const [submissionId, setSubmissionId] = useState<string | null>(null);
   const [submissionStatus, setSubmissionStatus] = useState<'not_submitted' | 'pending' | 'accepted' | 'needs_revision'>('not_submitted');
   const [submissionError, setSubmissionError] = useState<string | null>(null);
 
@@ -80,6 +83,37 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
           normalizedModuleLessons = [...normalizedModule.lessons].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
         }
 
+        const loadExistingSubmission = async () => {
+          if (!isMounted) return;
+          if (!normalizedLesson.assignment) {
+            return;
+          }
+          try {
+            const submissions = (await submissionsAPI.getAll()) as Array<{
+              id: string;
+              assignment_id: string;
+              version: number;
+              text_answer?: string | null;
+              link_url?: string | null;
+              file_urls?: string[];
+              status?: typeof submissionStatus;
+            }>;
+            const assignmentSubmissions = submissions
+              .filter((submission) => submission.assignment_id === normalizedLesson.assignment?.id)
+              .sort((a, b) => (b.version ?? 0) - (a.version ?? 0));
+            const latest = assignmentSubmissions[0];
+            if (latest) {
+              setSubmissionId(latest.id);
+              setSubmissionStatus(latest.status ?? 'pending');
+              setTextAnswer(latest.text_answer ?? '');
+              setLinkUrl(latest.link_url ?? '');
+              setFileUrls(latest.file_urls ?? []);
+            }
+          } catch {
+            // Ignore submission load errors
+          }
+        };
+
         if (!isMounted) return;
         setLesson(normalizedLesson);
         setModule(normalizedModule);
@@ -87,8 +121,11 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
         setModuleLessons(normalizedModuleLessons);
         setTextAnswer('');
         setLinkUrl('');
+        setFileUrls([]);
+        setSubmissionId(null);
         setSubmissionStatus('not_submitted');
         setSubmissionError(null);
+        await loadExistingSubmission();
       } catch (err) {
         if (!isMounted) return;
         setError(err instanceof Error ? err.message : 'Не удалось загрузить урок');
@@ -113,11 +150,27 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
 
   const canSubmit = useMemo(() => {
     if (!lesson?.assignment) return false;
-    if (lesson.assignment.requiresFile) return false;
-    if (lesson.assignment.requiresText && !textAnswer.trim()) return false;
-    if (lesson.assignment.requiresLink && !linkUrl.trim()) return false;
+    const hasText = textAnswer.trim().length > 0;
+    const hasLink = linkUrl.trim().length > 0;
+    const hasFiles = fileUrls.length > 0;
+
+    if (lesson.assignment.requiresAny) {
+      const hasRequired =
+        (lesson.assignment.requiresText && hasText)
+        || (lesson.assignment.requiresLink && hasLink)
+        || (lesson.assignment.requiresFile && hasFiles);
+      return (
+        (lesson.assignment.requiresText || lesson.assignment.requiresLink || lesson.assignment.requiresFile)
+        ? hasRequired
+        : false
+      );
+    }
+
+    if (lesson.assignment.requiresText && !hasText) return false;
+    if (lesson.assignment.requiresLink && !hasLink) return false;
+    if (lesson.assignment.requiresFile && !hasFiles) return false;
     return true;
-  }, [lesson, linkUrl, textAnswer]);
+  }, [lesson, linkUrl, textAnswer, fileUrls]);
 
   const handleSubmit = async () => {
     if (!lesson?.assignment) return;
@@ -128,13 +181,52 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
         assignment_id: lesson.assignment.id,
         text_answer: textAnswer.trim() || undefined,
         link_url: linkUrl.trim() || undefined,
-        file_urls: [],
+        file_urls: fileUrls,
       });
       const status = (response as { status?: string }).status as typeof submissionStatus | undefined;
+      const id = (response as { id?: string }).id;
+      if (id) {
+        setSubmissionId(id);
+      }
       setSubmissionStatus(status ?? 'pending');
     } catch (err) {
       setSubmissionStatus('not_submitted');
       setSubmissionError(err instanceof Error ? err.message : 'Не удалось отправить задание');
+    }
+  };
+
+  const handleFileUpload = async (files: FileList) => {
+    if (!files.length) return;
+    try {
+      setFileUploading(true);
+      setSubmissionError(null);
+      const uploadedUrls: string[] = [];
+      for (const file of Array.from(files)) {
+        const response = await submissionsAPI.uploadFile(file);
+        const fileUrl = (response as { file_url?: string }).file_url;
+        if (fileUrl) {
+          uploadedUrls.push(fileUrl);
+        }
+      }
+      if (uploadedUrls.length) {
+        setFileUrls((prev) => [...prev, ...uploadedUrls]);
+      }
+    } catch (err) {
+      setSubmissionError(err instanceof Error ? err.message : 'Не удалось загрузить файлы');
+    } finally {
+      setFileUploading(false);
+    }
+  };
+
+  const handleUnsend = async () => {
+    if (!submissionId) return;
+    try {
+      setSubmissionError(null);
+      await submissionsAPI.delete(submissionId);
+      setSubmissionStatus('not_submitted');
+      setSubmissionId(null);
+    } catch (err) {
+      setSubmissionError(err instanceof Error ? err.message : 'Не удалось отозвать задание');
     }
   };
 
@@ -170,6 +262,8 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
         );
     }
   };
+
+  const inputsLocked = submissionStatus === 'pending' || submissionStatus === 'accepted';
 
   if (loading) {
     return (
@@ -367,7 +461,7 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
                                rows={8}
                                value={textAnswer}
                                onChange={(e) => setTextAnswer(e.target.value)}
-                               disabled={submissionStatus === 'pending' || submissionStatus === 'accepted'}
+                               disabled={inputsLocked}
                                className="rounded-none border-2 border-gray-200 focus:border-black focus:ring-0 resize-none p-4 text-base"
                             />
                          </div>
@@ -385,7 +479,7 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
                                      value={linkUrl}
                                      onChange={(e) => setLinkUrl(e.target.value)}
                                      className="pl-10 rounded-none border-2 border-gray-200 focus:border-black focus:ring-0 h-12"
-                                     disabled={submissionStatus === 'pending' || submissionStatus === 'accepted'}
+                                     disabled={inputsLocked}
                                   />
                                </div>
                             </div>
@@ -393,10 +487,46 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
 
                           {lesson.assignment.requiresFile && (
                             <div>
-                               <label className="block font-mono text-xs uppercase text-gray-500 mb-2">Файл</label>
-                               <div className="border-2 border-dashed border-gray-300 p-3 flex items-center justify-center gap-2 cursor-not-allowed bg-gray-50 transition-colors h-12">
-                                  <Upload className="w-4 h-4 text-gray-500" />
-                                  <span className="text-sm text-gray-500">Загрузка файлов пока не поддерживается</span>
+                               <label className="block font-mono text-xs uppercase text-gray-500 mb-2">Файлы</label>
+                               <div className="space-y-2">
+                                  <label className={`border-2 border-dashed p-3 flex items-center justify-center gap-2 transition-colors h-12 ${inputsLocked ? 'cursor-not-allowed bg-gray-50 text-gray-400' : 'cursor-pointer bg-white hover:border-black'}`}>
+                                     <Upload className="w-4 h-4" />
+                                     <span className="text-sm">
+                                       {fileUploading ? 'Загрузка...' : 'Загрузить файлы'}
+                                     </span>
+                                     <Input
+                                       type="file"
+                                       multiple
+                                       disabled={inputsLocked || fileUploading}
+                                       onChange={(event) => {
+                                         const files = event.target.files;
+                                         if (files && files.length > 0) {
+                                           void handleFileUpload(files);
+                                         }
+                                         event.target.value = '';
+                                       }}
+                                       className="hidden"
+                                     />
+                                  </label>
+                                  {fileUrls.length > 0 && (
+                                    <div className="space-y-1">
+                                      {fileUrls.map((fileUrl) => (
+                                        <div key={fileUrl} className="flex items-center justify-between gap-2 text-xs">
+                                          <span className="break-all">{fileUrl}</span>
+                                          {!inputsLocked && (
+                                            <Button
+                                              type="button"
+                                              variant="outline"
+                                              className="h-7 px-2 text-xs"
+                                              onClick={() => setFileUrls((prev) => prev.filter((url) => url !== fileUrl))}
+                                            >
+                                              Удалить
+                                            </Button>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
                                </div>
                             </div>
                           )}
@@ -407,12 +537,22 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
 
                           <Button
                              onClick={handleSubmit}
-                             disabled={submissionStatus === 'pending' || submissionStatus === 'accepted' || !canSubmit}
+                             disabled={inputsLocked || !canSubmit}
                              className="rounded-none bg-black text-white hover:bg-gray-800 h-12 px-8 font-mono uppercase tracking-wide disabled:opacity-50"
                           >
                              {submissionStatus === 'needs_revision' ? 'Отправить повторно' : 'Отправить на проверку'}
                           </Button>
                        </div>
+                       {submissionStatus === 'pending' && submissionId && (
+                         <Button
+                           type="button"
+                           variant="outline"
+                           className="mt-4 rounded-none border-2 border-black font-mono uppercase tracking-wide"
+                           onClick={handleUnsend}
+                         >
+                           Отозвать отправку
+                         </Button>
+                       )}
                        {submissionError && (
                          <p className="text-sm font-mono text-red-600">{submissionError}</p>
                        )}
