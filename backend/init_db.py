@@ -442,6 +442,15 @@ def init_demo_user(db: Session):
     )
     db.add(demo_user)
 
+    admin_user = models.User(
+        id=str(uuid.uuid4()),
+        email="admin@graph.com",
+        username="admin",
+        full_name="Administrator",
+        hashed_password=get_password_hash("admin"),
+    )
+    db.add(demo_user)
+
     user_course_1 = models.UserCourse(
         user_id=demo_user.id,
         course_id="product-intro",
@@ -452,6 +461,7 @@ def init_demo_user(db: Session):
 
     db.commit()
     print("✓ Демо-пользователь создан (username: demo, password: demo123)")
+    print("✓ Администратор создан (username: admin, password: admin)")
 
 
 def main():
