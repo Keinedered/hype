@@ -651,9 +651,14 @@ def delete_lesson(
 @router.get("/submissions", response_model=list[schemas.AdminSubmissionListItem])
 def list_submissions(
     db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin_user),
+    current_user: models.User = Depends(get_current_admin_or_course_editor_user),
 ):
-    submissions = crud.get_admin_submissions(db)
+    course_ids: list[str] | None = None
+    if current_user.role == "course_editor":
+        course_ids = crud.get_course_editor_course_ids(db, current_user.id)
+        if not course_ids:
+            return []
+    submissions = crud.get_admin_submissions(db, course_ids)
     response: list[schemas.AdminSubmissionListItem] = []
     for submission in submissions:
         assignment = submission.assignment
@@ -682,8 +687,12 @@ def review_submission(
     submission_id: str,
     review: schemas.AdminSubmissionReview,
     db: Session = Depends(get_db),
-    _: models.User = Depends(get_current_admin_user),
+    current_user: models.User = Depends(get_current_admin_or_course_editor_user),
 ):
+    course_id = crud.get_submission_course_id(db, submission_id)
+    if not course_id:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    _ensure_course_edit_access(db, current_user, course_id)
     updated = crud.review_submission(db, submission_id, review.status, review.curator_comment)
     if not updated:
         raise HTTPException(status_code=404, detail="Submission not found")

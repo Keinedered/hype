@@ -205,6 +205,7 @@ export function AdminPage() {
   const { user, refreshUser } = useAuth();
   const isAdmin = user?.role === 'admin';
   const isCourseEditor = user?.role === 'course_editor';
+  const canReviewSubmissions = isAdmin || isCourseEditor;
   const courseCreationAllowed = user?.courseCreationAllowed ?? false;
   const courseCreationDisabled = isCourseEditor && !courseCreationAllowed;
   const [users, setUsers] = useState<AdminUserListItem[]>([]);
@@ -327,7 +328,7 @@ export function AdminPage() {
   }, [isAdmin]);
 
   useEffect(() => {
-    if (!isAdmin) {
+    if (!canReviewSubmissions) {
       setSubmissions([]);
       setSubmissionsLoading(false);
       return;
@@ -346,7 +347,7 @@ export function AdminPage() {
     };
 
     void loadSubmissions();
-  }, [isAdmin]);
+  }, [canReviewSubmissions]);
 
   useEffect(() => {
     if (!selectedTrackId) {

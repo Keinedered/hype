@@ -335,12 +335,29 @@ def get_user_submissions(db: Session, user_id: str) -> List[models.Submission]:
     ).order_by(models.Submission.created_at.desc()).all()
 
 
-def get_admin_submissions(db: Session) -> List[models.Submission]:
-    return db.query(models.Submission).options(
+def get_admin_submissions(db: Session, course_ids: Optional[List[str]] = None) -> List[models.Submission]:
+    query = db.query(models.Submission).options(
         joinedload(models.Submission.files),
         joinedload(models.Submission.user),
         joinedload(models.Submission.assignment),
-    ).order_by(models.Submission.created_at.desc()).all()
+    )
+    if course_ids is not None:
+        query = query.join(models.Assignment, models.Submission.assignment_id == models.Assignment.id)
+        query = query.join(models.Lesson, models.Assignment.lesson_id == models.Lesson.id)
+        query = query.join(models.Module, models.Lesson.module_id == models.Module.id)
+        query = query.filter(models.Module.course_id.in_(course_ids))
+    return query.order_by(models.Submission.created_at.desc()).all()
+
+
+def get_submission_course_id(db: Session, submission_id: str) -> Optional[str]:
+    result = db.query(models.Module.course_id).join(
+        models.Lesson, models.Module.id == models.Lesson.module_id
+    ).join(
+        models.Assignment, models.Lesson.id == models.Assignment.lesson_id
+    ).join(
+        models.Submission, models.Assignment.id == models.Submission.assignment_id
+    ).filter(models.Submission.id == submission_id).first()
+    return result[0] if result else None
 
 
 def review_submission(
