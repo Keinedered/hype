@@ -76,7 +76,7 @@ export function CourseCatalog({ onCourseSelect, selectedTrack, onSelectedTrackCh
     <section className="container mx-auto px-6 py-12 space-y-8 relative z-10">
       {/* Subtle decorative line */}
       <div className="absolute top-0 left-0 w-full h-px bg-black opacity-5" />
-      
+
       <TrackFilter
         tracks={tracks}
         selectedTrack={effectiveSelectedTrack}
@@ -115,8 +115,8 @@ export function CourseCatalog({ onCourseSelect, selectedTrack, onSelectedTrackCh
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCourses.map((course) => (
-              <CourseCard 
-                key={course.id} 
+              <CourseCard
+                key={course.id}
                 course={course}
                 track={trackLookup[course.trackId]}
                 onSelect={onCourseSelect}

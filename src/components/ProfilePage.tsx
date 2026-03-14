@@ -368,7 +368,7 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
             </div>
           </div>
         </div>
-        
+
         <div className="border-l-4 border-black pl-4 mb-12">
           <p className="font-mono text-sm uppercase tracking-wide text-gray-500 max-w-md">
             Отслеживайте свой прогресс и получайте обратную связь от кураторов
@@ -377,27 +377,27 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
 
         <Tabs value={activeTab} className="space-y-12" onValueChange={(val) => setActiveTab(val as any)}>
           <TabsList className="w-full bg-transparent border-b-2 border-black rounded-none p-0 h-auto !grid grid-cols-2 gap-x-6 gap-y-2 md:!flex md:gap-8">
-            <TabsTrigger 
-              value="settings" 
+            <TabsTrigger
+              value="settings"
               className="bg-transparent w-full min-w-0 justify-center text-center whitespace-normal leading-tight rounded-none border-b-4 border-transparent data-[state=active]:border-black data-[state=active]:shadow-none py-3 md:py-4 px-0 font-mono text-sm md:text-lg uppercase tracking-normal md:tracking-wide hover:text-black/70 transition-colors"
             >
               Настройки
             </TabsTrigger>
-            <TabsTrigger 
-              value="submissions" 
+            <TabsTrigger
+              value="submissions"
               className="bg-transparent w-full min-w-0 justify-center text-center whitespace-normal leading-tight rounded-none border-b-4 border-transparent data-[state=active]:border-black data-[state=active]:shadow-none py-3 md:py-4 px-0 font-mono text-sm md:text-lg uppercase tracking-normal md:tracking-wide hover:text-black/70 transition-colors"
             >
               <span className="md:hidden">Задания</span>
               <span className="hidden md:inline">История заданий</span>
             </TabsTrigger>
-            <TabsTrigger 
-              value="faq" 
+            <TabsTrigger
+              value="faq"
               className="bg-transparent w-full min-w-0 justify-center text-center whitespace-normal leading-tight rounded-none border-b-4 border-transparent data-[state=active]:border-black data-[state=active]:shadow-none py-3 md:py-4 px-0 font-mono text-sm md:text-lg uppercase tracking-normal md:tracking-wide hover:text-black/70 transition-colors"
             >
               FAQ
             </TabsTrigger>
-            <TabsTrigger 
-              value="notifications" 
+            <TabsTrigger
+              value="notifications"
               className="bg-transparent w-full min-w-0 justify-center text-center whitespace-normal leading-tight rounded-none border-b-4 border-transparent data-[state=active]:border-black data-[state=active]:shadow-none py-3 md:py-4 px-0 font-mono text-sm md:text-lg uppercase tracking-normal md:tracking-wide hover:text-black/70 transition-colors"
             >
               Уведомления
@@ -412,7 +412,7 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
               <div className="absolute top-0 right-0 w-6 h-px bg-black" />
               <div className="absolute bottom-0 left-0 w-px h-6 bg-black" />
               <div className="absolute bottom-0 left-0 w-6 h-px bg-black" />
-              
+
               <div className="bg-black text-white px-3 py-2 inline-block mb-6 font-mono text-sm tracking-wide">
                 ПРОФИЛЬ
               </div>
@@ -460,47 +460,47 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-mono uppercase tracking-wide mb-2">Имя</label>
-                    <input 
-                      type="text" 
-                      value={formName} 
-                      onChange={(event) => setFormName(event.target.value)} 
+                    <input
+                      type="text"
+                      value={formName}
+                      onChange={(event) => setFormName(event.target.value)}
                       className="w-full px-3 py-2 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-black"
                     />
                   </div>
                   <div>
                     <label className="block text-xs font-mono uppercase tracking-wide mb-2">Email</label>
-                    <input 
-                      type="email" 
-                      value={formEmail} 
-                      onChange={(event) => setFormEmail(event.target.value)} 
+                    <input
+                      type="email"
+                      value={formEmail}
+                      onChange={(event) => setFormEmail(event.target.value)}
                       className="w-full px-3 py-2 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-black"
                     />
                   </div>
                   <div>
                     <label className="block text-xs font-mono uppercase tracking-wide mb-2">ID участника</label>
-                    <input 
-                      type="text" 
-                      value={userId} 
-                      readOnly 
+                    <input
+                      type="text"
+                      value={userId}
+                      readOnly
                       disabled
                       className="w-full px-3 py-2 border-2 border-black font-mono bg-gray-100 text-gray-600"
                     />
                   </div>
                   <div>
                     <label className="block text-xs font-mono uppercase tracking-wide mb-2">Дата рождения</label>
-                    <input 
-                      type="date" 
-                      value={registrationDateValue} 
-                      readOnly 
+                    <input
+                      type="date"
+                      value={registrationDateValue}
+                      readOnly
                       className="w-full px-3 py-2 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-black"
                     />
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs font-mono uppercase tracking-wide mb-2">О себе</label>
-                  <textarea 
-                    value={formAbout} 
-                    onChange={(event) => setFormAbout(event.target.value)} 
+                  <textarea
+                    value={formAbout}
+                    onChange={(event) => setFormAbout(event.target.value)}
                     rows={3}
                     className="w-full px-3 py-2 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-black resize-none"
                   />
@@ -578,7 +578,7 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
             <div className="bg-white/90 backdrop-blur-sm border-2 border-black p-6 relative">
                <div className="absolute top-0 right-0 w-px h-6 bg-black" />
                <div className="absolute top-0 right-0 w-6 h-px bg-black" />
-               
+
               <div className="bg-black text-white px-3 py-2 inline-block mb-6 font-mono text-sm tracking-wide">
                 ОПАСНАЯ ЗОНА
               </div>
@@ -644,12 +644,12 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
                 <div key={submission.id}>
                   <div className="group relative bg-white/90 backdrop-blur-sm border-2 border-black p-6 hover:translate-x-1 hover:-translate-y-1 transition-transform duration-300">
                     <div className="absolute top-0 left-0 w-2 h-full" style={{ backgroundColor: submission.trackColor }} />
-                    
+
                     <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between pl-4">
                       <div className="space-y-2 flex-1">
                         <div className="flex items-center gap-3 mb-1">
                           <span className={`px-2 py-0.5 text-xs font-mono border border-black uppercase ${
-                            submission.status === 'accepted' ? 'bg-white text-black' : 
+                            submission.status === 'accepted' ? 'bg-white text-black' :
                             submission.status === 'needs_revision' ? 'bg-black text-white' : 'bg-white text-gray-500 dashed-border'
                           }`}>
                             {getStatusText(submission.status)}
@@ -670,8 +670,8 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
                               </p>
                            </div>
                         )}
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           className="border-2 border-black hover:bg-black hover:text-white transition-colors rounded-none font-mono uppercase tracking-wide gap-2"
                           onClick={() => onNavigateToLesson?.(submission.id)}
                         >
@@ -683,7 +683,7 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
                 </div>
               ))}
             </div>
-            
+
             {mockSubmissions.length === 0 && (
               <div className="text-center py-20 border-2 border-dashed border-black">
                 <p className="font-mono text-gray-400 uppercase">Нет заданий</p>
@@ -718,16 +718,16 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
               <div className="space-y-4">
                 <div>
                   <label className="block text-xs font-mono uppercase tracking-wide mb-2">Тема обращения</label>
-                  <input 
-                    type="text" 
-                    placeholder="Например: Вопрос о курсе" 
+                  <input
+                    type="text"
+                    placeholder="Например: Вопрос о курсе"
                     className="w-full px-3 py-2 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-black placeholder:text-gray-400"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-mono uppercase tracking-wide mb-2">Сообщение</label>
-                  <textarea 
-                    placeholder="Опишите ваш вопрос или предложение..." 
+                  <textarea
+                    placeholder="Опишите ваш вопрос или предложение..."
                     rows={5}
                     className="w-full px-3 py-2 border-2 border-black font-mono focus:outline-none focus:ring-2 focus:ring-black resize-none placeholder:text-gray-400"
                   />
@@ -745,22 +745,22 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
                 МЫ В СОЦСЕТЯХ
               </div>
               <div className="flex flex-wrap gap-4">
-                <a 
-                  href="#" 
+                <a
+                  href="#"
                   className="flex items-center gap-2 px-4 py-2 border-2 border-black hover:bg-black hover:text-white transition-colors font-mono text-sm uppercase tracking-wide"
                 >
                   <Facebook className="w-4 h-4" />
                   Facebook
                 </a>
-                <a 
-                  href="#" 
+                <a
+                  href="#"
                   className="flex items-center gap-2 px-4 py-2 border-2 border-black hover:bg-black hover:text-white transition-colors font-mono text-sm uppercase tracking-wide"
                 >
                   <Twitter className="w-4 h-4" />
                   Twitter
                 </a>
-                <a 
-                  href="#" 
+                <a
+                  href="#"
                   className="flex items-center gap-2 px-4 py-2 border-2 border-black hover:bg-black hover:text-white transition-colors font-mono text-sm uppercase tracking-wide"
                 >
                   <Instagram className="w-4 h-4" />
@@ -774,19 +774,19 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
              <div className="bg-white/90 backdrop-blur-sm border-2 border-black p-6 relative">
                 <div className="absolute top-0 right-0 w-px h-6 bg-black" />
                 <div className="absolute top-0 right-0 w-6 h-px bg-black" />
-                
+
                 <div className="bg-black text-white px-3 py-2 inline-block mb-6 font-mono text-sm tracking-wide">
                   ВСЕ УВЕДОМЛЕНИЯ
                 </div>
                 <div className="divide-y-2 divide-black">
                   {mockNotifications.map((notification) => (
-                    <div 
+                    <div
                       key={notification.id}
                       className={`p-4 hover:bg-gray-50 transition-colors cursor-pointer ${!notification.isRead ? 'bg-gray-50/50' : ''}`}
                       onClick={() => onNavigateToLesson?.(notification.relatedUrl.split('/').pop() || '')}
                     >
                       <div className="flex items-start gap-3">
-                        <div 
+                        <div
                           className="w-1 h-full mt-1"
                           style={{ backgroundColor: notification.color }}
                         />

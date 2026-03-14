@@ -15,7 +15,7 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
-    
+
     - uses: p2achAI/codex-reviewer@v1
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}

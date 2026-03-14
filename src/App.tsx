@@ -69,7 +69,7 @@ export default function App() {
        setCurrentPage('handbook');
        return;
     }
-    
+
     if (page === 'login') {
       setCurrentPage('login');
       if (window.location.pathname !== '/login') {
@@ -180,12 +180,12 @@ export default function App() {
   return (
     <div className="min-h-screen bg-background relative selection:bg-black selection:text-white">
       <SmoothLinesBackground />
-      
-      <Header 
-        currentPage={currentPage === 'profile' ? 'profile' : currentPage} 
+
+      <Header
+        currentPage={currentPage === 'profile' ? 'profile' : currentPage}
         onNavigate={handleNavigate}
       />
-      
+
       <main className="relative z-10">
         {currentPage === 'login' && (
           <LoginPage onAuthSuccess={() => handleNavigate('profile')} />
@@ -205,10 +205,10 @@ export default function App() {
         )}
 
       {currentPage === 'path' && (
-        <KnowledgeGraphPage 
+        <KnowledgeGraphPage
           onNodeClick={(nodeId) => {
             if (nodeId === 'root') return;
-            
+
             // Try to find if it's a course
             setSelectedCourseId(nodeId);
             setCurrentPage('course');
@@ -237,7 +237,7 @@ export default function App() {
 
             <div className="border-l-4 border-black pl-6">
               <p className="text-foreground font-mono leading-relaxed">
-                Образовательная платформа «GRAPH» — это инновационный подход к онлайн-обучению, 
+                Образовательная платформа «GRAPH» — это инновационный подход к онлайн-обучению,
                 где процесс освоения знаний визуализирован как путешествие по логическому графу.
               </p>
             </div>
@@ -296,7 +296,7 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="border-2 border-black p-6 bg-white">
                   <div className="flex gap-4">
                     <div className="w-12 h-12 border-2 border-black bg-white flex items-center justify-center shrink-0 font-bold">
@@ -310,7 +310,7 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="border-2 border-black p-6 bg-white">
                   <div className="flex gap-4">
                     <div className="w-12 h-12 border-2 border-black bg-white flex items-center justify-center shrink-0 font-bold">
@@ -324,7 +324,7 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="border-2 border-black p-6 bg-white">
                   <div className="flex gap-4">
                     <div className="w-12 h-12 border-2 border-black bg-white flex items-center justify-center shrink-0 font-bold">

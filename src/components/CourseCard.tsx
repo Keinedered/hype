@@ -36,19 +36,19 @@ export function CourseCard({ course, onSelect, track }: CourseCardProps) {
   const statusLabel = getStatusLabel(course.status);
 
   return (
-    <div 
+    <div
       className="relative border-2 border-black bg-white flex flex-col h-full hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-shadow duration-300"
     >
       <div className="p-6 flex flex-col h-full space-y-4 relative">
         {/* Decorative thin line */}
         <div className="absolute top-4 right-4 w-8 h-px bg-black opacity-20" />
-        
+
         {/* Top Tags */}
         <div className="flex flex-wrap gap-2 items-start">
           <span className="px-3 py-1 text-[10px] font-mono tracking-widest uppercase border border-black rounded-full bg-white">
             {getLevelLabel(course.level)}
           </span>
-          <span 
+          <span
             className="px-3 py-1 text-[10px] font-mono tracking-widest uppercase border border-black rounded-full"
             style={{ backgroundColor: trackColor }}
           >
@@ -100,9 +100,9 @@ export function CourseCard({ course, onSelect, track }: CourseCardProps) {
                  <span className="font-bold text-black">{course.progress}%</span>
                </div>
                <div className="relative h-1 bg-gray-100 border border-black/20">
-                 <div 
+                 <div
                    className="absolute top-0 left-0 h-full transition-all"
-                   style={{ 
+                   style={{
                      backgroundColor: '#000000',
                      width: `${course.progress}%`
                    }}
@@ -110,9 +110,9 @@ export function CourseCard({ course, onSelect, track }: CourseCardProps) {
                </div>
              </div>
           ) : null}
-          
-          <Button 
-            variant="outline" 
+
+          <Button
+            variant="outline"
             className="w-full border-2 border-black font-mono uppercase tracking-widest text-xs h-10 hover:bg-black hover:text-white transition-all"
             onClick={() => {
               // #region agent log

@@ -41,7 +41,7 @@
   --sidebar-accent-foreground: #000000;
   --sidebar-border: #000000;
   --sidebar-ring: #000000;
-  
+
   /* Track colors - Pastel colors based on Itten's tetrad starting from purple */
   --track-event: #E2B6C8;        /* Pastel pink-red (0°) */
   --track-digital: #B6E2C8;      /* Pastel mint-green (90°) */
@@ -142,7 +142,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-  
+
   .font-mono {
     font-family: 'JetBrains Mono', 'Courier New', monospace;
   }

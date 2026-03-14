@@ -85,12 +85,12 @@ def get_track(db: Session, track_id: str) -> Optional[models.Track]:
 def get_courses(db: Session, track_id: Optional[str] = None, user_id: Optional[str] = None) -> List[dict]:
     """ÐŸÐ¾Ð»ÑƒÑ‡Ð¸Ñ‚ÑŒ Ð²ÑÐµ ÐºÑƒÑ€ÑÑ‹ Ñ Ð¿Ñ€Ð¾Ð³Ñ€ÐµÑÑÐ¾Ð¼ Ð¿Ð¾Ð»ÑŒÐ·Ð¾Ð²Ð°Ñ‚ÐµÐ»Ñ"""
     query = db.query(models.Course).options(joinedload(models.Course.authors))
-    
+
     if track_id:
         query = query.filter(models.Course.track_id == track_id)
-    
+
     courses = query.all()
-    
+
     # Ð•ÑÐ»Ð¸ user_id Ð¿ÐµÑ€ÐµÐ´Ð°Ð½, Ð´Ð¾Ð±Ð°Ð²Ð»ÑÐµÐ¼ Ð¿Ñ€Ð¾Ð³Ñ€ÐµÑÑ
     result = []
     for course in courses:
@@ -109,7 +109,7 @@ def get_courses(db: Session, track_id: Optional[str] = None, user_id: Optional[s
             "enrollment_deadline": course.enrollment_deadline,
             "created_at": course.created_at
         }
-        
+
         if user_id:
             user_course = db.query(models.UserCourse).filter(
                 models.UserCourse.user_id == user_id,
@@ -121,9 +121,9 @@ def get_courses(db: Session, track_id: Optional[str] = None, user_id: Optional[s
             else:
                 course_dict["progress"] = None
                 course_dict["status"] = "not_started"
-        
+
         result.append(course_dict)
-    
+
     return result
 
 
@@ -132,10 +132,10 @@ def get_course(db: Session, course_id: str, user_id: Optional[str] = None) -> Op
     course = db.query(models.Course).options(joinedload(models.Course.authors)).filter(
         models.Course.id == course_id
     ).first()
-    
+
     if not course:
         return None
-    
+
     course_dict = {
         "id": course.id,
         "track_id": course.track_id,
@@ -151,7 +151,7 @@ def get_course(db: Session, course_id: str, user_id: Optional[str] = None) -> Op
         "enrollment_deadline": course.enrollment_deadline,
         "created_at": course.created_at
     }
-    
+
     if user_id:
         user_course = db.query(models.UserCourse).filter(
             models.UserCourse.user_id == user_id,
@@ -160,7 +160,7 @@ def get_course(db: Session, course_id: str, user_id: Optional[str] = None) -> Op
         if user_course:
             course_dict["progress"] = user_course.progress
             course_dict["status"] = user_course.status.value if hasattr(user_course.status, 'value') else user_course.status
-    
+
     return course_dict
 
 
@@ -212,9 +212,9 @@ def create_submission(db: Session, submission: schemas.SubmissionCreate, user_id
         models.Submission.assignment_id == submission.assignment_id,
         models.Submission.user_id == user_id
     ).order_by(models.Submission.version.desc()).first()
-    
+
     version = existing.version + 1 if existing else 1
-    
+
     db_submission = models.Submission(
         id=str(uuid.uuid4()),
         assignment_id=submission.assignment_id,
@@ -226,7 +226,7 @@ def create_submission(db: Session, submission: schemas.SubmissionCreate, user_id
         submitted_at=func.now()
     )
     db.add(db_submission)
-    
+
     # Ð”Ð¾Ð±Ð°Ð²Ð»ÑÐµÐ¼ Ñ„Ð°Ð¹Ð»Ñ‹ ÐµÑÐ»Ð¸ ÐµÑÑ‚ÑŒ
     if submission.file_urls:
         for file_url in submission.file_urls:
@@ -235,7 +235,7 @@ def create_submission(db: Session, submission: schemas.SubmissionCreate, user_id
                 file_url=file_url
             )
             db.add(db_file)
-    
+
     db.commit()
     db.refresh(db_submission)
     return db_submission
@@ -277,7 +277,7 @@ def update_course_progress(db: Session, user_id: str, course_id: str, progress: 
         models.UserCourse.user_id == user_id,
         models.UserCourse.course_id == course_id
     ).first()
-    
+
     if user_course:
         user_course.progress = progress
         user_course.status = status
@@ -292,7 +292,7 @@ def update_course_progress(db: Session, user_id: str, course_id: str, progress: 
             started_at=func.now()
         )
         db.add(user_course)
-    
+
     db.commit()
     return user_course
 
@@ -303,7 +303,7 @@ def update_lesson_progress(db: Session, user_id: str, lesson_id: str, status: st
         models.UserLesson.user_id == user_id,
         models.UserLesson.lesson_id == lesson_id
     ).first()
-    
+
     if user_lesson:
         user_lesson.status = status
         if status == "completed" and not user_lesson.completed_at:
@@ -316,7 +316,7 @@ def update_lesson_progress(db: Session, user_id: str, lesson_id: str, status: st
             completed_at=func.now() if status == "completed" else None
         )
         db.add(user_lesson)
-    
+
     db.commit()
     return user_lesson
 

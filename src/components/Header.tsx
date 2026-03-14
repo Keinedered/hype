@@ -21,7 +21,7 @@ export function Header({ currentPage = 'home', onNavigate }: HeaderProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
   const { isAuthenticated, user } = useAuth();
-  
+
   const navigation = [
     { id: 'catalog', label: 'КАТАЛОГ' },
     { id: 'path', label: 'МОЙ ПУТЬ' },
@@ -100,12 +100,12 @@ export function Header({ currentPage = 'home', onNavigate }: HeaderProps) {
       {/* Decorative lines */}
       <div className="absolute top-0 left-0 w-full h-0.5 bg-black opacity-30" />
       <div className="absolute bottom-0 left-0 w-full h-px bg-black opacity-20" />
-      
+
       <div className="container mx-auto px-6 h-20 flex items-center justify-between relative">
         {/* Decorative corner lines */}
         <div className="absolute top-0 left-6 w-px h-full bg-black opacity-10" />
         <div className="absolute top-0 right-6 w-px h-full bg-black opacity-10" />
-        
+
         <div className="flex items-center gap-12">
           <button
             type="button"
@@ -130,15 +130,15 @@ export function Header({ currentPage = 'home', onNavigate }: HeaderProps) {
               </div>
             </div>
           </button>
-          
+
           <nav className="hidden md:flex items-center gap-4 lg:gap-8">
             {navigationItems.map((item, index) => (
               <div key={item.id} className="relative">
                 <button
                   onClick={() => onNavigate?.(item.id)}
                   className={`font-mono text-sm tracking-wide transition-all hover:bg-black hover:text-white px-3 py-1 nav-tablet-sm ${
-                    currentPage === item.id 
-                      ? 'bg-black text-white' 
+                    currentPage === item.id
+                      ? 'bg-black text-white'
                       : 'text-black'
                   }`}
                 >
@@ -189,16 +189,16 @@ export function Header({ currentPage = 'home', onNavigate }: HeaderProps) {
           </div>
 
           <div className="relative" ref={notificationRef}>
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               className="border-2 border-black hover:bg-black hover:text-white transition-all"
               onClick={() => setShowNotifications(!showNotifications)}
             >
               <Bell className="h-5 w-5" />
             </Button>
             {unreadCount > 0 && (
-              <Badge 
+              <Badge
                 className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-black text-white border-2 border-white font-mono text-xs"
               >
                 {unreadCount}
@@ -210,7 +210,7 @@ export function Header({ currentPage = 'home', onNavigate }: HeaderProps) {
               <div className="fixed left-4 right-4 top-20 mt-2 w-auto max-h-[calc(100vh-7rem)] overflow-y-auto bg-white border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96 sm:max-h-[500px]">
                 <div className="bg-black text-white px-4 py-3 font-mono text-sm tracking-wide uppercase flex justify-between items-center sticky top-0">
                   <span>Уведомления</span>
-                  <button 
+                  <button
                     onClick={() => setShowNotifications(false)}
                     className="hover:opacity-70"
                   >
@@ -219,13 +219,13 @@ export function Header({ currentPage = 'home', onNavigate }: HeaderProps) {
                 </div>
                 <div className="divide-y-2 divide-black">
                   {mockNotifications.map((notification) => (
-                    <div 
+                    <div
                       key={notification.id}
                       onClick={() => handleNotificationClick(notification.relatedUrl)}
                       className={`p-4 hover:bg-gray-50 transition-colors cursor-pointer ${!notification.isRead ? 'bg-gray-50/50' : ''}`}
                     >
                       <div className="flex items-start gap-3">
-                        <div 
+                        <div
                           className="w-1 h-full mt-1"
                           style={{ backgroundColor: notification.color }}
                         />
@@ -244,7 +244,7 @@ export function Header({ currentPage = 'home', onNavigate }: HeaderProps) {
                   ))}
                 </div>
                 <div className="border-t-2 border-black p-3 bg-gray-50">
-                  <button 
+                  <button
                     onClick={() => {
                       setShowNotifications(false);
                       onNavigate?.('profile-notifications');
@@ -260,9 +260,9 @@ export function Header({ currentPage = 'home', onNavigate }: HeaderProps) {
           {isAuthenticated && user && (
             <span className="hidden md:inline font-mono text-xs uppercase tracking-wide">{user.username}</span>
           )}
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="border-2 border-black hover:bg-black hover:text-white transition-all"
             onClick={() => handleNav(isAuthenticated ? 'profile' : 'login')}
           >

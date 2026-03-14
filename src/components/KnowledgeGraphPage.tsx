@@ -145,9 +145,9 @@ export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGra
                   </h3>
                   <span className="text-sm text-muted-foreground font-mono">{activeCourse?.version ?? '—'}</span>
                 </div>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
+                <Button
+                  variant="ghost"
+                  size="icon"
                   className="border-2 border-black hover:bg-black hover:text-white"
                 >
                   <Bell className="w-4 h-4" />
@@ -160,9 +160,9 @@ export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGra
                   <span className="font-bold">{activeCourse?.progress ?? 0}%</span>
                 </div>
                 <div className="relative h-2 bg-white border border-black">
-                  <div 
+                  <div
                     className="absolute top-0 left-0 h-full transition-all"
-                    style={{ 
+                    style={{
                       backgroundColor: '#000000',
                       width: `${activeCourse?.progress ?? 0}%`
                     }}
@@ -171,18 +171,18 @@ export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGra
               </div>
 
               <div className="flex gap-3 border-t-2 border-black pt-4">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={onOpenHandbook}
                   className="flex-1 border-2 border-black hover:bg-black hover:text-white font-mono tracking-wide"
                 >
                   <BookOpen className="w-4 h-4 mr-2" />
                   ХЕНДБУК
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="flex-1 border-2 border-black hover:bg-black hover:text-white font-mono tracking-wide"
                 >
                   О КУРСЕ
@@ -209,8 +209,8 @@ export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGra
               {sortedModules.length > 0 && (
                 <Accordion type="single" collapsible className="space-y-3">
                   {sortedModules.map((module, index) => (
-                    <AccordionItem 
-                      key={module.id} 
+                    <AccordionItem
+                      key={module.id}
                       value={module.id}
                       className="border-2 border-black bg-white"
                     >
@@ -227,9 +227,9 @@ export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGra
                           {module.progress !== undefined && (
                             <div className="flex items-center gap-3">
                               <div className="relative h-2 flex-1 bg-white border border-black">
-                                <div 
+                                <div
                                   className="absolute top-0 left-0 h-full transition-all"
-                                  style={{ 
+                                  style={{
                                     backgroundColor: '#000000',
                                     width: `${module.progress}%`
                                   }}
@@ -258,32 +258,32 @@ export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGra
               </div>
               <div className="space-y-3 text-sm font-mono">
                 <label className="flex items-center gap-3 cursor-pointer hover:bg-black hover:text-white p-2 border border-black transition-all">
-                  <input 
-                    type="radio" 
-                    name="view" 
+                  <input
+                    type="radio"
+                    name="view"
                     checked={viewFilter === 'all'}
                     onChange={() => setViewFilter('all')}
-                    className="accent-black" 
+                    className="accent-black"
                   />
                   <span>ПОЛНАЯ КАРТА</span>
                 </label>
                 <label className="flex items-center gap-3 cursor-pointer hover:bg-black hover:text-white p-2 border border-black transition-all">
-                  <input 
-                    type="radio" 
-                    name="view" 
+                  <input
+                    type="radio"
+                    name="view"
                     checked={viewFilter === 'completed'}
                     onChange={() => setViewFilter('completed')}
-                    className="accent-black" 
+                    className="accent-black"
                   />
                   <span>ТОЛЬКО ПРОЙДЕННОЕ</span>
                 </label>
                 <label className="flex items-center gap-3 cursor-pointer hover:bg-black hover:text-white p-2 border border-black transition-all">
-                  <input 
-                    type="radio" 
-                    name="view" 
+                  <input
+                    type="radio"
+                    name="view"
                     checked={viewFilter === 'uncompleted'}
                     onChange={() => setViewFilter('uncompleted')}
-                    className="accent-black" 
+                    className="accent-black"
                   />
                   <span>ТОЛЬКО НЕПРОЙДЕННОЕ</span>
                 </label>
@@ -293,7 +293,7 @@ export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGra
 
           {/* Right panel - Graph */}
           <div className="h-full relative pb-4 md:pb-6">
-            <KnowledgeGraph 
+            <KnowledgeGraph
               nodes={nodes}
               edges={edges}
               courses={courses}

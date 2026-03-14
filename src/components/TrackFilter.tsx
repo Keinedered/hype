@@ -26,7 +26,7 @@ export function TrackFilter({
       {/* Decorative corner elements */}
       <div className="absolute -top-1 -left-1 w-4 h-4 border-l-2 border-t-2 border-black bg-white" />
       <div className="absolute -top-1 -right-1 w-4 h-4 border-r-2 border-t-2 border-black bg-white" />
-      
+
       {/* Track tabs */}
       <div className="flex flex-wrap gap-3">
         <Button

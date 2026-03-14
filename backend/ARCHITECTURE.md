@@ -153,11 +153,11 @@ def get_courses(db: Session = Depends(get_db)):
 ```python
 class Course(Base):
     __tablename__ = "courses"
-    
+
     id = Column(String, primary_key=True)
     track_id = Column(String, ForeignKey("tracks.id"))
     title = Column(String, nullable=False)
-    
+
     # Relationship - связь с другими таблицами
     track = relationship("Track", back_populates="courses")
     modules = relationship("Module", back_populates="course")
@@ -215,10 +215,10 @@ class Course(CourseBase):
 ```python
 def get_courses(db: Session, track_id: Optional[str] = None):
     query = db.query(models.Course)
-    
+
     if track_id:
         query = query.filter(models.Course.track_id == track_id)
-    
+
     return query.all()
 ```
 
@@ -482,7 +482,7 @@ Headers: Authorization: Bearer <token>
 4. SQL запрос:
    SELECT * FROM courses WHERE track_id = 'event'
 5. Для каждого курса:
-   SELECT * FROM user_courses 
+   SELECT * FROM user_courses
    WHERE user_id = ? AND course_id = ?
 6. Объединяет данные
 7. Возвращает JSON с прогрессом

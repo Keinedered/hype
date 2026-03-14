@@ -55,7 +55,7 @@ class NotificationType(enum.Enum):
 # Models
 class User(Base):
     __tablename__ = "users"
-    
+
     id = Column(String, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     username = Column(String, unique=True, index=True, nullable=False)
@@ -66,7 +66,7 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_login_at = Column(DateTime(timezone=True), nullable=True)
     is_active = Column(Boolean, default=True)
-    
+
     # Relationships
     submissions = relationship("Submission", back_populates="user")
     notifications = relationship("Notification", back_populates="user")
@@ -76,19 +76,19 @@ class User(Base):
 
 class Track(Base):
     __tablename__ = "tracks"
-    
+
     id = Column(String, primary_key=True)
     name = Column(String, nullable=False)
     description = Column(Text)
     color = Column(String)
-    
+
     # Relationships
     courses = relationship("Course", back_populates="track")
 
 
 class Course(Base):
     __tablename__ = "courses"
-    
+
     id = Column(String, primary_key=True, index=True)
     track_id = Column(String, ForeignKey("tracks.id"), nullable=False)
     title = Column(String, nullable=False)
@@ -101,7 +101,7 @@ class Course(Base):
     task_count = Column(Integer, default=0)
     enrollment_deadline = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    
+
     # Relationships
     track = relationship("Track", back_populates="courses")
     modules = relationship("Module", back_populates="course", cascade="all, delete-orphan")
@@ -111,11 +111,11 @@ class Course(Base):
 
 class CourseAuthor(Base):
     __tablename__ = "course_authors"
-    
+
     id = Column(Integer, primary_key=True, autoincrement=True)
     course_id = Column(String, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
     author_name = Column(String, nullable=False)
-    
+
     # Relationships
     course = relationship("Course", back_populates="authors")
 
@@ -123,7 +123,7 @@ class CourseAuthor(Base):
 class UserCourse(Base):
     """Progress пользователя по курсу"""
     __tablename__ = "user_courses"
-    
+
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     course_id = Column(String, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
@@ -131,7 +131,7 @@ class UserCourse(Base):
     progress = Column(Float, default=0.0)
     started_at = Column(DateTime(timezone=True))
     completed_at = Column(DateTime(timezone=True))
-    
+
     # Relationships
     user = relationship("User", back_populates="user_courses")
     course = relationship("Course", back_populates="user_courses")
@@ -139,13 +139,13 @@ class UserCourse(Base):
 
 class Module(Base):
     __tablename__ = "modules"
-    
+
     id = Column(String, primary_key=True, index=True)
     course_id = Column(String, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
     title = Column(String, nullable=False)
     description = Column(Text)
     order_index = Column(Integer, default=0)
-    
+
     # Relationships
     course = relationship("Course", back_populates="modules")
     lessons = relationship("Lesson", back_populates="module", cascade="all, delete-orphan")
@@ -153,7 +153,7 @@ class Module(Base):
 
 class Lesson(Base):
     __tablename__ = "lessons"
-    
+
     id = Column(String, primary_key=True, index=True)
     module_id = Column(String, ForeignKey("modules.id", ondelete="CASCADE"), nullable=False)
     title = Column(String, nullable=False)
@@ -162,7 +162,7 @@ class Lesson(Base):
     video_duration = Column(String)
     content = Column(Text)
     order_index = Column(Integer, default=0)
-    
+
     # Relationships
     module = relationship("Module", back_populates="lessons")
     handbook_excerpts = relationship("HandbookExcerpt", back_populates="lesson", cascade="all, delete-orphan")
@@ -173,13 +173,13 @@ class Lesson(Base):
 class UserLesson(Base):
     """Progress пользователя по уроку"""
     __tablename__ = "user_lessons"
-    
+
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     lesson_id = Column(String, ForeignKey("lessons.id", ondelete="CASCADE"), nullable=False)
     status = Column(SQLEnum(CourseStatus), default=CourseStatus.not_started)
     completed_at = Column(DateTime(timezone=True))
-    
+
     # Relationships
     user = relationship("User", back_populates="user_lessons")
     lesson = relationship("Lesson", back_populates="user_lessons")
@@ -187,20 +187,20 @@ class UserLesson(Base):
 
 class HandbookExcerpt(Base):
     __tablename__ = "handbook_excerpts"
-    
+
     id = Column(String, primary_key=True, index=True)
     lesson_id = Column(String, ForeignKey("lessons.id", ondelete="CASCADE"), nullable=False)
     section_title = Column(String, nullable=False)
     excerpt = Column(Text)
     full_section_id = Column(String)
-    
+
     # Relationships
     lesson = relationship("Lesson", back_populates="handbook_excerpts")
 
 
 class Assignment(Base):
     __tablename__ = "assignments"
-    
+
     id = Column(String, primary_key=True, index=True)
     lesson_id = Column(String, ForeignKey("lessons.id", ondelete="CASCADE"), nullable=False, unique=True)
     description = Column(Text)
@@ -208,7 +208,7 @@ class Assignment(Base):
     requires_text = Column(Boolean, default=False)
     requires_file = Column(Boolean, default=False)
     requires_link = Column(Boolean, default=False)
-    
+
     # Relationships
     lesson = relationship("Lesson", back_populates="assignment")
     submissions = relationship("Submission", back_populates="assignment", cascade="all, delete-orphan")
@@ -216,7 +216,7 @@ class Assignment(Base):
 
 class Submission(Base):
     __tablename__ = "submissions"
-    
+
     id = Column(String, primary_key=True, index=True)
     assignment_id = Column(String, ForeignKey("assignments.id", ondelete="CASCADE"), nullable=False)
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
@@ -228,7 +228,7 @@ class Submission(Base):
     submitted_at = Column(DateTime(timezone=True))
     reviewed_at = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    
+
     # Relationships
     assignment = relationship("Assignment", back_populates="submissions")
     user = relationship("User", back_populates="submissions")
@@ -237,18 +237,18 @@ class Submission(Base):
 
 class SubmissionFile(Base):
     __tablename__ = "submission_files"
-    
+
     id = Column(Integer, primary_key=True, autoincrement=True)
     submission_id = Column(String, ForeignKey("submissions.id", ondelete="CASCADE"), nullable=False)
     file_url = Column(String, nullable=False)
-    
+
     # Relationships
     submission = relationship("Submission", back_populates="files")
 
 
 class GraphNode(Base):
     __tablename__ = "graph_nodes"
-    
+
     id = Column(String, primary_key=True, index=True)
     type = Column(SQLEnum(NodeType), nullable=False)
     entity_id = Column(String, nullable=False)
@@ -257,7 +257,7 @@ class GraphNode(Base):
     y = Column(Float, nullable=False)
     status = Column(SQLEnum(NodeStatus))
     size = Column(Integer, default=40)
-    
+
     # Relationships
     outgoing_edges = relationship("GraphEdge", foreign_keys="GraphEdge.source_id", back_populates="source")
     incoming_edges = relationship("GraphEdge", foreign_keys="GraphEdge.target_id", back_populates="target")
@@ -265,12 +265,12 @@ class GraphNode(Base):
 
 class GraphEdge(Base):
     __tablename__ = "graph_edges"
-    
+
     id = Column(String, primary_key=True, index=True)
     source_id = Column(String, ForeignKey("graph_nodes.id", ondelete="CASCADE"), nullable=False)
     target_id = Column(String, ForeignKey("graph_nodes.id", ondelete="CASCADE"), nullable=False)
     type = Column(SQLEnum(EdgeType), nullable=False)
-    
+
     # Relationships
     source = relationship("GraphNode", foreign_keys=[source_id], back_populates="outgoing_edges")
     target = relationship("GraphNode", foreign_keys=[target_id], back_populates="incoming_edges")
@@ -278,7 +278,7 @@ class GraphEdge(Base):
 
 class Notification(Base):
     __tablename__ = "notifications"
-    
+
     id = Column(String, primary_key=True, index=True)
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     type = Column(SQLEnum(NotificationType), nullable=False)
@@ -287,13 +287,6 @@ class Notification(Base):
     is_read = Column(Boolean, default=False)
     related_url = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    
+
     # Relationships
     user = relationship("User", back_populates="notifications")
-
-
-
-
-
-
-

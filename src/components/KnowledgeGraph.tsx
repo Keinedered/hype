@@ -131,11 +131,11 @@ export function KnowledgeGraph({ nodes, edges, courses, tracks, filter = 'all', 
 
   const handleNodeClick = (node: GraphNode) => {
     if (node.id === 'root') return;
-    
+
     // If the node corresponds to a course, select it
     // In our new mock data, node.id IS the course.id
     setSelectedNode(node);
-    
+
     // We can navigate immediately or wait for the button click in the card
     // The previous implementation selected the node and showed a card
     // Let's keep that behavior but update the button to navigate to course
@@ -199,31 +199,31 @@ export function KnowledgeGraph({ nodes, edges, courses, tracks, filter = 'all', 
     const handleWheelEvent = (e: WheelEvent) => {
       // Check if this is a trackpad gesture (has ctrlKey or is a pinch gesture)
       const isTrackpadZoom = e.ctrlKey || e.metaKey || Math.abs(e.deltaX) > 0 || Math.abs(e.deltaY) < 50;
-      
+
       if (container.contains(e.target as Node)) {
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation?.();
-        
+
         if (isTrackpadZoom) {
           // Trackpad zoom gesture
           const rect = svg.getBoundingClientRect();
           const mouseX = e.clientX - rect.left;
           const mouseY = e.clientY - rect.top;
-          
+
           const zoomSpeed = 0.05;
           const delta = e.deltaY > 0 ? 1 - zoomSpeed : 1 + zoomSpeed;
           const newZoom = Math.max(0.3, Math.min(3, zoom * delta));
-          
+
           const zoomChange = newZoom / zoom;
           const centerX = rect.width / 2;
           const centerY = rect.height / 2;
-          
+
           setPan({
             x: centerX - (centerX - pan.x) * zoomChange + (mouseX - centerX) * (1 - zoomChange),
             y: centerY - (centerY - pan.y) * zoomChange + (mouseY - centerY) * (1 - zoomChange)
           });
-          
+
           setZoom(newZoom);
         } else {
           // Regular scroll - pan the graph
@@ -262,21 +262,21 @@ export function KnowledgeGraph({ nodes, edges, courses, tracks, filter = 'all', 
           touch2.clientX - touch1.clientX,
           touch2.clientY - touch1.clientY
         );
-        
+
         if (lastTouchDistance > 0) {
           const zoomChange = distance / lastTouchDistance;
           const newZoom = Math.max(0.3, Math.min(3, zoom * zoomChange));
-          
+
           const rect = svg.getBoundingClientRect();
           const centerX = (touch1.clientX + touch2.clientX) / 2 - rect.left;
           const centerY = (touch1.clientY + touch2.clientY) / 2 - rect.top;
-          
+
           const zoomDelta = newZoom / zoom;
           setPan({
             x: centerX - (centerX - pan.x) * zoomDelta,
             y: centerY - (centerY - pan.y) * zoomDelta
           });
-          
+
           setZoom(newZoom);
           lastTouchDistance = distance;
         }
@@ -305,7 +305,7 @@ export function KnowledgeGraph({ nodes, edges, courses, tracks, filter = 'all', 
     container.addEventListener('touchstart', handleTouchStart, { passive: false });
     container.addEventListener('touchmove', handleTouchMove, { passive: false });
     container.addEventListener('touchend', handleTouchEnd, { passive: false });
-    
+
     return () => {
       container.removeEventListener('wheel', handleWheelEvent, { capture: true } as any);
       container.removeEventListener('touchstart', handleTouchStart);
@@ -315,7 +315,7 @@ export function KnowledgeGraph({ nodes, edges, courses, tracks, filter = 'all', 
   }, [zoom, pan]);
 
   return (
-    <div 
+    <div
       ref={containerRef}
       className="relative w-full h-full bg-white border-2 border-black overflow-hidden"
       onWheel={(e) => {
@@ -323,7 +323,7 @@ export function KnowledgeGraph({ nodes, edges, courses, tracks, filter = 'all', 
         e.stopPropagation();
         e.nativeEvent?.stopImmediatePropagation?.();
       }}
-      style={{ 
+      style={{
         touchAction: 'none',
         overscrollBehavior: 'none',
         WebkitOverflowScrolling: 'auto'
@@ -416,7 +416,7 @@ export function KnowledgeGraph({ nodes, edges, courses, tracks, filter = 'all', 
           >
             <polygon points="0 0, 10 3, 0 6" fill="#666666" />
           </marker>
-          
+
           {/* Pattern for decorative elements */}
           <pattern id="dots" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
             <circle cx="2" cy="2" r="1" fill="black" opacity="0.1" />
@@ -442,7 +442,7 @@ export function KnowledgeGraph({ nodes, edges, courses, tracks, filter = 'all', 
           {edges.map((edge) => {
             const source = nodes.find((n) => n.id === edge.sourceId);
             const target = nodes.find((n) => n.id === edge.targetId);
-            
+
             if (!source || !target) return null;
 
             // Filter logic
@@ -452,7 +452,7 @@ export function KnowledgeGraph({ nodes, edges, courses, tracks, filter = 'all', 
                // Show edge only if at least one node is uncompleted (open, current, closed)
                const isSourceCompleted = source.status === 'completed';
                const isTargetCompleted = target.status === 'completed';
-               if (isSourceCompleted && isTargetCompleted) return null; 
+               if (isSourceCompleted && isTargetCompleted) return null;
             }
 
             const style = getEdgeStyle(edge.type);
@@ -501,7 +501,7 @@ export function KnowledgeGraph({ nodes, edges, courses, tracks, filter = 'all', 
                     opacity={0.6}
                   />
                 )}
-                
+
                 {/* Track color ring */}
                 {node.id !== 'root' && (
                   <circle
@@ -532,7 +532,7 @@ export function KnowledgeGraph({ nodes, edges, courses, tracks, filter = 'all', 
                   <>
                     <line x1={node.x - radius - 6} y1={node.y - radius - 6} x2={node.x - radius - 2} y2={node.y - radius - 6} stroke={colors.accent} strokeWidth="2" />
                     <line x1={node.x - radius - 6} y1={node.y - radius - 6} x2={node.x - radius - 6} y2={node.y - radius - 2} stroke={colors.accent} strokeWidth="2" />
-                    
+
                     <line x1={node.x + radius + 6} y1={node.y + radius + 6} x2={node.x + radius + 2} y2={node.y + radius + 6} stroke={colors.accent} strokeWidth="2" />
                     <line x1={node.x + radius + 6} y1={node.y + radius + 6} x2={node.x + radius + 6} y2={node.y + radius + 2} stroke={colors.accent} strokeWidth="2" />
                   </>
@@ -548,7 +548,7 @@ export function KnowledgeGraph({ nodes, edges, courses, tracks, filter = 'all', 
                     const trackRing = node.id !== 'root' ? 4 : 0;
                     const cornerDecorations = (node.status === 'current' || isSelected) ? 6 : 0;
                     const maxVisualRadius = radius + Math.max(selectionRing, trackRing) + cornerDecorations;
-                    
+
                     // Spacing to keep text close but not overlapping
                     const minSpacing = 50;
                     const lines = node.title.split('\n');
@@ -557,7 +557,7 @@ export function KnowledgeGraph({ nodes, edges, courses, tracks, filter = 'all', 
                     const totalHeight = lines.length * lineHeight + padding * 2;
                     const maxLineWidth = Math.max(...lines.map(l => l.length * 7));
                     const blockWidth = maxLineWidth + padding * 2;
-                    
+
                     // Calculate angle from center to determine best label position
                     const centerX = GRAPH_CENTER_X;
                     const centerY = GRAPH_CENTER_Y;
@@ -565,15 +565,15 @@ export function KnowledgeGraph({ nodes, edges, courses, tracks, filter = 'all', 
                     const dy = node.y - centerY;
                     const angle = Math.atan2(dy, dx);
                     const distance = Math.sqrt(dx * dx + dy * dy);
-                    
+
                     // Position label radially outward from center, far from node
                     // Use larger distance to ensure no overlap
                     const labelDistance = distance + maxVisualRadius + minSpacing;
                     const labelAngle = angle;
-                    
+
                     let labelX = centerX + Math.cos(labelAngle) * labelDistance;
                     let labelY = centerY + Math.sin(labelAngle) * labelDistance;
-                    
+
                     // Ensure label is always below the node (easier to read)
                     // Adjust if node is too high
                     if (node.y < centerY - 100) {
@@ -583,11 +583,11 @@ export function KnowledgeGraph({ nodes, edges, courses, tracks, filter = 'all', 
                       labelY = node.y + maxVisualRadius + minSpacing;
                       labelX = node.x;
                     }
-                    
+
                     // Connecting line from node bottom to label top
                     const lineStartY = node.y + maxVisualRadius;
                     const lineEndY = labelY - totalHeight / 2;
-                    
+
                     return (
                       <>
                         {/* Connecting line from node to label */}
@@ -601,7 +601,7 @@ export function KnowledgeGraph({ nodes, edges, courses, tracks, filter = 'all', 
                           opacity="0.35"
                           strokeDasharray="4,4"
                         />
-                        
+
                         {/* Text block with background */}
                         <rect
                           x={labelX - blockWidth / 2}
@@ -615,7 +615,7 @@ export function KnowledgeGraph({ nodes, edges, courses, tracks, filter = 'all', 
                           strokeWidth="2"
                           strokeOpacity="0.5"
                         />
-                        
+
                         {/* Text lines */}
                         {lines.map((line, i) => (
                           <text
@@ -654,7 +654,7 @@ export function KnowledgeGraph({ nodes, edges, courses, tracks, filter = 'all', 
                 {selectedNode.type.toUpperCase()}
               </span>
               {selectedNode.status && (
-                <span 
+                <span
                   className="text-xs px-3 py-1 border-2 border-black font-mono tracking-wide"
                   style={{ backgroundColor: getNodeColors(selectedNode).accent }}
                 >
@@ -665,8 +665,8 @@ export function KnowledgeGraph({ nodes, edges, courses, tracks, filter = 'all', 
                 </span>
               )}
             </div>
-            <Button 
-              className="w-full border-2 border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] font-mono tracking-wide transition-all" 
+            <Button
+              className="w-full border-2 border-black hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] font-mono tracking-wide transition-all"
               disabled={selectedNode.status === 'closed'}
               onClick={() => onNodeClick?.(selectedNode.id)}
               style={{

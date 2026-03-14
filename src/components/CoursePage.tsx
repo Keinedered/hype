@@ -17,9 +17,9 @@ interface CoursePageProps {
   onOpenHandbook?: () => void;
 }
 
-export function CoursePage({ 
+export function CoursePage({
   courseId,
-  onBack, 
+  onBack,
   onStartCourse,
   onOpenMap,
   onSelectLesson,
@@ -164,9 +164,9 @@ export function CoursePage({
         <div className="container mx-auto px-6 py-4 relative">
           {/* Decorative lines */}
           <div className="absolute top-0 left-0 w-full h-px bg-black opacity-10" />
-          <Button 
-            variant="ghost" 
-            onClick={onBack} 
+          <Button
+            variant="ghost"
+            onClick={onBack}
             className="mb-4 border-2 border-black hover:bg-black hover:text-white font-mono tracking-wide"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -176,7 +176,7 @@ export function CoursePage({
       </div>
 
       {/* Course header section */}
-      <section 
+      <section
         className="border-b-2 border-black relative bg-white/80 backdrop-blur-sm"
       >
             {/* Decorative graphic elements */}
@@ -195,7 +195,7 @@ export function CoursePage({
               <span className="px-3 py-1 text-xs font-mono tracking-widest uppercase border border-black rounded-full bg-white">
                 {course.level === 'beginner' ? 'НАЧАЛЬНЫЙ' : course.level === 'intermediate' ? 'СРЕДНИЙ' : 'ПРОДВИНУТЫЙ'}
               </span>
-              <span 
+              <span
                 className="px-3 py-1 text-xs font-mono tracking-widest uppercase border border-black rounded-full"
                 style={{ backgroundColor: track?.color }}
               >
@@ -215,7 +215,7 @@ export function CoursePage({
               <div className="absolute -top-2 -left-2 w-5 h-5 border-l-2 border-t-2 border-black" />
               <div className="absolute -bottom-2 -right-2 w-5 h-5 border-r-2 border-b-2 border-black" />
             </div>
-            
+
             <div className="border-l-4 border-black pl-6">
               <p className="text-foreground max-w-2xl font-mono leading-relaxed">
                 {course.description}
@@ -248,9 +248,9 @@ export function CoursePage({
                   <span style={{ color: '#000000' }} className="font-bold">{course.progress}%</span>
                 </div>
                 <div className="relative h-3 bg-white border-2 border-black">
-                  <div 
+                  <div
                     className="absolute top-0 left-0 h-full transition-all"
-                    style={{ 
+                    style={{
                       backgroundColor: '#000000',
                       width: `${course.progress}%`
                     }}
@@ -265,7 +265,7 @@ export function CoursePage({
 
             {/* Action buttons */}
             <div className="flex gap-4">
-              <Button 
+              <Button
                 size="lg"
                 onClick={handleStart}
                 disabled={!firstLessonId}
@@ -274,8 +274,8 @@ export function CoursePage({
               >
                 {course.status === 'in_progress' ? 'ПРОДОЛЖИТЬ ОБУЧЕНИЕ' : 'НАЧАТЬ ОБУЧЕНИЕ'}
               </Button>
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 variant="outline"
                 onClick={onOpenMap}
                 className="border-2 border-black hover:bg-black hover:text-white font-mono tracking-wide transition-all"
@@ -313,17 +313,17 @@ export function CoursePage({
             <div className="bg-black text-white px-4 py-2 inline-block font-mono tracking-wide">
               <h2 className="mb-0">СТРУКТУРА КУРСА</h2>
             </div>
-            
+
             <Accordion type="single" collapsible className="space-y-4">
               {sortedModules.map((module, index) => (
-                <AccordionItem 
-                  key={module.id} 
+                <AccordionItem
+                  key={module.id}
                   value={module.id}
                   className="border-2 border-black bg-white"
                 >
                   <AccordionTrigger className="hover:no-underline px-6 py-4">
                     <div className="flex items-start gap-4 text-left flex-1">
-                      <div 
+                      <div
                         className="w-10 h-10 border-2 border-black flex items-center justify-center font-mono font-bold shrink-0"
                         style={{ backgroundColor: track?.color }}
                       >
@@ -337,9 +337,9 @@ export function CoursePage({
                         {module.progress !== undefined && (
                           <div className="mt-3 flex items-center gap-3">
                             <div className="relative h-2 flex-1 bg-white border border-black">
-                              <div 
+                              <div
                                 className="absolute top-0 left-0 h-full transition-all"
-                                style={{ 
+                                style={{
                                   backgroundColor: '#000000',
                                   width: `${module.progress}%`
                                 }}
@@ -409,8 +409,8 @@ export function CoursePage({
               <p className="text-sm text-muted-foreground font-mono leading-relaxed">
                 Дополнительные материалы, шаблоны и чек-листы по темам курса
               </p>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={onOpenHandbook}
                 className="w-full border-2 border-black hover:bg-black hover:text-white font-mono tracking-wide transition-all"
               >

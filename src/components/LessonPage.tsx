@@ -208,10 +208,10 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
                 <ArrowLeft className="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" />
                 <span className="font-mono uppercase tracking-wide text-sm hidden sm:inline">К курсу</span>
               </Button>
-              
+
               <div className="h-6 w-px bg-black/20 mx-2 hidden sm:block"></div>
 
-              <nav 
+              <nav
                 aria-label="Хлебные крошки"
                 className="hidden md:flex items-center text-sm font-mono tracking-wide min-w-0 overflow-x-auto whitespace-nowrap pr-8"
               >
@@ -251,10 +251,10 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
 
       <main className="container mx-auto px-6 py-12">
         <div className="grid lg:grid-cols-12 gap-12">
-          
+
           {/* Main Content (Left) */}
           <div className="lg:col-span-8 space-y-12">
-            
+
             {/* Title Section */}
             <div className="space-y-4">
                <div className="flex items-center gap-3">
@@ -288,7 +288,7 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
                        <div className="w-0 h-0 border-t-[12px] border-t-transparent border-l-[20px] border-l-black border-b-[12px] border-b-transparent ml-1"></div>
                     </div>
                  </div>
-                 
+
                  <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent text-white">
                     <div className="font-mono text-xs mb-1 opacity-70">ВИДЕО-ЛЕКЦИЯ</div>
                     <div className="font-bold text-lg">Видео не доступно</div>
@@ -319,8 +319,8 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
                            </div>
                          ))}
                        </div>
-                       <Button 
-                         variant="link" 
+                       <Button
+                         variant="link"
                          onClick={onOpenHandbook}
                          className="p-0 h-auto font-mono text-xs uppercase border-b border-black rounded-none hover:no-underline hover:text-black/60 mt-4"
                        >
@@ -338,7 +338,7 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
                     <span className="w-8 h-8 bg-black text-white flex items-center justify-center text-sm">?</span>
                     Задание к уроку
                  </h3>
-                 
+
                  <div className="bg-white border border-gray-200 p-8 shadow-sm">
                     <p className="text-lg mb-8 font-light">
                        {lesson.assignment.description}
@@ -390,8 +390,8 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
 
                        <div className="flex items-center justify-between pt-6 border-t border-gray-100 mt-6">
                           {getStatusBadge()}
-                          
-                          <Button 
+
+                          <Button
                              onClick={handleSubmit}
                              disabled={submissionStatus === 'pending' || submissionStatus === 'accepted' || !canSubmit}
                              className="rounded-none bg-black text-white hover:bg-gray-800 h-12 px-8 font-mono uppercase tracking-wide disabled:opacity-50"
@@ -409,8 +409,8 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
 
             {/* Pagination */}
             <div className="flex justify-between pt-8">
-              <Button 
-                 variant="outline" 
+              <Button
+                 variant="outline"
                  onClick={() => {
                    if (prevLesson) {
                      onSelectLesson?.(prevLesson.id);
@@ -423,7 +423,7 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
                  <ArrowLeft className="w-4 h-4 mr-2" />
                  <span className="font-mono text-xs uppercase">Предыдущий</span>
               </Button>
-              <Button 
+              <Button
                  onClick={() => {
                    if (nextLesson) {
                      onSelectLesson?.(nextLesson.id);
@@ -445,7 +445,7 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
                 <h4 className="font-mono font-bold uppercase mb-6 tracking-wide border-b border-black/10 pb-4">
                    Содержание модуля
                 </h4>
-                
+
                 <div className="relative space-y-0">
                    {/* Vertical Line */}
                    <div className="absolute left-[15px] top-4 bottom-4 w-px bg-gray-300"></div>

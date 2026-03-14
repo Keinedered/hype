@@ -268,19 +268,19 @@ export function MyCoursesPage({ onCourseSelect }: MyCoursesPageProps) {
 
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'all' | 'in-progress' | 'completed')} className="space-y-8">
           <TabsList className="border-2 border-black bg-white p-1">
-            <TabsTrigger 
-              value="all" 
+            <TabsTrigger
+              value="all"
               className="font-mono tracking-wide data-[state=active]:bg-black data-[state=active]:text-white border-2 border-transparent data-[state=active]:border-black"
             >
               ВСЕ КУРСЫ ({courses.length})
             </TabsTrigger>
-            <TabsTrigger 
+            <TabsTrigger
               value="in-progress"
               className="font-mono tracking-wide data-[state=active]:bg-black data-[state=active]:text-white border-2 border-transparent data-[state=active]:border-black"
             >
               В ПРОЦЕССЕ ({inProgressCourses.length})
             </TabsTrigger>
-            <TabsTrigger 
+            <TabsTrigger
               value="completed"
               className="font-mono tracking-wide data-[state=active]:bg-black data-[state=active]:text-white border-2 border-transparent data-[state=active]:border-black"
             >

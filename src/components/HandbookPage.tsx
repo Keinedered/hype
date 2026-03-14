@@ -195,10 +195,10 @@ export function HandbookPage({ onBack, courseId }: HandbookPageProps) {
   const templates = getCourseTemplates(courseId);
 
   const handleDownloadPDF = () => {
-    const content = handbookSections.map(section => 
+    const content = handbookSections.map(section =>
       `${section.title}\n${section.description}\n\n${section.content.map(item => `${item.title}\n${item.text}`).join('\n\n')}`
     ).join('\n\n---\n\n');
-    
+
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -210,10 +210,10 @@ export function HandbookPage({ onBack, courseId }: HandbookPageProps) {
     URL.revokeObjectURL(url);
   };
 
-  const filteredSections = handbookSections.filter(section => 
+  const filteredSections = handbookSections.filter(section =>
     section.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     section.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    section.content.some(item => 
+    section.content.some(item =>
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.text.toLowerCase().includes(searchQuery.toLowerCase())
     )
@@ -225,15 +225,15 @@ export function HandbookPage({ onBack, courseId }: HandbookPageProps) {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
-              <Button 
-                variant="ghost" 
-                onClick={onBack} 
+              <Button
+                variant="ghost"
+                onClick={onBack}
                 className="border-2 border-black hover:bg-black hover:text-white font-mono tracking-wide"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 НАЗАД
               </Button>
-              
+
               <div className="h-6 w-px bg-black/20"></div>
 
               <div className="relative inline-block">
@@ -248,7 +248,7 @@ export function HandbookPage({ onBack, courseId }: HandbookPageProps) {
                 <>
                   <div className="h-6 w-px bg-black/20"></div>
                   <div className="flex items-center gap-3">
-                    <span 
+                    <span
                       className="px-3 py-1 text-xs font-mono tracking-widest uppercase border border-black rounded-full"
                       style={{ backgroundColor: selectedTrack?.color }}
                     >
@@ -260,7 +260,7 @@ export function HandbookPage({ onBack, courseId }: HandbookPageProps) {
               )}
             </div>
 
-            <Button 
+            <Button
               variant="outline"
               onClick={handleDownloadPDF}
               className="border-2 border-black hover:bg-black hover:text-white font-mono tracking-wide"
@@ -295,7 +295,7 @@ export function HandbookPage({ onBack, courseId }: HandbookPageProps) {
                   О ХЕНДБУКЕ
                 </div>
                 <p className="font-mono leading-relaxed text-gray-700">
-                  {selectedCourse 
+                  {selectedCourse
                     ? `Хендбук содержит дополнительные материалы, шаблоны и чек-листы по курсу "${selectedCourse.title}". Используйте его как справочник во время обучения и в практической работе.`
                     : 'Хендбук содержит дополнительные материалы, шаблоны и чек-листы по темам курса. Используйте его как справочник во время обучения и в практической работе. Материалы регулярно обновляются на основе обратной связи студентов и изменений в индустрии.'
                   }
@@ -311,8 +311,8 @@ export function HandbookPage({ onBack, courseId }: HandbookPageProps) {
 
             <Accordion type="multiple" className="space-y-4">
               {filteredSections.map((section, index) => (
-                <AccordionItem 
-                  key={section.id} 
+                <AccordionItem
+                  key={section.id}
                   value={section.id}
                   className="border-2 border-black bg-white"
                 >
@@ -363,7 +363,7 @@ export function HandbookPage({ onBack, courseId }: HandbookPageProps) {
 
             <div className="grid md:grid-cols-2 gap-6">
               {templates.map((template) => (
-                <Card 
+                <Card
                   key={template.id}
                   className="p-6 border-2 border-black bg-white hover:translate-x-1 hover:-translate-y-1 transition-transform cursor-pointer"
                   onClick={() => {

@@ -1,7 +1,7 @@
 """new user columns
 
 Revision ID: 2cac9b1224fb
-Revises: 
+Revises:
 Create Date: 2026-03-13 19:53:53.538603
 
 """

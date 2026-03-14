@@ -25,7 +25,7 @@ export function HeroSection() {
               prod. by emit
             </span>
           </div>
-          
+
           <div className="border-l-4 border-black border-t border-r border-b pl-6 mt-8 bg-white/80 backdrop-blur-sm p-4">
             <p className="text-foreground max-w-2xl font-mono leading-relaxed text-lg min-h-[6rem]">
               <TypewriterText
@@ -37,7 +37,7 @@ export function HeroSection() {
             </p>
           </div>
         </div>
-        
+
         {/* Decorative geometric elements - keeping these as they fit the style */}
         <div className="absolute top-10 right-20 w-24 h-24 border-4 border-black opacity-10 rotate-12" />
         <div className="absolute bottom-20 right-40 w-16 h-16 bg-black opacity-5 rounded-full" />
