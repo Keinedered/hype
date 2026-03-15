@@ -447,9 +447,10 @@ def init_demo_user(db: Session):
         email="admin@graph.com",
         username="admin",
         full_name="Administrator",
+        role="admin",
         hashed_password=get_password_hash("admin"),
     )
-    db.add(demo_user)
+    db.add(admin_user)
 
     user_course_1 = models.UserCourse(
         user_id=demo_user.id,
