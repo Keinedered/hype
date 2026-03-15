@@ -640,35 +640,30 @@ docker-compose exec backend python init_db.py # необязательно
 
 ---
 
-## 🚀 Деплой в продакшн
+## 🚀 Production Deployment
 
-### Подготовка
+Full production deployment guide for **graph-ranepe.ru** is available in **[DEPLOYMENT.md](./DEPLOYMENT.md)**.
 
-1. **Обновите переменные окружения:**
-   - Измените `SECRET_KEY` на случайную строку
-   - Обновите `DATABASE_URL` на продакшн БД
-   - Настройте `BACKEND_CORS_ORIGINS` на домен фронтенда
+Quick overview:
 
-2. **Создайте production docker-compose:**
-```yaml
-# docker-compose.prod.yml
-version: '3.8'
-services:
-  postgres:
-    # ... production config
-  backend:
-    # ... production config
-  frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile.frontend.prod
-    # ... production config
-```
-
-3. **Запуск:**
 ```bash
-docker-compose -f docker-compose.prod.yml up -d
+# On a fresh Ubuntu server with Docker installed:
+cd /opt
+git clone https://github.com/Keinedered/hype.git graph && cd graph
+cp .env.prod.example .env.prod
+nano .env.prod                    # fill in real passwords and secrets
+docker compose -f docker-compose.prod.yml --env-file .env.prod build
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+docker compose -f docker-compose.prod.yml --env-file .env.prod exec backend python init_db.py
 ```
+
+The production stack runs:
+- **Nginx** — serves the frontend build + reverse proxies `/api/` to the backend
+- **Backend** — gunicorn with uvicorn workers (no `--reload`)
+- **PostgreSQL** — persistent volume
+- **Certbot** — automatic TLS certificate renewal
+
+Only Nginx exposes ports 80/443 to the internet.
 
 ---
 

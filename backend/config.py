@@ -1,3 +1,4 @@
+import sys
 from pydantic_settings import BaseSettings
 from typing import List
 
@@ -15,8 +16,12 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     PROJECT_NAME: str = "GRAPH Educational Platform"
 
-    # CORS
-    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5173"]
+    # CORS — includes production and dev origins
+    BACKEND_CORS_ORIGINS: List[str] = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "https://graph-ranepe.ru",
+    ]
 
     # Uploads
     UPLOAD_DIR: str = "/uploads"
@@ -31,3 +36,9 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# Fail fast if DATABASE_URL looks like a placeholder in production
+if "CHANGE_ME" in settings.DATABASE_URL:
+    print("FATAL: DATABASE_URL contains placeholder value. Set a real password in .env.prod", file=sys.stderr)
+    sys.exit(1)
+
