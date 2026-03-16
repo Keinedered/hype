@@ -37,6 +37,8 @@ services:
       ALGORITHM: ${ALGORITHM:-HS256}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
       BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS}
+    volumes:
+      - backend_uploads_prod:/uploads
     networks:
       - internal
     depends_on:
@@ -76,6 +78,7 @@ volumes:
   postgres_data_prod:
   certbot_conf:
   certbot_www:
+  backend_uploads_prod:
 
 networks:
   internal:

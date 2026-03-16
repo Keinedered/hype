@@ -8,6 +8,7 @@ RUN npm ci --no-audit
 
 COPY index.html vite.config.ts tsconfig.json ./
 COPY src/ ./src/
+COPY public/ ./public/
 
 ARG VITE_BACKEND_ORIGIN=http://localhost:8000/
 ENV VITE_BACKEND_ORIGIN=${VITE_BACKEND_ORIGIN}
