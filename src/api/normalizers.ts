@@ -87,6 +87,26 @@ export type RawGraphEdge = {
   type: string;
 };
 
+/** Accepts a JSON array or common `{ items: [] }` / `{ data: [] }` wrappers from APIs. */
+export function ensureJsonArray<T>(value: unknown): T[] {
+  if (Array.isArray(value)) {
+    return value as T[];
+  }
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    if (Array.isArray(record.items)) {
+      return record.items as T[];
+    }
+    if (Array.isArray(record.data)) {
+      return record.data as T[];
+    }
+    if (Array.isArray(record.results)) {
+      return record.results as T[];
+    }
+  }
+  return [];
+}
+
 export const normalizeTrack = (raw: RawTrack): Track => ({
   id: raw.id as Track['id'],
   name: raw.name ?? '',

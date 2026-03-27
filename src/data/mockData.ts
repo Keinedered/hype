@@ -308,6 +308,24 @@ export const courses: Course[] = [
 
 export const modules: Module[] = [
   {
+    id: 'event-basics-m1',
+    courseId: 'event-basics',
+    title: 'Введение в ивент-менеджмент',
+    description: 'Роль ивент-менеджера, типы мероприятий и базовые термины.',
+    lessons: [],
+    progress: 0,
+    orderIndex: 1,
+  },
+  {
+    id: 'event-basics-m2',
+    courseId: 'event-basics',
+    title: 'Планирование мероприятия',
+    description: 'Цели, аудитория и сценарий события.',
+    lessons: [],
+    progress: 0,
+    orderIndex: 2,
+  },
+  {
     id: 'pm-intro-1',
     courseId: 'product-intro',
     title: 'Роль продукта',

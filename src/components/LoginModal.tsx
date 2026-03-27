@@ -51,7 +51,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="username" className="font-mono text-xs">
-              USERNAME
+              Логин
             </Label>
             <Input
               id="username"
@@ -67,7 +67,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             <>
               <div className="space-y-2">
                 <Label htmlFor="email" className="font-mono text-xs">
-                  EMAIL
+                  Электронная почта
                 </Label>
                 <Input
                   id="email"
@@ -96,7 +96,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
           <div className="space-y-2">
             <Label htmlFor="password" className="font-mono text-xs">
-              PASSWORD
+              Пароль
             </Label>
             <Input
               id="password"

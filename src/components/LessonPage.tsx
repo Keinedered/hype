@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Button } from './ui/button';
@@ -7,8 +7,20 @@ import { Input } from './ui/input';
 import { ArrowLeft, ArrowRight, Upload, Link as LinkIcon, Check, Clock, X, Circle, FileText } from 'lucide-react';
 import { TrackId, Lesson, Module, Track } from '../types';
 import { coursesAPI, lessonsAPI, modulesAPI, submissionsAPI, tracksAPI } from '../api/client';
-import { normalizeCourse, normalizeLesson, normalizeModule, normalizeTrack, RawCourse, RawLesson, RawModule, RawTrack } from '../api/normalizers';
+import {
+  ensureJsonArray,
+  normalizeCourse,
+  normalizeLesson,
+  normalizeModule,
+  normalizeTrack,
+  RawCourse,
+  RawLesson,
+  RawModule,
+  RawTrack,
+} from '../api/normalizers';
 import { toAbsolutePublicUrl } from '../api/urls';
+import { getGuestLessonBundle } from '../data/guestBrowse';
+import { useGuestBrowse } from '../hooks/useGuestBrowse';
 import { Skeleton } from './ui/skeleton';
 
 interface LessonPageProps {
@@ -22,6 +34,7 @@ interface LessonPageProps {
 }
 
 export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGoToCatalog, onOpenHandbook, lessonId }: LessonPageProps) {
+  const { isGuest, authLoading } = useGuestBrowse();
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [module, setModule] = useState<Module | null>(null);
   const [track, setTrack] = useState<Track | null>(null);
@@ -85,6 +98,41 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
         return;
       }
 
+      if (authLoading) {
+        return;
+      }
+
+      if (isGuest) {
+        try {
+          setLoading(true);
+          setError(null);
+          const bundle = getGuestLessonBundle(lessonId);
+          if (!bundle) {
+            setError('В демо-режиме откройте урок из курса в каталоге (например «Введение в продуктовый менеджмент»).');
+            setLesson(null);
+            setModule(null);
+            setTrack(null);
+            setModuleLessons([]);
+            return;
+          }
+          setLesson(bundle.lesson);
+          setLessonStatus(bundle.lesson.status ?? 'not_started');
+          setModule(bundle.module);
+          setTrack(bundle.track);
+          setModuleLessons(bundle.moduleLessons);
+          setTextAnswer('');
+          setLinkUrl('');
+          setFileUrls([]);
+          setSubmissionId(null);
+          setSubmissionStatus('not_submitted');
+          setSubmissionError(null);
+          setSubmissionsList([]);
+        } finally {
+          if (isMounted) setLoading(false);
+        }
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
@@ -114,7 +162,9 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
         ]);
 
         const normalizedTrack = normalizeTrack(rawTrack as RawTrack);
-        let normalizedModuleLessons = extractLessons(rawModuleLessons)
+        const fromApi = ensureJsonArray<RawLesson>(rawModuleLessons);
+        const rawLessonList = fromApi.length > 0 ? fromApi : extractLessons(rawModuleLessons);
+        let normalizedModuleLessons = rawLessonList
           .map(normalizeLesson)
           .sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
 
@@ -125,7 +175,7 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
         const loadExistingSubmission = async () => {
           if (!isMounted) return;
           try {
-            const submissions = (await submissionsAPI.getAll()) as Array<{
+            const submissions = ensureJsonArray<{
               id: string;
               assignment_id: string;
               version: number;
@@ -135,7 +185,7 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
               status?: typeof submissionStatus;
               curator_comment?: string | null;
               submitted_at?: string | null;
-            }>;
+            }>(await submissionsAPI.getAll());
             if (normalizedLesson.assignment) {
               const assignmentSubmissions = submissions
                 .filter((submission) => submission.assignment_id === normalizedLesson.assignment?.id)
@@ -192,7 +242,7 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
     return () => {
       isMounted = false;
     };
-  }, [lessonId]);
+  }, [lessonId, isGuest, authLoading]);
 
   const lessonIndex = useMemo(() => {
     if (!lesson) return -1;
@@ -228,6 +278,10 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
 
   const handleSubmit = async () => {
     if (!lesson?.assignment) return;
+    if (isGuest) {
+      setSubmissionError('Войдите в аккаунт, чтобы отправлять задания на проверку.');
+      return;
+    }
     try {
       setSubmissionError(null);
       setSubmissionStatus('pending');
@@ -276,6 +330,10 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
 
   const handleFileUpload = async (files: FileList) => {
     if (!files.length) return;
+    if (isGuest) {
+      setSubmissionError('Войдите в аккаунт, чтобы прикреплять файлы.');
+      return;
+    }
     try {
       setFileUploading(true);
       setSubmissionError(null);
@@ -298,7 +356,7 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
   };
 
   const handleUnsend = async () => {
-    if (!submissionId) return;
+    if (!submissionId || isGuest) return;
     try {
       setSubmissionError(null);
       await submissionsAPI.delete(submissionId);
@@ -434,6 +492,11 @@ export function LessonPage({ onBack, onNavigate, onSelectLesson, onOpenMap, onGo
       </header>
 
       <main className="container mx-auto px-6 py-12">
+        {isGuest && (
+          <div className="mb-8 border-2 border-black bg-gray-100 px-4 py-3 font-mono text-sm text-foreground">
+            Демо-режим: показан пример урока. Войдите в аккаунт, чтобы смотреть видео, задания и обратную связь куратора.
+          </div>
+        )}
         <div className="grid lg:grid-cols-12 gap-12">
 
           {/* Main Content (Left) */}

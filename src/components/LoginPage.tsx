@@ -6,11 +6,12 @@ import { useAuth } from '../context/AuthContext';
 
 interface LoginPageProps {
   onAuthSuccess?: () => void;
+  onContinueWithoutAuth?: () => void;
 }
 
 type AuthMode = 'login' | 'signup';
 
-export function LoginPage({ onAuthSuccess }: LoginPageProps) {
+export function LoginPage({ onAuthSuccess, onContinueWithoutAuth }: LoginPageProps) {
   const { login, register, isAuthenticated } = useAuth();
   const [mode, setMode] = useState<AuthMode>('login');
 
@@ -43,21 +44,21 @@ export function LoginPage({ onAuthSuccess }: LoginPageProps) {
       }
       onAuthSuccess?.();
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : 'Request failed.');
+      setError(submitError instanceof Error ? submitError.message : 'Не удалось выполнить запрос.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="container mx-auto px-6 py-12">
+    <div className="container mx-auto px-6 py-12 border-b-2 border-black">
       <div className="mx-auto max-w-md border-2 border-black bg-white p-6">
         <div className="mb-6">
           <h1 className="font-mono text-2xl uppercase tracking-wide">
-            Profile
+            Личный кабинет
           </h1>
           <p className="mt-2 font-mono text-sm text-muted-foreground">
-            Log in to your account or create a new one.
+            Войдите в аккаунт или зарегистрируйтесь — либо продолжайте без авторизации.
           </p>
         </div>
 
@@ -72,33 +73,33 @@ export function LoginPage({ onAuthSuccess }: LoginPageProps) {
               isLogin ? 'bg-black text-white' : 'bg-white text-black hover:bg-black hover:text-white'
             }`}
           >
-            Log in
+            Вход
           </button>
           <button
             type="button"
             onClick={() => {
               setMode('signup');
-              setLoginTarget('user');
               setError('');
             }}
             className={`px-4 py-2 font-mono text-sm uppercase transition-colors ${
               !isLogin ? 'bg-black text-white' : 'bg-white text-black hover:bg-black hover:text-white'
             }`}
           >
-            Sign up
+            Регистрация
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="username" className="font-mono text-xs uppercase">
-              Username
+              Логин
             </Label>
             <Input
               id="username"
               value={username}
               onChange={(event) => setUsername(event.target.value)}
               required
+              autoComplete="username"
               className="border-2 border-black font-mono"
             />
           </div>
@@ -107,7 +108,7 @@ export function LoginPage({ onAuthSuccess }: LoginPageProps) {
             <>
               <div className="space-y-2">
                 <Label htmlFor="email" className="font-mono text-xs uppercase">
-                  Email
+                  Электронная почта
                 </Label>
                 <Input
                   id="email"
@@ -115,17 +116,19 @@ export function LoginPage({ onAuthSuccess }: LoginPageProps) {
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   required
+                  autoComplete="email"
                   className="border-2 border-black font-mono"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="fullName" className="font-mono text-xs uppercase">
-                  Full name
+                  Полное имя (необязательно)
                 </Label>
                 <Input
                   id="fullName"
                   value={fullName}
                   onChange={(event) => setFullName(event.target.value)}
+                  autoComplete="name"
                   className="border-2 border-black font-mono"
                 />
               </div>
@@ -134,7 +137,7 @@ export function LoginPage({ onAuthSuccess }: LoginPageProps) {
 
           <div className="space-y-2">
             <Label htmlFor="password" className="font-mono text-xs uppercase">
-              Password
+              Пароль
             </Label>
             <Input
               id="password"
@@ -142,6 +145,7 @@ export function LoginPage({ onAuthSuccess }: LoginPageProps) {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               required
+              autoComplete={isLogin ? 'current-password' : 'new-password'}
               className="border-2 border-black font-mono"
             />
           </div>
@@ -158,12 +162,25 @@ export function LoginPage({ onAuthSuccess }: LoginPageProps) {
             className="w-full border-2 border-black bg-black text-white hover:bg-white hover:text-black font-mono uppercase tracking-wide"
           >
             {isSubmitting
-              ? 'Loading...'
+              ? 'Загрузка…'
               : isLogin
-                ? 'Log in'
-                : 'Sign up'}
+                ? 'Войти'
+                : 'Зарегистрироваться'}
           </Button>
         </form>
+
+        {onContinueWithoutAuth && (
+          <div className="mt-4">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full border-2 border-black bg-white font-mono uppercase tracking-wide hover:bg-black hover:text-white"
+              onClick={() => onContinueWithoutAuth()}
+            >
+              Продолжить без входа
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

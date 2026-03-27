@@ -1,4 +1,4 @@
-﻿"""
+"""
 Скрипт инициализации БД с демо-данными.
 """
 from sqlalchemy.orm import Session
@@ -73,9 +73,9 @@ def init_courses(db: Session):
             "description": "Основы работы продакт-менеджера: от идеи до запуска",
             "short_description": "Станьте продакт-менеджером цифрового продукта",
             "level": models.CourseLevel.beginner,
-            "module_count": 2,
-            "lesson_count": 4,
-            "task_count": 2,
+            "module_count": 4,
+            "lesson_count": 8,
+            "task_count": 4,
             "enrollment_deadline": "15 января 2026",
             "authors": ["Алексей Кузнецов", "Ольга Волкова"],
         },
@@ -151,6 +151,20 @@ def init_modules_and_lessons(db: Session):
             "title": "Исследования пользователей",
             "description": "Интервью, сегментация и анализ инсайтов.",
             "order_index": 2,
+        },
+        {
+            "id": "product-intro-m3",
+            "course_id": "product-intro",
+            "title": "Постановка задач и метрик",
+            "description": "Формулирование задач, метрики успеха и приоритизация.",
+            "order_index": 3,
+        },
+        {
+            "id": "product-intro-m4",
+            "course_id": "product-intro",
+            "title": "Запуск и оценка",
+            "description": "Запуск продукта, проверка гипотез и анализ результатов.",
+            "order_index": 4,
         },
         {
             "id": "business-comm-m1",
@@ -261,6 +275,46 @@ def init_modules_and_lessons(db: Session):
             "video_url": None,
             "video_duration": "10:40",
             "content": """# Сегментация\n\nОбъединяйте пользователей по целям и поведению, фиксируйте инсайты.\n""",
+            "order_index": 2,
+        },
+        {
+            "id": "product-intro-m3-l1",
+            "module_id": "product-intro-m3",
+            "title": "Постановка задач",
+            "description": "От цели к измеримым задачам и критериям готовности.",
+            "video_url": None,
+            "video_duration": "09:30",
+            "content": """# Задачи\n\nФормулируйте задачи так, чтобы их можно было проверить данными.\n""",
+            "order_index": 1,
+        },
+        {
+            "id": "product-intro-m3-l2",
+            "module_id": "product-intro-m3",
+            "title": "Метрики и приоритеты",
+            "description": "North Star, ведущие и отстающие показатели.",
+            "video_url": None,
+            "video_duration": "11:15",
+            "content": """# Метрики\n\nСвяжите метрики с поведением пользователя и бизнес-целями.\n""",
+            "order_index": 2,
+        },
+        {
+            "id": "product-intro-m4-l1",
+            "module_id": "product-intro-m4",
+            "title": "Запуск и эксперименты",
+            "description": "План запуска и проверка гипотез.",
+            "video_url": None,
+            "video_duration": "10:00",
+            "content": """# Запуск\n\nОпределите минимальный набор для проверки ценности.\n""",
+            "order_index": 1,
+        },
+        {
+            "id": "product-intro-m4-l2",
+            "module_id": "product-intro-m4",
+            "title": "Оценка результатов",
+            "description": "Что измерять после релиза и как принимать решения.",
+            "video_url": None,
+            "video_duration": "09:45",
+            "content": """# Оценка\n\nСравнивайте факт с планом и фиксируйте уроки.\n""",
             "order_index": 2,
         },
         {

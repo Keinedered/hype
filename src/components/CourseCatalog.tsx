@@ -1,8 +1,10 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CourseCard } from './CourseCard';
 import { TrackFilter } from './TrackFilter';
 import { coursesAPI, tracksAPI } from '../api/client';
-import { normalizeCourse, normalizeTrack, RawCourse, RawTrack } from '../api/normalizers';
+import { ensureJsonArray, normalizeCourse, normalizeTrack, RawCourse, RawTrack } from '../api/normalizers';
+import { courses as mockCourses, tracks as mockTracks } from '../data/mockData';
+import { useGuestBrowse } from '../hooks/useGuestBrowse';
 import { Course, Track, TrackId } from '../types';
 import { Skeleton } from './ui/skeleton';
 
@@ -13,6 +15,7 @@ interface CourseCatalogProps {
 }
 
 export function CourseCatalog({ onCourseSelect, selectedTrack, onSelectedTrackChange }: CourseCatalogProps) {
+  const { isGuest, authLoading } = useGuestBrowse();
   const [internalSelectedTrack, setInternalSelectedTrack] = useState<TrackId | 'all'>('all');
   const [selectedLevel, setSelectedLevel] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
@@ -31,6 +34,17 @@ export function CourseCatalog({ onCourseSelect, selectedTrack, onSelectedTrackCh
     let isMounted = true;
 
     const load = async () => {
+      if (authLoading) {
+        return;
+      }
+      if (isGuest) {
+        if (!isMounted) return;
+        setCourses(mockCourses);
+        setTracks(mockTracks);
+        setError(null);
+        setLoading(false);
+        return;
+      }
       try {
         setLoading(true);
         setError(null);
@@ -39,8 +53,8 @@ export function CourseCatalog({ onCourseSelect, selectedTrack, onSelectedTrackCh
           tracksAPI.getAll(),
         ]);
         if (!isMounted) return;
-        setCourses((rawCourses as RawCourse[]).map(normalizeCourse));
-        setTracks((rawTracks as RawTrack[]).map(normalizeTrack));
+        setCourses(ensureJsonArray<RawCourse>(rawCourses).map(normalizeCourse));
+        setTracks(ensureJsonArray<RawTrack>(rawTracks).map(normalizeTrack));
       } catch (err) {
         if (!isMounted) return;
         setError(err instanceof Error ? err.message : 'Не удалось загрузить курсы');
@@ -53,7 +67,7 @@ export function CourseCatalog({ onCourseSelect, selectedTrack, onSelectedTrackCh
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [isGuest, authLoading]);
 
   const filteredCourses = useMemo(() => {
     return courses.filter((course) => {
@@ -73,7 +87,7 @@ export function CourseCatalog({ onCourseSelect, selectedTrack, onSelectedTrackCh
   }, [tracks]);
 
   return (
-    <section className="container mx-auto px-6 py-12 space-y-8 relative z-10">
+    <section className="container mx-auto px-6 py-12 space-y-8 relative z-10 border-b-2 border-black">
       {/* Subtle decorative line */}
       <div className="absolute top-0 left-0 w-full h-px bg-black opacity-5" />
 

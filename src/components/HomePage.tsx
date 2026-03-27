@@ -1,24 +1,10 @@
 import { HeroSection } from './HeroSection';
 import { PurposeGraph } from './PurposeGraph';
-import { Button } from './ui/button';
 
-interface HomePageProps {
-  onOpenProfile?: () => void;
-}
-
-export function HomePage({ onOpenProfile }: HomePageProps) {
+export function HomePage() {
   return (
-    <div>
+    <div className="border-b-2 border-black">
       <HeroSection />
-      <section className="container mx-auto px-6 pt-6">
-        <Button
-          type="button"
-          onClick={onOpenProfile}
-          className="border-2 border-black bg-black text-white hover:bg-white hover:text-black font-mono uppercase tracking-wide"
-        >
-          {"\u041f\u0440\u043e\u0444\u0438\u043b\u044c"}
-        </Button>
-      </section>
 
       <section className="container mx-auto px-6 py-12">
         <div className="max-w-5xl mx-auto space-y-12">
@@ -79,16 +65,42 @@ export function HomePage({ onOpenProfile }: HomePageProps) {
                   <div className="flex items-start justify-between gap-4 border border-black/20 p-3">
                     <div>
                       <div className="font-bold uppercase tracking-wide">Email</div>
-                      <div className="text-muted-foreground">hello@graph.education</div>
+                      <a
+                        href="mailto:hello@graph.education"
+                        className="text-muted-foreground underline-offset-2 hover:underline hover:text-black"
+                      >
+                        hello@graph.education
+                      </a>
                     </div>
                     <div className="text-xs text-muted-foreground uppercase tracking-wide">Поддержка</div>
                   </div>
                   <div className="flex items-start justify-between gap-4 border border-black/20 p-3">
-                    <div>
-                      <div className="font-bold uppercase tracking-wide">Telegram</div>
-                      <div className="text-muted-foreground">@graph_support</div>
+                    <div className="min-w-0">
+                      <div className="font-bold uppercase tracking-wide">VK</div>
+                      <a
+                        href="https://vk.ru/bit_ranepa"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-muted-foreground underline-offset-2 hover:underline hover:text-black break-all"
+                      >
+                        vk.ru/bit_ranepa
+                      </a>
                     </div>
-                    <div className="text-xs text-muted-foreground uppercase tracking-wide">Быстро</div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide shrink-0">Соцсети</div>
+                  </div>
+                  <div className="flex items-start justify-between gap-4 border border-black/20 p-3">
+                    <div className="min-w-0">
+                      <div className="font-bold uppercase tracking-wide">Telegram</div>
+                      <a
+                        href="https://t.me/bitbyemit"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-muted-foreground underline-offset-2 hover:underline hover:text-black break-all"
+                      >
+                        @bitbyemit
+                      </a>
+                    </div>
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide shrink-0">Новости</div>
                   </div>
                   <div className="flex items-start justify-between gap-4 border border-black/20 p-3">
                     <div>
@@ -97,10 +109,6 @@ export function HomePage({ onOpenProfile }: HomePageProps) {
                     </div>
                     <div className="text-xs text-muted-foreground uppercase tracking-wide">В кабинете</div>
                   </div>
-                </div>
-
-                <div className="border-t border-black/10 pt-4 text-xs text-muted-foreground leading-relaxed">
-                  Контакты сейчас демонстрационные — скажи, какие реальные email/соцсети поставить, и я заменю.
                 </div>
               </div>
             </div>

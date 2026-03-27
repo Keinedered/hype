@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { KnowledgeGraph } from './KnowledgeGraph';
@@ -16,7 +16,10 @@ import {
   RawGraphNode,
   RawModule,
   RawTrack,
+  ensureJsonArray,
 } from '../api/normalizers';
+import { getGuestGraphPayload, getGuestModulesForCourse } from '../data/guestBrowse';
+import { useGuestBrowse } from '../hooks/useGuestBrowse';
 import { Course, GraphEdge, GraphNode, Module, Track } from '../types';
 
 interface KnowledgeGraphPageProps {
@@ -25,6 +28,7 @@ interface KnowledgeGraphPageProps {
 }
 
 export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGraphPageProps) {
+  const { isGuest, authLoading } = useGuestBrowse();
   const [viewFilter, setViewFilter] = useState<'all' | 'completed' | 'uncompleted'>('all');
   const [courses, setCourses] = useState<Course[]>([]);
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -38,6 +42,20 @@ export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGra
     let isMounted = true;
 
     const load = async () => {
+      if (authLoading) {
+        return;
+      }
+      if (isGuest) {
+        if (!isMounted) return;
+        const g = getGuestGraphPayload();
+        setCourses(g.courses);
+        setTracks(g.tracks);
+        setNodes(g.nodes);
+        setEdges(g.edges);
+        setError(null);
+        setLoading(false);
+        return;
+      }
       try {
         setLoading(true);
         setError(null);
@@ -48,10 +66,10 @@ export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGra
           graphAPI.getEdges(),
         ]);
         if (!isMounted) return;
-        setCourses((rawCourses as RawCourse[]).map(normalizeCourse));
-        setTracks((rawTracks as RawTrack[]).map(normalizeTrack));
-        setNodes((rawNodes as RawGraphNode[]).map(normalizeGraphNode));
-        setEdges((rawEdges as RawGraphEdge[]).map(normalizeGraphEdge));
+        setCourses(ensureJsonArray<RawCourse>(rawCourses).map(normalizeCourse));
+        setTracks(ensureJsonArray<RawTrack>(rawTracks).map(normalizeTrack));
+        setNodes(ensureJsonArray<RawGraphNode>(rawNodes).map(normalizeGraphNode));
+        setEdges(ensureJsonArray<RawGraphEdge>(rawEdges).map(normalizeGraphEdge));
       } catch (err) {
         if (!isMounted) return;
         setError(err instanceof Error ? err.message : 'Не удалось загрузить данные графа');
@@ -68,7 +86,7 @@ export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGra
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [isGuest, authLoading]);
 
   const courseIdFromGraph = useMemo(() => {
     const currentNode = nodes.find((node) => node.type === 'course' && node.status === 'current');
@@ -98,8 +116,27 @@ export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGra
         return;
       }
 
+      if (authLoading) {
+        return;
+      }
+
+      if (isGuest) {
+        const guestMods = getGuestModulesForCourse(activeCourse.id);
+        if (isMounted) {
+          setModules(
+            guestMods
+              ? guestMods.map((m) => ({
+                  ...m,
+                  lessons: m.lessons ?? [],
+                }))
+              : []
+          );
+        }
+        return;
+      }
+
       try {
-        const rawModules = (await modulesAPI.getByCourseId(activeCourse.id)) as RawModule[];
+        const rawModules = ensureJsonArray<RawModule>(await modulesAPI.getByCourseId(activeCourse.id));
         if (!isMounted) return;
         setModules(rawModules.map(normalizeModule));
       } catch {
@@ -112,14 +149,14 @@ export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGra
     return () => {
       isMounted = false;
     };
-  }, [activeCourse]);
+  }, [activeCourse, isGuest, authLoading]);
 
   const sortedModules = useMemo(() => {
     return [...modules].sort((a, b) => (a.orderIndex ?? 0) - (b.orderIndex ?? 0));
   }, [modules]);
 
   return (
-    <div className="min-h-screen bg-transparent">
+    <div className="min-h-screen bg-transparent border-b-2 border-black">
       <div className="container mx-auto px-6 py-8">
         {/* Page title */}
         <div className="mb-8 relative inline-block">
@@ -130,11 +167,11 @@ export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGra
           <div className="absolute -bottom-2 -right-2 w-5 h-5 border-r-2 border-b-2 border-black" />
         </div>
 
-        <div className="grid lg:grid-cols-[380px_1fr] gap-6 h-[calc(100vh-12rem)]">
-          {/* Left panel */}
-          <div className="space-y-6 overflow-y-auto">
+        <div className="grid lg:grid-cols-[380px_1fr] gap-6 lg:min-h-0 lg:h-[calc(100vh-12rem)]">
+          {/* Left panel: только список модулей прокручивается; курс и «Отображение» всегда видны */}
+          <aside className="flex min-h-0 flex-col gap-6 lg:h-full lg:min-h-0">
             {/* Course card */}
-            <Card className="p-6 space-y-5 border-2 border-black bg-white relative">
+            <Card className="shrink-0 p-6 space-y-5 border-2 border-black bg-white relative">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="bg-black text-white px-3 py-1 inline-block mb-2 font-mono text-xs tracking-wide">
@@ -190,69 +227,73 @@ export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGra
               </div>
             </Card>
 
-            {/* Modules list */}
-            <Card className="p-6 border-2 border-black bg-white">
-              <div className="bg-black text-white px-3 py-1 inline-block mb-4 font-mono text-sm tracking-wide">
-                СПИСОК МОДУЛЕЙ
+            {/* Modules list — единственная прокручиваемая зона на десктопе */}
+            <Card className="flex min-h-[240px] flex-1 flex-col overflow-hidden border-2 border-black bg-white lg:min-h-0">
+              <div className="shrink-0 px-6 pt-6">
+                <div className="bg-black text-white px-3 py-1 inline-block mb-4 font-mono text-sm tracking-wide">
+                  СПИСОК МОДУЛЕЙ
+                </div>
               </div>
 
-              {loading && (
-                <p className="text-sm font-mono text-muted-foreground">Загружаем модули…</p>
-              )}
-              {!loading && error && (
-                <p className="text-sm font-mono text-muted-foreground">{error}</p>
-              )}
-              {!loading && !error && sortedModules.length === 0 && (
-                <p className="text-sm font-mono text-muted-foreground">Модули пока не доступны.</p>
-              )}
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-6">
+                {loading && (
+                  <p className="text-sm font-mono text-muted-foreground">Загружаем модули…</p>
+                )}
+                {!loading && error && (
+                  <p className="text-sm font-mono text-muted-foreground">{error}</p>
+                )}
+                {!loading && !error && sortedModules.length === 0 && (
+                  <p className="text-sm font-mono text-muted-foreground">Модули пока не доступны.</p>
+                )}
 
-              {sortedModules.length > 0 && (
-                <Accordion type="single" collapsible className="space-y-3">
-                  {sortedModules.map((module, index) => (
-                    <AccordionItem
-                      key={module.id}
-                      value={module.id}
-                      className="border-2 border-black bg-white"
-                    >
-                      <AccordionTrigger className="hover:no-underline px-4 py-3">
-                        <div className="flex items-center gap-3 text-left">
-                          <div className="w-8 h-8 border-2 border-black bg-white flex items-center justify-center font-mono font-bold shrink-0">
-                            {index + 1}
-                          </div>
-                          <span className="text-sm font-mono tracking-wide">{module.title.toUpperCase()}</span>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <div className="px-4 pb-3 space-y-3 border-t-2 border-black pt-3">
-                          {module.progress !== undefined && (
-                            <div className="flex items-center gap-3">
-                              <div className="relative h-2 flex-1 bg-white border border-black">
-                                <div
-                                  className="absolute top-0 left-0 h-full transition-all"
-                                  style={{
-                                    backgroundColor: '#000000',
-                                    width: `${module.progress}%`
-                                  }}
-                                />
-                              </div>
-                              <span className="text-xs font-mono font-bold">
-                                {module.progress}%
-                              </span>
+                {sortedModules.length > 0 && (
+                  <Accordion type="single" collapsible className="space-y-3">
+                    {sortedModules.map((module, index) => (
+                      <AccordionItem
+                        key={module.id}
+                        value={module.id}
+                        className="border-2 border-black bg-white"
+                      >
+                        <AccordionTrigger className="hover:no-underline px-4 py-3">
+                          <div className="flex items-center gap-3 text-left">
+                            <div className="w-8 h-8 border-2 border-black bg-white flex items-center justify-center font-mono font-bold shrink-0">
+                              {index + 1}
                             </div>
-                          )}
-                          <p className="text-xs text-muted-foreground font-mono leading-relaxed">
-                            {module.description}
-                          </p>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
-              )}
+                            <span className="text-sm font-mono tracking-wide">{module.title.toUpperCase()}</span>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="px-4 pb-3 space-y-3 border-t-2 border-black pt-3">
+                            {module.progress !== undefined && (
+                              <div className="flex items-center gap-3">
+                                <div className="relative h-2 flex-1 bg-white border border-black">
+                                  <div
+                                    className="absolute top-0 left-0 h-full transition-all"
+                                    style={{
+                                      backgroundColor: '#000000',
+                                      width: `${module.progress}%`
+                                    }}
+                                  />
+                                </div>
+                                <span className="text-xs font-mono font-bold">
+                                  {module.progress}%
+                                </span>
+                              </div>
+                            )}
+                            <p className="text-xs text-muted-foreground font-mono leading-relaxed">
+                              {module.description}
+                            </p>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                )}
+              </div>
             </Card>
 
             {/* Display options */}
-            <Card className="p-6 border-2 border-black bg-white">
+            <Card className="shrink-0 p-6 border-2 border-black bg-white">
               <div className="bg-black text-white px-3 py-1 inline-block mb-4 font-mono text-sm tracking-wide">
                 ОТОБРАЖЕНИЕ
               </div>
@@ -289,10 +330,10 @@ export function KnowledgeGraphPage({ onNodeClick, onOpenHandbook }: KnowledgeGra
                 </label>
               </div>
             </Card>
-          </div>
+          </aside>
 
           {/* Right panel - Graph */}
-          <div className="h-full relative pb-4 md:pb-6">
+          <div className="min-h-0 h-[min(70vh,520px)] lg:h-full relative pb-4 md:pb-6">
             <KnowledgeGraph
               nodes={nodes}
               edges={edges}

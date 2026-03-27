@@ -1,6 +1,8 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { coursesAPI, tracksAPI } from '../api/client';
-import { normalizeTrack, RawTrack } from '../api/normalizers';
+import { ensureJsonArray, normalizeTrack, RawTrack } from '../api/normalizers';
+import { courses as mockCourses, tracks as mockTracks } from '../data/mockData';
+import { useGuestBrowse } from '../hooks/useGuestBrowse';
 import { Course, Track, TrackId } from '../types';
 import { CourseCard } from './CourseCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
@@ -47,6 +49,7 @@ const normalizeCourse = (raw: RawCourse): Course => ({
 });
 
 export function MyCoursesPage({ onCourseSelect }: MyCoursesPageProps) {
+  const { isGuest, authLoading } = useGuestBrowse();
   const [courses, setCourses] = useState<Course[]>([]);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,6 +62,17 @@ export function MyCoursesPage({ onCourseSelect }: MyCoursesPageProps) {
     let isMounted = true;
 
     const load = async () => {
+      if (authLoading) {
+        return;
+      }
+      if (isGuest) {
+        if (!isMounted) return;
+        setCourses(mockCourses);
+        setTracks(mockTracks);
+        setError(null);
+        setLoading(false);
+        return;
+      }
       try {
         setLoading(true);
         setError(null);
@@ -67,8 +81,8 @@ export function MyCoursesPage({ onCourseSelect }: MyCoursesPageProps) {
           tracksAPI.getAll(),
         ]);
         if (!isMounted) return;
-        setCourses((rawCourses as RawCourse[]).map(normalizeCourse));
-        setTracks((rawTracks as RawTrack[]).map(normalizeTrack));
+        setCourses(ensureJsonArray<RawCourse>(rawCourses).map(normalizeCourse));
+        setTracks(ensureJsonArray<RawTrack>(rawTracks).map(normalizeTrack));
       } catch (err) {
         if (!isMounted) return;
         setError(err instanceof Error ? err.message : 'Не удалось загрузить курсы');
@@ -81,7 +95,7 @@ export function MyCoursesPage({ onCourseSelect }: MyCoursesPageProps) {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [isGuest, authLoading]);
 
   const trackLookup = useMemo(() => {
     return tracks.reduce<Record<string, Track>>((acc, track) => {
@@ -194,7 +208,7 @@ export function MyCoursesPage({ onCourseSelect }: MyCoursesPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-transparent">
+    <div className="min-h-screen bg-transparent border-b-2 border-black">
       <div className="container mx-auto px-6 py-12 space-y-10">
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
           <div className="space-y-4">

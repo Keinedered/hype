@@ -1,11 +1,23 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Course, Lesson, Module, Track } from '../types';
 import { coursesAPI, lessonsAPI, modulesAPI, tracksAPI } from '../api/client';
-import { normalizeCourse, normalizeLesson, normalizeModule, normalizeTrack, RawCourse, RawLesson, RawModule, RawTrack } from '../api/normalizers';
+import {
+  ensureJsonArray,
+  normalizeCourse,
+  normalizeLesson,
+  normalizeModule,
+  normalizeTrack,
+  RawCourse,
+  RawLesson,
+  RawModule,
+  RawTrack,
+} from '../api/normalizers';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './ui/accordion';
 import { ArrowLeft, BookOpen, MapPin, CheckCircle2, Circle, Play } from 'lucide-react';
+import { getGuestCourseAndTrack, getGuestModulesForCourse } from '../data/guestBrowse';
+import { useGuestBrowse } from '../hooks/useGuestBrowse';
 import { Skeleton } from './ui/skeleton';
 
 interface CoursePageProps {
@@ -25,6 +37,7 @@ export function CoursePage({
   onSelectLesson,
   onOpenHandbook
 }: CoursePageProps) {
+  const { isGuest, authLoading } = useGuestBrowse();
   const [course, setCourse] = useState<Course | null>(null);
   const [track, setTrack] = useState<Track | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
@@ -35,6 +48,34 @@ export function CoursePage({
     let isMounted = true;
 
     const load = async () => {
+      if (authLoading) {
+        return;
+      }
+
+      if (isGuest) {
+        try {
+          setLoading(true);
+          setError(null);
+          const bundle = getGuestCourseAndTrack(courseId);
+          const guestMods = getGuestModulesForCourse(courseId);
+          if (!bundle || !guestMods) {
+            if (!isMounted) return;
+            setError('В демо-режиме этот курс недоступен или пока без программы. Откройте курс «Введение в продуктовый менеджмент» или «Основы ивент-менеджмента».');
+            setCourse(null);
+            setTrack(null);
+            setModules([]);
+            return;
+          }
+          if (!isMounted) return;
+          setCourse(bundle.course);
+          setTrack(bundle.track);
+          setModules(guestMods);
+        } finally {
+          if (isMounted) setLoading(false);
+        }
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
@@ -48,7 +89,7 @@ export function CoursePage({
         ]);
 
         const normalizedTrack = normalizeTrack(rawTrack as RawTrack);
-        const rawModulesList = (rawModules as RawModule[]) ?? [];
+        const rawModulesList = ensureJsonArray<RawModule>(rawModules);
         const normalizedModules = rawModulesList.map(normalizeModule);
 
         const extractLessons = (value: unknown): RawLesson[] => {
@@ -103,7 +144,7 @@ export function CoursePage({
     return () => {
       isMounted = false;
     };
-  }, [courseId]);
+  }, [courseId, isGuest, authLoading]);
 
   const sortedModules = useMemo(() => {
     return [...modules].sort((a, b) => {

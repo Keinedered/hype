@@ -245,9 +245,10 @@ export function Header({ currentPage = 'home', onNavigate }: HeaderProps) {
                 </div>
                 <div className="border-t-2 border-black p-3 bg-gray-50">
                   <button
+                    type="button"
                     onClick={() => {
                       setShowNotifications(false);
-                      onNavigate?.('profile-notifications');
+                      onNavigate?.('profile?tab=notifications');
                     }}
                     className="w-full text-center font-mono text-xs uppercase tracking-wide hover:underline"
                   >

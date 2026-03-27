@@ -16,12 +16,26 @@ import { useAuth } from './context/AuthContext';
 import { SmoothLinesBackground } from './components/ui/SmoothLinesBackground';
 import { Track, TrackId } from './types';
 import { tracksAPI } from './api/client';
-import { normalizeTrack } from './api/normalizers';
+import { ensureJsonArray, normalizeTrack, RawTrack } from './api/normalizers';
+import { tracks as mockTracksAbout } from './data/mockData';
 
 type Page = 'home' | 'catalog' | 'path' | 'courses' | 'about' | 'profile' | 'admin' | 'course' | 'lesson' | 'handbook' | 'login';
 
+type ProfileTab = 'settings' | 'submissions' | 'faq' | 'notifications';
+
+const PROFILE_TAB_VALUES: ProfileTab[] = ['settings', 'submissions', 'faq', 'notifications'];
+
+function parseProfileTabParam(search: string): ProfileTab {
+  const tab = new URLSearchParams(search).get('tab');
+  if (tab && PROFILE_TAB_VALUES.includes(tab as ProfileTab)) {
+    return tab as ProfileTab;
+  }
+  return 'settings';
+}
+
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
+  const [profileInitialTab, setProfileInitialTab] = useState<ProfileTab>('settings');
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [catalogSelectedTrack, setCatalogSelectedTrack] = useState<TrackId | 'all'>('all');
@@ -31,6 +45,15 @@ export default function App() {
 
   const { isAuthenticated, loading: authLoading, user } = useAuth();
   useEffect(() => {
+    if (authLoading) {
+      return;
+    }
+    if (!isAuthenticated) {
+      setAboutTracks(mockTracksAbout);
+      setAboutTracksError(null);
+      setAboutTracksLoading(false);
+      return;
+    }
     let cancelled = false;
     const loadTracks = async () => {
       setAboutTracksLoading(true);
@@ -38,7 +61,7 @@ export default function App() {
       try {
         const rawTracks = await tracksAPI.getAll();
         if (!cancelled) {
-          setAboutTracks(rawTracks.map(normalizeTrack));
+          setAboutTracks(ensureJsonArray<RawTrack>(rawTracks).map(normalizeTrack));
         }
       } catch (error) {
         if (!cancelled) {
@@ -55,14 +78,18 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isAuthenticated, authLoading]);
   const pushPath = (path: string) => {
-    if (window.location.pathname !== path) {
-      window.history.pushState({}, '', path);
+    const normalized = path.startsWith('/') ? path : `/${path}`;
+    const targetUrl = new URL(normalized, window.location.origin);
+    const current = `${window.location.pathname}${window.location.search}`;
+    const next = `${targetUrl.pathname}${targetUrl.search}`;
+    if (current !== next) {
+      window.history.pushState({}, '', normalized);
     }
   };
 
-  const applyPathFromLocation = (pathname: string) => {
+  const applyPathFromLocation = (pathname: string, search: string = '') => {
     if (pathname === '/login') {
       setSelectedCourseId(null);
       setSelectedLessonId(null);
@@ -73,6 +100,7 @@ export default function App() {
     if (pathname === '/profile') {
       setSelectedCourseId(null);
       setSelectedLessonId(null);
+      setProfileInitialTab(parseProfileTabParam(search));
       setCurrentPage('profile');
       return;
     }
@@ -131,15 +159,16 @@ export default function App() {
   };
 
   useEffect(() => {
-    applyPathFromLocation(window.location.pathname);
+    applyPathFromLocation(window.location.pathname, window.location.search);
     const handlePopState = () => {
-      applyPathFromLocation(window.location.pathname);
+      applyPathFromLocation(window.location.pathname, window.location.search);
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   const handleNavigate = (page: string) => {
+    const queryString = page.includes('?') ? page.slice(page.indexOf('?') + 1) : '';
     const normalized = page.split('?')[0];
 
     if (normalized.startsWith('course/')) {
@@ -194,19 +223,15 @@ export default function App() {
       return;
     }
 
-    if (normalized === 'profile-notifications') {
-      setSelectedCourseId(null);
-      setSelectedLessonId(null);
-      setCurrentPage('profile');
-      pushPath('/profile');
-      return;
-    }
-
     if (normalized === 'profile') {
       setSelectedCourseId(null);
       setSelectedLessonId(null);
+      const tab = new URLSearchParams(queryString).get('tab');
+      setProfileInitialTab(
+        tab && PROFILE_TAB_VALUES.includes(tab as ProfileTab) ? (tab as ProfileTab) : 'settings'
+      );
       setCurrentPage('profile');
-      pushPath('/profile');
+      pushPath(queryString ? `/profile?${queryString}` : '/profile');
       return;
     }
 
@@ -295,12 +320,15 @@ export default function App() {
         onNavigate={handleNavigate}
       />
 
-      <main className="relative z-10">
+      <main className="relative z-10 font-sans">
         {currentPage === 'login' && (
-          <LoginPage onAuthSuccess={() => handleNavigate('profile')} />
+          <LoginPage
+            onAuthSuccess={() => handleNavigate('profile')}
+            onContinueWithoutAuth={() => handleNavigate('home')}
+          />
         )}
 
-        {currentPage === 'home' && <HomePage onOpenProfile={() => handleNavigate(isAuthenticated ? 'profile' : 'login')} />}
+        {currentPage === 'home' && <HomePage />}
 
         {currentPage === 'catalog' && (
           <>
@@ -336,7 +364,7 @@ export default function App() {
       )}
 
       {currentPage === 'about' && (
-        <div className="container mx-auto px-6 py-12">
+        <div className="container mx-auto px-6 py-12 border-b-2 border-black">
           <div className="max-w-6xl mx-auto space-y-12">
             {/* Page title */}
             <div className="relative inline-block">
@@ -455,7 +483,11 @@ export default function App() {
           onUnauthorized={() => handleNavigate('login')}
           fallback={null}
         >
-          <ProfilePage onUnauthorized={() => handleNavigate('login')} onNavigateToLesson={(lessonId) => handleNavigate(`lesson/${lessonId}`)} />
+          <ProfilePage
+            initialTab={profileInitialTab}
+            onUnauthorized={() => handleNavigate('login')}
+            onNavigateToLesson={(lessonId) => handleNavigate(`lesson/${lessonId}`)}
+          />
         </ProtectedRoute>
       )}
 
@@ -509,13 +541,6 @@ export default function App() {
           }}
         />
       )}
-      {/* #region agent log */}
-      {currentPage === 'lesson' && (() => {
-        fetch('http://127.0.0.1:7242/ingest/f934cd13-d56f-4483-86ce-e2102f0bc81b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'App.tsx:319',message:'LessonPage rendered',data:{selectedLessonId, selectedCourseId, hasLessonId:!!selectedLessonId, lessonIdPassed:!!selectedLessonId},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
-        return null;
-      })()}
-      {/* #endregion */}
-
       {currentPage === 'handbook' && (
         <HandbookPage
           onBack={() => {

@@ -18,7 +18,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from './ui/alert-dialog';
-import { Check, Clock, X, Bell, ArrowRight, Settings, HelpCircle, MessageSquare, Facebook, Twitter, Instagram } from 'lucide-react';
+import { Check, Clock, X, Bell, ArrowRight, Settings, HelpCircle, MessageSquare, Send, ExternalLink } from 'lucide-react';
 import { clearClientAuthState } from '../api/client';
 import { submissionsAPI } from '../api/client';
 
@@ -387,12 +387,8 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
             <div className="absolute -top-2 -left-2 w-5 h-5 border-l-2 border-t-2 border-black" />
             <div className="absolute -bottom-2 -right-2 w-5 h-5 border-r-2 border-b-2 border-black" />
           </div>
-          {/* Блок с именем и аватаром: аватар справа */}
+          {/* Блок с именем и аватаром: аватар слева от текста */}
           <div className="flex items-center gap-4 w-full md:w-auto justify-end md:justify-end">
-            <div className="text-right">
-              <div className="font-mono font-bold uppercase text-sm sm:text-base">{displayName}</div>
-              <div className="text-xs sm:text-sm text-gray-500 font-mono">Зарегистрирован: {registeredAt}</div>
-            </div>
             <div className="w-16 h-16 border-2 border-black overflow-hidden bg-white relative shrink-0">
               {currentAvatarSrc ? (
                 <img src={currentAvatarSrc} alt={displayName} className="w-full h-full object-cover" />
@@ -401,6 +397,10 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
                   {avatarInitials || 'N/A'}
                 </div>
               )}
+            </div>
+            <div className="text-left min-w-0">
+              <div className="font-mono font-bold uppercase text-sm sm:text-base">{displayName}</div>
+              <div className="text-xs sm:text-sm text-gray-500 font-mono">Зарегистрирован: {registeredAt}</div>
             </div>
           </div>
         </div>
@@ -475,7 +475,7 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
                         disabled={uploadAvatarMutation.isPending || deleteAvatarMutation.isPending}
                       />
                       <span className="inline-flex items-center border-2 border-black bg-white px-4 py-2 font-mono text-xs uppercase tracking-wide cursor-pointer hover:bg-black hover:text-white transition-colors">
-                        {uploadAvatarMutation.isPending ? 'Uploading...' : 'Upload photo'}
+                        {uploadAvatarMutation.isPending ? 'Загрузка…' : 'Загрузить фото'}
                       </span>
                     </label>
                     <Button
@@ -485,7 +485,7 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
                       disabled={deleteAvatarMutation.isPending || uploadAvatarMutation.isPending || (!data.avatarUrl && !avatarPreviewUrl)}
                       onClick={handleDeleteAvatar}
                     >
-                      {deleteAvatarMutation.isPending ? 'Removing...' : 'Delete photo'}
+                      {deleteAvatarMutation.isPending ? 'Удаление…' : 'Удалить фото'}
                     </Button>
                   </div>
                 </div>
@@ -545,7 +545,7 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
                   <p className="font-mono text-xs">{saveMessage}</p>
                 )}
                 <Button type="submit" disabled={saveProfileMutation.isPending} className="border-2 border-black bg-white text-black hover:bg-black hover:text-white font-mono uppercase tracking-wide mt-4">
-                  {saveProfileMutation.isPending ? 'Saving...' : 'Save changes'}
+                  {saveProfileMutation.isPending ? 'Сохранение…' : 'Сохранить изменения'}
                 </Button>
               </form>
             </div>
@@ -665,7 +665,7 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
                   disabled={changePasswordMutation.isPending}
                   className="border-2 border-black bg-white text-black hover:bg-black hover:text-white font-mono uppercase tracking-wide mt-4"
                 >
-                  {changePasswordMutation.isPending ? 'Saving...' : 'Change password'}
+                  {changePasswordMutation.isPending ? 'Смена пароля…' : 'Сменить пароль'}
                 </Button>
               </form>
             </div>
@@ -858,25 +858,22 @@ export function ProfilePage({ onNavigateToLesson, initialTab = 'settings', onUna
               </div>
               <div className="flex flex-wrap gap-4">
                 <a
-                  href="#"
+                  href="https://vk.ru/bit_ranepa"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex items-center gap-2 px-4 py-2 border-2 border-black hover:bg-black hover:text-white transition-colors font-mono text-sm uppercase tracking-wide"
                 >
-                  <Facebook className="w-4 h-4" />
-                  Facebook
+                  <ExternalLink className="w-4 h-4 shrink-0" />
+                  VK
                 </a>
                 <a
-                  href="#"
+                  href="https://t.me/bitbyemit"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex items-center gap-2 px-4 py-2 border-2 border-black hover:bg-black hover:text-white transition-colors font-mono text-sm uppercase tracking-wide"
                 >
-                  <Twitter className="w-4 h-4" />
-                  Twitter
-                </a>
-                <a
-                  href="#"
-                  className="flex items-center gap-2 px-4 py-2 border-2 border-black hover:bg-black hover:text-white transition-colors font-mono text-sm uppercase tracking-wide"
-                >
-                  <Instagram className="w-4 h-4" />
-                  Instagram
+                  <Send className="w-4 h-4 shrink-0" />
+                  Telegram
                 </a>
               </div>
             </div>

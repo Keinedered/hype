@@ -1,6 +1,8 @@
-﻿import { useEffect, useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { tracksAPI } from '../api/client';
 import { normalizeTrack, RawTrack } from '../api/normalizers';
+import { tracks as mockTracks } from '../data/mockData';
+import { useGuestBrowse } from '../hooks/useGuestBrowse';
 import { Track } from '../types';
 
 type Node = {
@@ -29,12 +31,21 @@ const edges: Edge[] = [
 
 export function PurposeGraph() {
   const id = useId();
+  const { isGuest, authLoading } = useGuestBrowse();
   const [tracks, setTracks] = useState<Track[]>([]);
 
   useEffect(() => {
     let isMounted = true;
 
     const load = async () => {
+      if (authLoading) {
+        return;
+      }
+      if (isGuest) {
+        if (!isMounted) return;
+        setTracks(mockTracks);
+        return;
+      }
       try {
         const rawTracks = (await tracksAPI.getAll()) as RawTrack[];
         if (!isMounted) return;
@@ -49,7 +60,7 @@ export function PurposeGraph() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [isGuest, authLoading]);
 
   const accentColors = useMemo(() => {
     const fromTracks = tracks.map((t) => t.color).filter(Boolean);

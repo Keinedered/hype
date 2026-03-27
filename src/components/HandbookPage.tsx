@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowLeft, BookOpen, Download, FileText, Search } from 'lucide-react';
 import { coursesAPI, tracksAPI } from '../api/client';
 import { normalizeCourse, normalizeTrack, RawCourse, RawTrack } from '../api/normalizers';
@@ -7,6 +7,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
+import { getGuestHandbookCourse } from '../data/guestBrowse';
+import { useGuestBrowse } from '../hooks/useGuestBrowse';
 
 interface HandbookPageProps {
   onBack?: () => void;
@@ -153,6 +155,7 @@ const getCourseTemplates = (courseId?: string) => {
 };
 
 export function HandbookPage({ onBack, courseId }: HandbookPageProps) {
+  const { isGuest, authLoading } = useGuestBrowse();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
@@ -163,6 +166,23 @@ export function HandbookPage({ onBack, courseId }: HandbookPageProps) {
     const load = async () => {
       if (!courseId) {
         if (isMounted) {
+          setSelectedCourse(null);
+          setSelectedTrack(null);
+        }
+        return;
+      }
+
+      if (authLoading) {
+        return;
+      }
+
+      if (isGuest) {
+        const g = getGuestHandbookCourse(courseId);
+        if (!isMounted) return;
+        if (g) {
+          setSelectedCourse(g.course);
+          setSelectedTrack(g.track);
+        } else {
           setSelectedCourse(null);
           setSelectedTrack(null);
         }
@@ -189,7 +209,7 @@ export function HandbookPage({ onBack, courseId }: HandbookPageProps) {
     return () => {
       isMounted = false;
     };
-  }, [courseId]);
+  }, [courseId, isGuest, authLoading]);
 
   const handbookSections = getCourseHandbookSections(courseId);
   const templates = getCourseTemplates(courseId);
@@ -220,7 +240,7 @@ export function HandbookPage({ onBack, courseId }: HandbookPageProps) {
   );
 
   return (
-    <div className="min-h-screen bg-transparent">
+    <div className="min-h-screen bg-transparent border-b-2 border-black">
       <div className="border-b-2 border-black bg-white/90 backdrop-blur sticky top-0 z-10">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
@@ -274,14 +294,14 @@ export function HandbookPage({ onBack, courseId }: HandbookPageProps) {
 
       <main className="container mx-auto px-6 py-12">
         <div className="max-w-6xl mx-auto space-y-8">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 sm:w-5 sm:h-5 text-gray-400 shrink-0" aria-hidden />
+          <div className="flex items-stretch gap-3 border-2 border-black bg-white px-3 py-2 sm:px-4 sm:py-3">
+            <Search className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground shrink-0 self-center" aria-hidden />
             <Input
-              type="text"
+              type="search"
               placeholder="Поиск по хендбуку..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-11 sm:pl-12 rounded-none border-2 border-black focus:border-black focus:ring-0 h-12 sm:h-14 font-mono"
+              className="flex-1 min-w-0 border-0 border-transparent rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 h-10 sm:h-12 font-mono shadow-none px-0"
             />
           </div>
 
